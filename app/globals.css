@@ -1,0 +1,313 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Updated color tokens to match ModuLux logo colors */
+  --background: #ffffff; /* Main background color */
+  --foreground: #1f2937; /* Main text color */
+  --card: #f9fafb; /* Card background */
+  --card-foreground: #1f2937; /* Text on cards */
+  --popover: #ffffff; /* Popover background */
+  --popover-foreground: #1f2937; /* Text in popovers */
+  --primary: #1e3a2e; /* Dark forest green from "Modu" */
+  --primary-foreground: #ffffff; /* Text on primary buttons */
+  --secondary: #b8860b; /* Warm copper/bronze from "Lux" */
+  --secondary-foreground: #ffffff; /* Text on secondary buttons */
+  --muted: #f9fafb; /* Muted text color */
+  --muted-foreground: #6b7280; /* Muted text contrast */
+  --accent: #cd853f; /* Lighter copper accent */
+  --accent-foreground: #ffffff; /* Text on accents */
+  --destructive: #dc2626; /* Destructive actions */
+  --destructive-foreground: #ffffff; /* Text on destructive actions */
+  --border: #e5e7eb; /* Borders for cards and sections */
+  --input: #ffffff; /* Input fields */
+  --ring: rgba(30, 58, 46, 0.3); /* Focus ring with primary color */
+  --chart-1: #1e3a2e; /* Chart colors - primary green */
+  --chart-2: #b8860b; /* Chart colors - copper */
+  --chart-3: #2d5a3d; /* Chart colors - lighter green */
+  --chart-4: #cd853f; /* Chart colors - light copper */
+  --chart-5: #4b5563; /* Chart colors - neutral */
+  --radius: 0.5rem; /* Corner rounding */
+  --sidebar: #f9fafb; /* Sidebar background */
+  --sidebar-foreground: #1f2937; /* Sidebar text */
+  --sidebar-primary: #1e3a2e; /* Sidebar primary elements */
+  --sidebar-primary-foreground: #ffffff; /* Text on sidebar elements */
+  --sidebar-accent: #cd853f; /* Sidebar accent elements */
+  --sidebar-accent-foreground: #ffffff; /* Text on sidebar accents */
+  --sidebar-border: #e5e7eb; /* Sidebar borders */
+  --sidebar-ring: rgba(30, 58, 46, 0.3); /* Sidebar focus ring */
+}
+
+.dark {
+  /* Updated dark mode colors to complement ModuLux logo */
+  --background: #0f172a; /* Dark background */
+  --foreground: #f1f5f9; /* Light text */
+  --card: #1e293b; /* Dark card background */
+  --card-foreground: #f1f5f9; /* Light text on cards */
+  --popover: #1e293b; /* Dark popover */
+  --popover-foreground: #f1f5f9; /* Light text in popovers */
+  --primary: #2d5a3d; /* Lighter forest green for dark mode */
+  --primary-foreground: #ffffff; /* White text on primary */
+  --secondary: #cd853f; /* Copper remains visible in dark */
+  --secondary-foreground: #0f172a; /* Dark text on copper */
+  --muted: #334155; /* Muted dark */
+  --muted-foreground: #94a3b8; /* Muted light text */
+  --accent: #daa520; /* Brighter gold accent for dark mode */
+  --accent-foreground: #0f172a; /* Dark text on accent */
+  --destructive: #dc2626; /* Destructive remains */
+  --destructive-foreground: #ffffff; /* White text on destructive */
+  --border: #334155; /* Dark borders */
+  --input: #1e293b; /* Dark input fields */
+  --ring: rgba(45, 90, 61, 0.5); /* Focus ring with primary */
+  --sidebar: #1e293b; /* Dark sidebar */
+  --sidebar-foreground: #f1f5f9; /* Light sidebar text */
+  --sidebar-primary: #2d5a3d; /* Sidebar primary */
+  --sidebar-primary-foreground: #ffffff; /* White text on sidebar primary */
+  --sidebar-accent: #334155; /* Dark sidebar accent */
+  --sidebar-accent-foreground: #f1f5f9; /* Light text on sidebar accent */
+  --sidebar-border: #334155; /* Dark sidebar borders */
+  --sidebar-ring: rgba(45, 90, 61, 0.5); /* Sidebar focus ring */
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Focus styles for better keyboard navigation */
+  *:focus-visible {
+    @apply outline-2 outline-offset-2 outline-primary;
+  }
+
+  /* Reduced motion for users who prefer it */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    :root {
+      --border: #000000;
+      --ring: rgba(0, 0, 0, 0.8);
+    }
+
+    .dark {
+      --border: #ffffff;
+      --ring: rgba(255, 255, 255, 0.8);
+    }
+  }
+
+  /* Screen reader only class */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .sr-only:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: inherit;
+    margin: inherit;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  /* Mobile-first responsive typography */
+  html {
+    font-size: 16px;
+  }
+
+  @media (max-width: 640px) {
+    html {
+      font-size: 14px;
+    }
+  }
+
+  /* Improved touch targets for mobile */
+  button,
+  [role="button"],
+  input[type="submit"],
+  input[type="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Better mobile scrolling */
+  @media (max-width: 768px) {
+    body {
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+}
+
+/* Custom styles for ModuLux brand colors */
+.section-number {
+  @apply text-6xl font-bold text-muted-foreground/20 absolute -top-4 -left-4 select-none;
+}
+
+.hero-gradient {
+  background: linear-gradient(135deg, rgba(30, 58, 46, 0.1) 0%, rgba(184, 134, 11, 0.05) 100%);
+}
+
+.glass-effect {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Dark mode glass effect */
+.dark .glass-effect {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Mobile navigation improvements */
+@media (max-width: 768px) {
+  .mobile-menu-overlay {
+    backdrop-filter: blur(4px);
+  }
+
+  /* Ensure mobile menu is accessible */
+  .mobile-menu {
+    max-height: 100vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Animation classes for better UX */
+.animate-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.slide-in-from-bottom-2 {
+  animation: slideInFromBottom 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Skip link styling */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: 8px;
+  text-decoration: none;
+  border-radius: 4px;
+  z-index: 1000;
+  transition: top 0.3s;
+}
+
+.skip-link:focus {
+  top: 6px;
+}
+
+/* Improved form accessibility */
+input:invalid {
+  border-color: var(--destructive);
+}
+
+input:valid {
+  border-color: var(--border);
+}
+
+/* Better contrast for links */
+a:not(.no-underline) {
+  text-decoration-skip-ink: auto;
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
