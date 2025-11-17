@@ -1,72 +1,58 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { MapPin, Calendar, Users } from "lucide-react"
 import Link from "next/link"
 
 export default function ProjectsPage() {
-  const projects = [
-    {
-      id: "rizal-avenue-penthouse",
-      title: "Rizal Avenue Penthouse",
-      location: "Rizal Avenue, Puerto Princesa City, Palawan",
-      year: "2022",
-      type: "Penthouse",
-      description: "Modern kitchen cabinets and lavatory mirror cabinet installation for luxury penthouse",
-      image: "/modern-luxury-kitchen-with-emerald-green-modular-c.png",
-      services: ["Kitchen Cabinets", "Lavatory Mirror Cabinet"],
-    },
-    {
-      id: "skylight-hotel-kitchen",
-      title: "Skylight Hotel Kitchen",
-      location: "Rizal Avenue, Palawan",
-      year: "2022",
-      type: "Commercial",
-      description: "Complete kitchen cabinetry and countertop supply and installation for hotel project",
-      image: "/luxury-kitchen-with-emerald-green-modular-cabinets.png",
-      services: ["Kitchen Cabinets", "Countertop Installation"],
-    },
-    {
-      id: "wtei-inc-mansion",
-      title: "WTEI Inc Mansion",
-      location: "Bancao Bancao, Puerto Princesa City, Palawan",
-      year: "2022",
-      type: "Mansion",
-      description: "Lavatory cabinets and walk-in closet cabinets for luxury mansion",
-      image: "/luxury-bedroom-with-emerald-green-modular-wardrobe.png",
-      services: ["Lavatory Cabinets", "Walk-in Closet"],
-    },
-    {
-      id: "garcia-mansion-kitchen",
-      title: "Garcia Mansion Kitchen",
-      location: "Narra, Palawan",
-      year: "2022",
-      type: "Mansion",
-      description: "Modular kitchen and countertop supply and installation for residential mansion",
-      image: "/panoramic-view-of-luxury-kitchen-and-dining-area-w.png",
-      services: ["Modular Kitchen", "Countertop Installation"],
-    },
-    {
-      id: "mr-palanca-house",
-      title: "Mr. Palanca House",
-      location: "Wescom Road, Puerto Princesa City, Palawan",
-      year: "2023",
-      type: "Bungalow",
-      description: "Complete kitchen renovation with modular cabinets and premium countertops",
-      image: "/luxury-home-office-with-emerald-green-modular-cabi.png",
-      services: ["Kitchen Cabinets", "Countertop Installation"],
-    },
-    {
-      id: "contemporary-office-space",
-      title: "Contemporary Office Space",
-      location: "Puerto Princesa City, Palawan",
-      year: "2023",
-      type: "Commercial",
-      description: "Custom office furniture and storage solutions for modern workspace",
-      image: "/elegant-living-room-with-built-in-emerald-green-mo.png",
-      services: ["Office Furniture", "Storage Solutions"],
-    },
-  ]
+  const [projects, setProjects] = useState<any[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    fetch("/api/projects")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled && Array.isArray(data)) setProjects(data)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  function sanitizeSrc(src: string) {
+    const s = (src || "").trim()
+    if (!s) return ""
+    const trimToFirstExt = (u: string) => {
+      const re = /(\.jpe?g|\.png|\.webp|\.gif)/i
+      const m = re.exec(u)
+      if (!m) return u
+      return u.slice(0, m.index + m[0].length)
+    }
+    if (s.startsWith("http")) return trimToFirstExt(s)
+    if (s.startsWith("/")) {
+      if (s.includes("http")) {
+        const i = s.indexOf("http")
+        return trimToFirstExt(s.slice(i))
+      }
+      return trimToFirstExt(s)
+    }
+    if (s.includes("http")) {
+      const i = s.indexOf("http")
+      return trimToFirstExt(s.slice(i))
+    }
+    return ""
+  }
+
+  function pickImage(p: any) {
+    const candidates = [p?.image, ...(Array.isArray(p?.images) ? p.images : [])].filter(Boolean)
+    for (const c of candidates) {
+      const s = sanitizeSrc(String(c))
+      if (s) return s
+    }
+    return "/placeholder.svg"
+  }
 
   return (
     <main className="min-h-screen bg-background">
@@ -103,12 +89,9 @@ export default function ProjectsPage() {
                   <div className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-2 cursor-pointer">
                     <div className="aspect-[4/3] relative overflow-hidden">
                       <img
-                        src={project.image || "/placeholder.svg"}
+                        src={pickImage(project)}
                         alt={project.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        onError={(e) => {
-                          e.currentTarget.src = "/modern-kitchen-cabinet-installation.jpg"
-                        }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                       <div className="absolute bottom-4 left-4 text-white">

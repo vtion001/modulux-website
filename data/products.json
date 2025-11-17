@@ -1,0 +1,32 @@
+[
+  {
+    "id": "kitchen-cabinets",
+    "name": "Kitchen Cabinets",
+    "category": "Kitchen",
+    "image": "/modern-luxury-kitchen-with-emerald-green-modular-c.png"
+  },
+  {
+    "id": "wardrobes",
+    "name": "Wardrobes",
+    "category": "Wardrobes",
+    "image": "/luxury-bedroom-with-emerald-green-modular-wardrobe.png"
+  },
+  {
+    "id": "bathroom-vanities",
+    "name": "Bathroom Vanities",
+    "category": "Bathroom",
+    "image": "/luxury-kitchen-with-emerald-green-modular-cabinets.png"
+  },
+  {
+    "id": "walk-in-closets",
+    "name": "Walk-in Closets",
+    "category": "Closets",
+    "image": "/luxury-home-office-with-emerald-green-modular-cabi.png"
+  },
+  {
+    "id": "bespoke-furniture",
+    "name": "Bespoke Furniture",
+    "category": "Furniture",
+    "image": "/elegant-living-room-with-built-in-emerald-green-mo.png"
+  }
+]

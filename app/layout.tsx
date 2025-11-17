@@ -11,6 +11,8 @@ import { LiveChat } from "@/components/live-chat"
 import { ScrollToTop } from "@/components/scroll-to-top"
 import { Breadcrumb } from "@/components/breadcrumb"
 import { AccessibilitySkipLink } from "@/components/accessibility-skip-link"
+import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "sonner"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -73,7 +75,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="scroll-smooth">
+    <html lang="en" className="scroll-smooth light" suppressHydrationWarning>
       <head>
         <script
           type="application/ld+json"
@@ -104,16 +106,19 @@ export default function RootLayout({
         />
       </head>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} antialiased`}>
-        <AccessibilitySkipLink />
-        <Header />
-        <Breadcrumb />
-        <main id="main-content" role="main">
-          <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
-        </main>
-        <Footer />
-        <FloatingContact />
-        <LiveChat />
-        <ScrollToTop />
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
+          <AccessibilitySkipLink />
+          <Header />
+          <Breadcrumb />
+          <main id="main-content" role="main">
+            <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
+          </main>
+          <Footer />
+          <FloatingContact />
+          <LiveChat />
+          <ScrollToTop />
+          <Toaster position="top-right" richColors closeButton />
+        </ThemeProvider>
       </body>
     </html>
   )

@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { projects } from "@/lib/projects-data"
 
 export default function HomePage() {
   return (
@@ -151,39 +152,8 @@ export default function HomePage() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-            {[
-              {
-                title: "Modern Custom Built Home Project in Oakville, Canada",
-                location: "Oakville, Canada",
-                image: "/luxury-home-office-with-emerald-green-modular-cabi.png",
-              },
-              {
-                title: "Luxury Home Project in NJ, USA",
-                location: "New Jersey, USA",
-                image: "/panoramic-view-of-luxury-kitchen-and-dining-area-w.png",
-              },
-              {
-                title: "Contemporary House Project in Oman",
-                location: "Muscat, Oman",
-                image: "/luxury-bedroom-with-emerald-green-modular-wardrobe.png",
-              },
-              {
-                title: "America Kitchen Bathroom Project in Sun Valley, Los Angeles",
-                location: "Los Angeles, USA",
-                image: "/modern-luxury-kitchen-with-emerald-green-modular-c.png",
-              },
-              {
-                title: "Glossy Grey Whole House Project in Perth, Australia",
-                location: "Perth, Australia",
-                image: "/luxury-kitchen-with-emerald-green-modular-cabinets.png",
-              },
-              {
-                title: "Custom Full House Furnishing Project in Ghana",
-                location: "Accra, Ghana",
-                image: "/elegant-living-room-with-built-in-emerald-green-mo.png",
-              },
-            ].map((project, index) => (
-              <div key={index} className="group cursor-pointer">
+            {projects.slice(0, 6).map((project) => (
+              <div key={project.id} className="group cursor-pointer">
                 <div className="relative overflow-hidden rounded-lg mb-4">
                   <img
                     src={project.image || "/placeholder.svg"}
@@ -276,32 +246,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Dealership CTA */}
-      <section className="py-16 bg-primary text-primary-foreground">
-        <div className="container mx-auto px-4 max-w-4xl text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            Become our dealer to get dealer price for full house products.
-          </h2>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/dealership">
-              <Button variant="secondary" size="lg" className="px-8 py-6 text-lg">
-                Dealership
-                <span className="ml-2">→</span>
-              </Button>
-            </Link>
-            <Link href="/catalog">
-              <Button
-                variant="outline"
-                size="lg"
-                className="px-8 py-6 text-lg border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary bg-transparent"
-              >
-                Get Catalog
-                <span className="ml-2">↓</span>
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
 
       {/* Section 06 - Testimonials */}
       <section className="py-24 bg-background relative">
