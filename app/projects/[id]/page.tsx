@@ -1,143 +1,87 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { ArrowLeft, MapPin, Calendar, Building, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
 
-const projectsData = {
-  "rizal-avenue-penthouse": {
-    title: "Rizal Avenue Penthouse",
-    location: "Rizal Avenue, Puerto Princesa City, Palawan",
-    year: "2022",
-    type: "Penthouse",
-    client: "Private Residence",
-    description:
-      "A sophisticated penthouse transformation featuring modern kitchen cabinets and elegant lavatory mirror cabinets. This project showcases our ability to blend contemporary design with functional storage solutions in a luxury residential setting.",
-    services: ["Kitchen Cabinets", "Lavatory Mirror Cabinet", "Custom Countertops", "Professional Installation"],
-    images: [
-      "/modern-luxury-kitchen-with-emerald-green-modular-c.png",
-      "/luxury-kitchen-with-emerald-green-modular-cabinets.png",
-      "/panoramic-view-of-luxury-kitchen-and-dining-area-w.png",
-    ],
-    details: {
-      duration: "6 weeks",
-      area: "2,500 sq ft",
-      budget: "₱2,500,000 - ₱3,000,000",
-      materials: ["Marine Plywood", "Quartz Countertops", "Premium Hardware"],
-    },
-  },
-  "skylight-hotel-kitchen": {
-    title: "Skylight Hotel Kitchen",
-    location: "Rizal Avenue, Palawan",
-    year: "2022",
-    type: "Commercial",
-    client: "Skylight Hotel",
-    description:
-      "Complete commercial kitchen renovation for a luxury hotel, featuring durable cabinetry and professional-grade countertops designed to withstand high-volume operations while maintaining aesthetic appeal.",
-    services: ["Commercial Kitchen Cabinets", "Countertop Installation", "Storage Solutions", "Equipment Integration"],
-    images: [
-      "/luxury-kitchen-with-emerald-green-modular-cabinets.png",
-      "/modern-luxury-kitchen-with-emerald-green-modular-c.png",
-      "/panoramic-view-of-luxury-kitchen-and-dining-area-w.png",
-    ],
-    details: {
-      duration: "8 weeks",
-      area: "1,800 sq ft",
-      budget: "₱3,500,000 - ₱4,000,000",
-      materials: ["Stainless Steel", "Commercial Grade Plywood", "Heat-Resistant Surfaces"],
-    },
-  },
-  "wtei-inc-mansion": {
-    title: "WTEI Inc Mansion",
-    location: "Bancao Bancao, Puerto Princesa City, Palawan",
-    year: "2022",
-    type: "Mansion",
-    client: "WTEI Inc",
-    description:
-      "Luxury mansion project featuring custom lavatory cabinets and spacious walk-in closet systems. This project demonstrates our expertise in creating cohesive storage solutions throughout large residential properties.",
-    services: ["Lavatory Cabinets", "Walk-in Closet Systems", "Custom Mirrors", "Lighting Integration"],
-    images: [
-      "/luxury-bedroom-with-emerald-green-modular-wardrobe.png",
-      "/luxury-home-office-with-emerald-green-modular-cabi.png",
-      "/elegant-living-room-with-built-in-emerald-green-mo.png",
-    ],
-    details: {
-      duration: "10 weeks",
-      area: "4,200 sq ft",
-      budget: "₱4,500,000 - ₱5,500,000",
-      materials: ["Solid Wood", "Premium Veneers", "Luxury Hardware"],
-    },
-  },
-  "garcia-mansion-kitchen": {
-    title: "Garcia Mansion Kitchen",
-    location: "Narra, Palawan",
-    year: "2022",
-    type: "Mansion",
-    client: "Garcia Family",
-    description:
-      "Elegant mansion kitchen featuring modular cabinetry and premium countertops. The design emphasizes both functionality and luxury, creating a space perfect for both daily use and entertaining.",
-    services: ["Modular Kitchen Design", "Countertop Installation", "Custom Storage", "Appliance Integration"],
-    images: [
-      "/panoramic-view-of-luxury-kitchen-and-dining-area-w.png",
-      "/modern-luxury-kitchen-with-emerald-green-modular-c.png",
-      "/luxury-kitchen-with-emerald-green-modular-cabinets.png",
-    ],
-    details: {
-      duration: "7 weeks",
-      area: "3,000 sq ft",
-      budget: "₱3,200,000 - ₱3,800,000",
-      materials: ["Marine Plywood", "Granite Countertops", "European Hardware"],
-    },
-  },
-  "mr-palanca-house": {
-    title: "Mr. Palanca House",
-    location: "Wescom Road, Puerto Princesa City, Palawan",
-    year: "2023",
-    type: "Bungalow",
-    client: "Palanca Family",
-    description:
-      "Complete kitchen renovation for a modern bungalow, featuring sleek modular cabinets and premium countertops that maximize space efficiency while maintaining contemporary aesthetics.",
-    services: ["Kitchen Renovation", "Modular Cabinets", "Countertop Installation", "Space Optimization"],
-    images: [
-      "/luxury-home-office-with-emerald-green-modular-cabi.png",
-      "/modern-luxury-kitchen-with-emerald-green-modular-c.png",
-      "/elegant-living-room-with-built-in-emerald-green-mo.png",
-    ],
-    details: {
-      duration: "5 weeks",
-      area: "1,500 sq ft",
-      budget: "₱1,800,000 - ₱2,200,000",
-      materials: ["Engineered Wood", "Quartz Surfaces", "Soft-Close Hardware"],
-    },
-  },
-  "contemporary-office-space": {
-    title: "Contemporary Office Space",
-    location: "Puerto Princesa City, Palawan",
-    year: "2023",
-    type: "Commercial",
-    client: "Corporate Client",
-    description:
-      "Modern office furniture and storage solutions designed to enhance productivity and create an inspiring work environment. Features custom-built desks, storage units, and collaborative spaces.",
-    services: ["Office Furniture Design", "Storage Solutions", "Workspace Planning", "Custom Installations"],
-    images: [
-      "/elegant-living-room-with-built-in-emerald-green-mo.png",
-      "/luxury-home-office-with-emerald-green-modular-cabi.png",
-      "/modern-luxury-kitchen-with-emerald-green-modular-c.png",
-    ],
-    details: {
-      duration: "4 weeks",
-      area: "2,000 sq ft",
-      budget: "₱2,000,000 - ₱2,500,000",
-      materials: ["Laminated Boards", "Metal Accents", "Ergonomic Components"],
-    },
-  },
+type Project = {
+  id: string
+  title: string
+  location: string
+  year: string
+  type: string
+  description: string
+  image?: string
+  images?: string[]
+  services?: string[]
+  details?: {
+    duration?: string
+    area?: string
+    budget?: string
+    materials?: string[]
+  }
 }
 
 export default function ProjectDetailPage({ params }: { params: { id: string } }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
-  const project = projectsData[params.id as keyof typeof projectsData]
+  const [project, setProject] = useState<Project | null>(null)
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    const sanitizeSrc = (src: string) => {
+      const s = (src || "").trim()
+      if (!s) return ""
+      const trimToFirstExt = (u: string) => {
+        const re = /(\.jpe?g|\.png|\.webp|\.gif)/i
+        const m = re.exec(u)
+        if (!m) return u
+        return u.slice(0, m.index + m[0].length)
+      }
+      if (s.startsWith("http")) return trimToFirstExt(s)
+      if (s.startsWith("/")) {
+        if (s.includes("http")) {
+          const i = s.indexOf("http")
+          return trimToFirstExt(s.slice(i))
+        }
+        return trimToFirstExt(s)
+      }
+      if (s.includes("http")) {
+        const i = s.indexOf("http")
+        return trimToFirstExt(s.slice(i))
+      }
+      return ""
+    }
+    fetch("/api/projects")
+      .then((r) => r.json())
+      .then((list: Project[]) => {
+        if (cancelled) return
+        const p = Array.isArray(list) ? list.find((x) => x.id === params.id) : null
+        if (p) {
+          const imgs = [p.image, ...(Array.isArray(p.images) ? p.images : [])]
+            .map((x) => sanitizeSrc(String(x || "")))
+            .filter((x): x is string => !!x)
+          setProject({ ...p, images: imgs.length ? imgs : ["/placeholder.svg"] })
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoaded(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [params.id])
+
+  if (!loaded) {
+    return (
+      <main className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground">Loading…</div>
+      </main>
+    )
+  }
 
   if (!project) {
     return (
@@ -229,7 +173,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                 <ChevronRight className="w-6 h-6" />
               </button>
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                {project.images.map((_, index) => (
+                {project.images!.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
@@ -241,7 +185,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
-              {project.images.map((image, index) => (
+              {project.images!.map((image, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentImageIndex(index)}
@@ -268,22 +212,30 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
             <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }}>
               <h2 className="text-4xl font-bold text-foreground mb-8">Project Details</h2>
               <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">Client</h3>
-                  <p className="text-muted-foreground">{project.client}</p>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">Duration</h3>
-                  <p className="text-muted-foreground">{project.details.duration}</p>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">Area</h3>
-                  <p className="text-muted-foreground">{project.details.area}</p>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-foreground mb-2">Budget Range</h3>
-                  <p className="text-muted-foreground">{project.details.budget}</p>
-                </div>
+                {project.client && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">Client</h3>
+                    <p className="text-muted-foreground">{project.client}</p>
+                  </div>
+                )}
+                {project.details?.duration && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">Duration</h3>
+                    <p className="text-muted-foreground">{project.details?.duration}</p>
+                  </div>
+                )}
+                {project.details?.area && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">Area</h3>
+                    <p className="text-muted-foreground">{project.details?.area}</p>
+                  </div>
+                )}
+                {project.details?.budget && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground mb-2">Budget Range</h3>
+                    <p className="text-muted-foreground">{project.details?.budget}</p>
+                  </div>
+                )}
               </div>
             </motion.div>
             <motion.div
@@ -293,22 +245,26 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
             >
               <h2 className="text-4xl font-bold text-foreground mb-8">Services Provided</h2>
               <div className="space-y-4 mb-8">
-                {project.services.map((service, index) => (
+                {Array.isArray(project.services) && project.services.map((service, index) => (
                   <div key={service} className="flex items-center">
                     <div className="w-2 h-2 bg-accent rounded-full mr-4" />
                     <span className="text-foreground">{service}</span>
                   </div>
                 ))}
               </div>
-              <h3 className="text-2xl font-bold text-foreground mb-4">Materials Used</h3>
-              <div className="space-y-2">
-                {project.details.materials.map((material, index) => (
-                  <div key={material} className="flex items-center">
-                    <div className="w-2 h-2 bg-primary rounded-full mr-4" />
-                    <span className="text-muted-foreground">{material}</span>
+              {Array.isArray(project.details?.materials) && project.details!.materials!.length > 0 && (
+                <>
+                  <h3 className="text-2xl font-bold text-foreground mb-4">Materials Used</h3>
+                  <div className="space-y-2">
+                    {project.details!.materials!.map((material) => (
+                      <div key={material} className="flex items-center">
+                        <div className="w-2 h-2 bg-primary rounded-full mr-4" />
+                        <span className="text-muted-foreground">{material}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              )}
             </motion.div>
           </div>
         </div>

@@ -10,6 +10,8 @@ interface CalculatorState {
   finish: string
   hardware: string
   installation: boolean
+  linearMeter: string
+  kitchenScope: string
 }
 
 const pricing = {
@@ -59,39 +61,35 @@ export default function CalculatorPage() {
     finish: "",
     hardware: "",
     installation: false,
+    linearMeter: "",
+    kitchenScope: "",
   })
 
   const [estimate, setEstimate] = useState<number | null>(null)
 
   const calculateEstimate = () => {
-    if (!formData.projectType || !formData.roomSize || !formData.cabinetType) {
-      return
+    const lm = parseFloat(formData.linearMeter);
+    if (!formData.projectType || !formData.cabinetType || isNaN(lm) || lm <= 0) {
+      return;
     }
 
-    const basePrice = pricing.roomSize[formData.roomSize as keyof typeof pricing.roomSize]
-    let multiplier = pricing.projectType[formData.projectType as keyof typeof pricing.projectType]
+    // Use luxury as the base price per linear meter, then apply tier discounts
+    const luxuryBaseRate = pricing.cabinetType.luxury;
+    let total = luxuryBaseRate * lm;
 
-    if (formData.cabinetType) {
-      multiplier *= pricing.cabinetType[formData.cabinetType as keyof typeof pricing.cabinetType]
+    // Apply tier-based discounts off the luxury base price
+    if (formData.cabinetType === "premium") {
+      total *= 0.9; // 10% discount from luxury for premium tier
+    } else if (formData.cabinetType === "basic") {
+      total *= 0.8; // 20% total discount from luxury for basic tier
     }
-    if (formData.material) {
-      multiplier *= pricing.material[formData.material as keyof typeof pricing.material]
-    }
-    if (formData.finish) {
-      multiplier *= pricing.finish[formData.finish as keyof typeof pricing.finish]
-    }
-    if (formData.hardware) {
-      multiplier *= pricing.hardware[formData.hardware as keyof typeof pricing.hardware]
-    }
-
-    let total = basePrice * multiplier
 
     if (formData.installation) {
-      total += basePrice * pricing.installation
+      total += luxuryBaseRate * pricing.installation * lm;
     }
 
-    setEstimate(Math.round(total))
-  }
+    setEstimate(Math.round(total));
+  };
 
   const handleInputChange = (field: keyof CalculatorState, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -137,31 +135,40 @@ export default function CalculatorPage() {
                     </button>
                   ))}
                 </div>
+                {formData.projectType === "kitchen" && (
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-foreground mb-3">Kitchen Cabinet Scope</label>
+                    <select
+                      value={formData.kitchenScope}
+                      onChange={(e) => handleInputChange("kitchenScope", e.target.value)}
+                      className="w-full p-3 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      <option value="">Select Scope</option>
+                      <option value="base_only">Base Cabinets Only</option>
+                      <option value="hanging_only">Hanging Cabinets Only</option>
+                    </select>
+                  </div>
+                )}
               </div>
 
-              {/* Room Size */}
+              {/* Linear Meters */}
               <div>
-                <label className="block text-sm font-medium text-foreground mb-3">Room Size</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { value: "small", label: "Small (< 10 sqm)" },
-                    { value: "medium", label: "Medium (10-20 sqm)" },
-                    { value: "large", label: "Large (20-40 sqm)" },
-                    { value: "xlarge", label: "Extra Large (> 40 sqm)" },
-                  ].map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => handleInputChange("roomSize", option.value)}
-                      className={`p-3 rounded-md border text-sm font-medium transition-all duration-200 ${
-                        formData.roomSize === option.value
-                          ? "bg-primary text-white border-primary"
-                          : "bg-background border-border/40 text-foreground hover:border-primary/50"
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
+                <label htmlFor="linearMeter" className="block text-sm font-medium text-foreground mb-3">
+                  Linear Meters (total cabinet length)
+                </label>
+                <input
+                  id="linearMeter"
+                  type="number"
+                  min="1"
+                  step="0.1"
+                  placeholder="e.g., 8.5"
+                  value={formData.linearMeter}
+                  onChange={(e) => handleInputChange("linearMeter", e.target.value)}
+                  className="w-full p-3 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Measure the total length of cabinets you need in meters.
+                </p>
               </div>
 
               {/* Cabinet Type */}
@@ -245,9 +252,17 @@ export default function CalculatorPage() {
                     <span className="font-medium text-foreground capitalize">{formData.projectType}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Room Size:</span>
-                    <span className="font-medium text-foreground capitalize">{formData.roomSize}</span>
+                    <span className="text-muted-foreground">Linear Meters:</span>
+                    <span className="font-medium text-foreground">{formData.linearMeter} m</span>
                   </div>
+                  {formData.projectType === "kitchen" && formData.kitchenScope && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Kitchen Scope:</span>
+                      <span className="font-medium text-foreground">
+                        {formData.kitchenScope === "base_only" ? "Base Cabinets Only" : "Hanging Cabinets Only"}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Cabinet Quality:</span>
                     <span className="font-medium text-foreground capitalize">{formData.cabinetType}</span>

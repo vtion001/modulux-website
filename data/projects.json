@@ -1,0 +1,104 @@
+[
+  {
+    "id": "rizal-avenue-penthouse",
+    "title": "Puerto Princesa City, Rizal Avenue Penthouse Kitchen Project",
+    "location": "Rizal Avenue, Puerto Princesa City, Palawan",
+    "year": "2022",
+    "type": "Penthouse",
+    "description": "Modern kitchen cabinets and lavatory mirror cabinet installation for luxury penthouse",
+    "image": "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228651/y3wqoymderb4sh87eh3j.jpg",
+    "images": [
+      "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228650/k692dzpodzn1jg8y5r8p.jpg",
+      "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228649/buuafzgztbrlwllolvys.jpg"
+    ],
+    "services": [
+      "Kitchen Cabinets",
+      "Lavatory Mirror Cabinet"
+    ]
+  },
+  {
+    "id": "skylight-hotel-kitchen",
+    "title": "Puerto Princesa City, Rizal Avenue Kitchen Project",
+    "location": "Rizal Avenue, Palawan",
+    "year": "2022",
+    "type": "Commercial",
+    "description": "Complete kitchen cabinetry and countertop supply and installation for hotel project",
+    "image": "https://res.cloudinary.com/dbviya1rj/image/upload/v1763230412/momirivjqmguvgarjvak.jpg",
+    "images": [
+      "https://res.cloudinary.com/dbviya1rj/image/upload/v1763230413/sqhkgdoghtk0pyq1yivs.jpg",
+      "https://res.cloudinary.com/dbviya1rj/image/upload/v1763230412/nh6ugnu01kg05x7ir637.jpg"
+    ],
+    "services": [
+      "Kitchen Cabinets",
+      "Countertop Installation"
+    ]
+  },
+  {
+    "id": "wtei-inc-mansion",
+    "title": "Puerto Princesa City, Abueg Road Kitchen Bathroom and WIC Project",
+    "location": "Bancao Bancao, Puerto Princesa City, Palawan",
+    "year": "2022",
+    "type": "Mansion",
+    "description": "Lavatory cabinets and walk-in closet cabinets for luxury mansion",
+    "image": "https://res.cloudinary.com/dbviya1rj/image/upload/v1763230884/mnaxvkblij98d2yppmav.jpg",
+    "images": [
+      "https://res.cloudinary.com/dbviya1rj/image/upload/v1763230886/xltvl2buitsribfarsiv.jpg",
+      "https://res.cloudinary.com/dbviya1rj/image/upload/v1763230885/unl7nmyksifzp3xdghvs.jpg"
+    ],
+    "services": [
+      "Lavatory Cabinets",
+      "Walk-in Closet"
+    ]
+  },
+  {
+    "id": "garcia-mansion-kitchen",
+    "title": "Narra Palawan, Kitchen Project",
+    "location": "Narra, Palawan",
+    "year": "2022",
+    "type": "Mansion",
+    "description": "Modular kitchen and countertop supply and installation for residential mansion",
+    "image": "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228628/yxtlcshl1tr5rwexkhcs.jpg",
+    "images": [
+      "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228628/tcn9seit6len2caixjlq.jpg",
+      "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228627/iq3yzfsvjai7mnnu1xk7.jpg"
+    ],
+    "services": [
+      "Modular Kitchen",
+      "Countertop Installation"
+    ]
+  },
+  {
+    "id": "mr-palanca-house",
+    "title": "Puerto Princesa City, Wescom Road Kitchen Project",
+    "location": "Wescom Road, Puerto Princesa City, Palawan",
+    "year": "2023",
+    "type": "Bungalow",
+    "description": "Complete kitchen renovation with modular cabinets and premium countertops",
+    "image": "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228570/bgcaoojrvuktnyyzsmlr.jpg",
+    "images": [
+      "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228570/cekghmc8mp6i7bsgwqwx.jpg",
+      "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228570/e7rimmvdhiloiw3xkioh.jpg"
+    ],
+    "services": [
+      "Kitchen Cabinets",
+      "Countertop Installation"
+    ]
+  },
+  {
+    "id": "contemporary-office-space",
+    "title": "Puerto Princesa City, Abueg Rd Kitchen Project",
+    "location": "Puerto Princesa City, Palawan",
+    "year": "2023",
+    "type": "Commercial",
+    "description": "Custom office furniture and storage solutions for modern workspace",
+    "image": "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228546/neaukknuqfws6djd0m5t.jpg",
+    "images": [
+      "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228546/xs2kbkay8e5ekpopudd9.jpg",
+      "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228546/m0yfmysvqgdhwcw2epnb.jpg"
+    ],
+    "services": [
+      "Office Furniture",
+      "Storage Solutions"
+    ]
+  }
+]

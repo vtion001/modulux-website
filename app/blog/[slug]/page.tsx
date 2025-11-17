@@ -1,42 +1,25 @@
 import { LazyImage } from "@/components/lazy-image"
 import Link from "next/link"
+import path from "path"
+import { readFile } from "fs/promises"
 
-// This would typically come from a CMS or database
-const getBlogPost = (slug: string) => {
-  const posts = {
-    "modern-kitchen-trends-2025": {
-      title: "Modern Kitchen Trends 2025: What's Hot in Cabinet Design",
-      content: `
-        <p>The kitchen continues to be the heart of the home, and 2025 brings exciting new trends in cabinet design that blend functionality with stunning aesthetics. As we move into this new year, homeowners are seeking cabinet solutions that not only look beautiful but also enhance their daily living experience.</p>
-
-        <h2>1. Sustainable Materials Take Center Stage</h2>
-        <p>Environmental consciousness is driving cabinet design choices. Bamboo, reclaimed wood, and low-VOC finishes are becoming increasingly popular. These materials offer durability while reducing environmental impact.</p>
-
-        <h2>2. Mixed Material Combinations</h2>
-        <p>Gone are the days of uniform cabinet materials. 2025 sees the rise of mixed materials - combining wood with metal accents, glass panels with solid doors, and matte finishes with glossy highlights.</p>
-
-        <h2>3. Smart Storage Solutions</h2>
-        <p>Technology integration continues to evolve with smart storage solutions. Pull-out drawers with built-in charging stations, automated lighting systems, and app-controlled cabinet features are becoming standard.</p>
-
-        <h2>4. Bold Color Choices</h2>
-        <p>While white kitchens remain popular, bold colors are making a statement. Deep forest greens, navy blues, and warm terracotta tones are trending for those seeking personality in their kitchen design.</p>
-
-        <h2>Conclusion</h2>
-        <p>The future of kitchen cabinet design is bright, sustainable, and highly functional. At ModuLux, we're committed to staying ahead of these trends while maintaining our focus on quality craftsmanship and customer satisfaction.</p>
-      `,
-      image: "/placeholder.svg?height=400&width=800&text=Modern+Kitchen+Trends",
-      author: "ModuLux Design Team",
-      date: "January 8, 2025",
-      readTime: "5 min read",
-      category: "Design Trends",
-    },
-  }
-
-  return posts[slug as keyof typeof posts] || null
+type Post = {
+  id: string
+  title: string
+  excerpt?: string
+  description?: string
+  image?: string
+  author?: string
+  date?: string
+  readTime?: string
+  category?: string
 }
 
-export default function BlogPostPage({ params }: { params: { slug: string } }) {
-  const post = getBlogPost(params.slug)
+export default async function BlogPostPage({ params }: { params: { slug: string } }) {
+  const filePath = path.join(process.cwd(), "data", "blog.json")
+  const raw = await readFile(filePath, "utf-8")
+  const list = JSON.parse(raw) as Post[]
+  const post = Array.isArray(list) ? list.find((p) => p.id === params.slug) : null
 
   if (!post) {
     return (
@@ -63,26 +46,35 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
         <header className="mb-8">
           <div className="flex items-center gap-4 mb-4">
             <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
-              {post.category}
+              {post.category || "Article"}
             </span>
-            <span className="text-sm text-muted-foreground">{post.readTime}</span>
+            <span className="text-sm text-muted-foreground">{post.readTime || ""}</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">{post.title}</h1>
           <div className="flex items-center text-muted-foreground">
-            <span>By {post.author}</span>
+            <span>By {post.author || "ModuLux"}</span>
             <span className="mx-2">•</span>
-            <span>{post.date}</span>
+            <span>{post.date || ""}</span>
           </div>
         </header>
 
         {/* Featured Image */}
-        <LazyImage src={post.image} alt={post.title} className="w-full h-64 md:h-96 object-cover rounded-lg mb-8" />
+        <LazyImage src={post.image || "/placeholder.svg"} alt={post.title} className="w-full h-64 md:h-96 object-cover object-center rounded-lg mb-8" />
 
         {/* Article Content */}
-        <div
-          className="prose prose-lg max-w-none prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground"
-          dangerouslySetInnerHTML={{ __html: post.content }}
-        />
+        <div className="prose prose-lg max-w-none prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground">
+          {(() => {
+            const content = String(post.description || post.excerpt || "")
+            const paras = content.split(/\r?\n\s*\r?\n/).filter(Boolean)
+            return paras.length
+              ? paras.map((c, i) => (
+                  <p key={i} className="whitespace-pre-wrap leading-relaxed mb-4">
+                    {c}
+                  </p>
+                ))
+              : <p className="whitespace-pre-wrap leading-relaxed mb-4">{content}</p>
+          })()}
+        </div>
 
         {/* Share Section */}
         <div className="mt-12 pt-8 border-t border-border/40">

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+/* @custom-variant dark (&:is(.dark *)); - Dark mode variant removed */
 
 :root {
   /* Updated color tokens to match ModuLux logo colors */
@@ -40,36 +40,7 @@
   --sidebar-ring: rgba(30, 58, 46, 0.3); /* Sidebar focus ring */
 }
 
-.dark {
-  /* Updated dark mode colors to complement ModuLux logo */
-  --background: #0f172a; /* Dark background */
-  --foreground: #f1f5f9; /* Light text */
-  --card: #1e293b; /* Dark card background */
-  --card-foreground: #f1f5f9; /* Light text on cards */
-  --popover: #1e293b; /* Dark popover */
-  --popover-foreground: #f1f5f9; /* Light text in popovers */
-  --primary: #2d5a3d; /* Lighter forest green for dark mode */
-  --primary-foreground: #ffffff; /* White text on primary */
-  --secondary: #cd853f; /* Copper remains visible in dark */
-  --secondary-foreground: #0f172a; /* Dark text on copper */
-  --muted: #334155; /* Muted dark */
-  --muted-foreground: #94a3b8; /* Muted light text */
-  --accent: #daa520; /* Brighter gold accent for dark mode */
-  --accent-foreground: #0f172a; /* Dark text on accent */
-  --destructive: #dc2626; /* Destructive remains */
-  --destructive-foreground: #ffffff; /* White text on destructive */
-  --border: #334155; /* Dark borders */
-  --input: #1e293b; /* Dark input fields */
-  --ring: rgba(45, 90, 61, 0.5); /* Focus ring with primary */
-  --sidebar: #1e293b; /* Dark sidebar */
-  --sidebar-foreground: #f1f5f9; /* Light sidebar text */
-  --sidebar-primary: #2d5a3d; /* Sidebar primary */
-  --sidebar-primary-foreground: #ffffff; /* White text on sidebar primary */
-  --sidebar-accent: #334155; /* Dark sidebar accent */
-  --sidebar-accent-foreground: #f1f5f9; /* Light text on sidebar accent */
-  --sidebar-border: #334155; /* Dark sidebar borders */
-  --sidebar-ring: rgba(45, 90, 61, 0.5); /* Sidebar focus ring */
-}
+/* Dark mode styles removed - enforcing light mode only */
 
 @theme inline {
   --font-sans: var(--font-geist-sans);
@@ -142,11 +113,6 @@
     :root {
       --border: #000000;
       --ring: rgba(0, 0, 0, 0.8);
-    }
-
-    .dark {
-      --border: #ffffff;
-      --ring: rgba(255, 255, 255, 0.8);
     }
   }
 

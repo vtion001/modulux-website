@@ -4,7 +4,6 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { SearchModal } from "./search-modal"
-import { ThemeToggle } from "./theme-toggle"
 import { LanguageSelector } from "./language-selector"
 import { MobileMenu } from "./mobile-menu"
 
@@ -113,7 +112,6 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <ThemeToggle />
             <LanguageSelector />
             <button
               onClick={() => setIsSearchOpen(true)}
