@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { cookies } from "next/headers"
 import { verifySession } from "@/lib/auth"
+import { ToastOnParam } from "@/components/admin/toast-on-param"
 import { redirect } from "next/navigation"
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -39,7 +40,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </div>
         </header>
       )}
-      <main className="max-w-6xl mx-auto px-4 py-8">{children}</main>
+      <main className="max-w-6xl mx-auto px-4 py-8">
+        <ToastOnParam param="logged" value="1" message="Signed in successfully" />
+        {children}
+      </main>
     </div>
   )
 }

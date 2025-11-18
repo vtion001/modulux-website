@@ -9,16 +9,17 @@ export function AddModal({ trigger, title, description, children }: { trigger: R
         {trigger}
       </button>
       {open && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center">
-          <div className="bg-card border border-border rounded-xl p-6 w-[95%] max-w-2xl">
-            <div className="mb-4">
-              <div className="text-lg font-semibold">{title}</div>
-              {description && <div className="text-sm text-muted-foreground">{description}</div>}
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
+          <div className="relative bg-card border border-border rounded-xl p-6 w-[95%] max-w-2xl">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <div className="text-lg font-semibold">{title}</div>
+                {description && <div className="text-sm text-muted-foreground">{description}</div>}
+              </div>
+              <button type="button" onClick={() => setOpen(false)} className="px-3 py-2 rounded-md border text-sm">Close</button>
             </div>
-            <div className="space-y-3">{children}</div>
-            <div className="mt-4 flex justify-end">
-              <button type="button" onClick={() => setOpen(false)} className="px-3 py-2 rounded-md border">Close</button>
-            </div>
+            <div className="space-y-4">{children}</div>
           </div>
         </div>
       )}
