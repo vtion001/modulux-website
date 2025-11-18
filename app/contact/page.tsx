@@ -17,10 +17,15 @@ export default function ContactPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Contact Section */}
-      <section className="py-20 bg-background" ref={contactRef}>
+      <section aria-labelledby="contact-title" role="region" className="relative py-20 bg-background overflow-hidden" ref={contactRef}>
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-24 -left-24 w-80 h-80 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-muted/30 blur-2xl" />
+        </div>
         <div className="container mx-auto px-4">
           <motion.h1
-            className="text-4xl md:text-5xl font-bold text-center text-primary mb-8"
+            id="contact-title"
+            className="text-4xl md:text-5xl font-bold text-center text-foreground mb-4"
             initial={{ opacity: 0, y: 50 }}
             animate={contactInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8 }}
@@ -29,7 +34,7 @@ export default function ContactPage() {
           </motion.h1>
 
           <motion.p
-            className="text-xl text-center text-muted-foreground mb-16 max-w-3xl mx-auto"
+            className="text-lg md:text-xl text-center text-muted-foreground mb-12 max-w-3xl mx-auto"
             initial={{ opacity: 0, y: 30 }}
             animate={contactInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8, delay: 0.2 }}
@@ -38,12 +43,12 @@ export default function ContactPage() {
           </motion.p>
 
           <motion.div
-            className="max-w-2xl mx-auto"
+            className="max-w-5xl mx-auto grid lg:grid-cols-2 gap-8"
             initial={{ opacity: 0, y: 50 }}
             animate={contactInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
-            <Card className="border-border/50 shadow-2xl bg-card/50 backdrop-blur-sm">
+            <Card className="border-border/50 shadow-2xl bg-card/60 backdrop-blur-sm">
               <CardContent className="p-8">
                 <div className="mb-6">
                   <div className="flex items-start gap-3 p-4 border border-border/50 rounded-lg bg-background">
@@ -67,13 +72,15 @@ export default function ContactPage() {
                       <img
                         src="https://res.cloudinary.com/dbviya1rj/image/upload/v1763251599/jqcxpbnwpvfuvpcippln.jpg"
                         alt="Example plan with measurements for quoting"
+                        loading="lazy"
+                        decoding="async"
                         className="w-full max-h-[320px] object-contain rounded-lg border border-border/50"
                       />
                     </a>
                     <div className="text-xs text-muted-foreground mt-2">Example reference of area and measurements</div>
                   </div>
                 </div>
-                <form className="space-y-6" onSubmit={async (e) => {
+                <form aria-busy={pending} className="space-y-6" onSubmit={async (e) => {
                   e.preventDefault()
                   try {
                     setPending(true)
@@ -99,6 +106,7 @@ export default function ContactPage() {
                         id="name"
                         name="name"
                         placeholder="Your full name"
+                        required
                         className="border-border focus:border-accent focus:ring-accent/20 transition-all duration-300"
                       />
                     </motion.div>
@@ -111,6 +119,7 @@ export default function ContactPage() {
                         name="email"
                         type="email"
                         placeholder="your@email.com"
+                        required
                         className="border-border focus:border-accent focus:ring-accent/20 transition-all duration-300"
                       />
                     </motion.div>
@@ -137,6 +146,7 @@ export default function ContactPage() {
                       name="message"
                       placeholder="Tell us about your project..."
                       rows={4}
+                      required
                       className="border-border focus:border-accent focus:ring-accent/20 transition-all duration-300"
                     />
                   </motion.div>
@@ -174,7 +184,7 @@ export default function ContactPage() {
                 </form>
 
                 {status && (
-                  <div className={`mt-4 text-sm ${status.ok ? "text-green-600" : "text-red-600"}`}>{status.message}</div>
+                  <div className={`mt-4 text-sm ${status.ok ? "text-green-600" : "text-red-600"}`} aria-live="polite">{status.message}</div>
                 )}
 
                 <div className="mt-8 pt-8 border-t border-border text-center">
@@ -185,6 +195,38 @@ export default function ContactPage() {
                 </div>
               </CardContent>
             </Card>
+
+            <div className="space-y-6">
+              <div className="rounded-xl border border-border/50 bg-card/60 p-6">
+                <div className="text-lg font-semibold mb-3">Quick Contact</div>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2"><Phone className="w-4 h-4" /><a href="tel:+639566549968" className="hover:text-primary">+63 956 654 9968</a></div>
+                  <div className="flex items-center gap-2"><Mail className="w-4 h-4" /><a href="mailto:admin@modulux.local" className="hover:text-primary">admin@modulux.local</a></div>
+                  <div className="flex items-center gap-2"><Clock className="w-4 h-4" />Mon–Sat, 9:00 AM – 6:00 PM</div>
+                  <div className="flex items-center gap-2"><MapPin className="w-4 h-4" />Bulacan, Philippines</div>
+                </div>
+                <a href="/projects" className="mt-4 inline-flex items-center gap-2 text-primary text-sm">
+                  View Projects <ArrowRight className="w-4 h-4" />
+                </a>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-card/60 p-6">
+                <div className="text-lg font-semibold mb-3">Our Promise</div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-foreground">48h</div>
+                    <div className="text-xs text-muted-foreground">Quote Turnaround</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-foreground">10yr</div>
+                    <div className="text-xs text-muted-foreground">Warranty Coverage</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-foreground">150+</div>
+                    <div className="text-xs text-muted-foreground">Projects Completed</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </motion.div>
         </div>
       </section>

@@ -20,7 +20,7 @@ async function login(formData: FormData) {
     path: "/",
     maxAge: 60 * 60 * 8,
   })
-  redirect("/admin")
+  redirect("/admin?logged=1")
 }
 
 export default function AdminLoginPage({ searchParams }: { searchParams?: Record<string, string> }) {

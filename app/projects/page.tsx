@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { MapPin, Calendar, Users } from "lucide-react"
 import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<any[]>([])
@@ -54,10 +55,30 @@ export default function ProjectsPage() {
     return "/placeholder.svg"
   }
 
+  function Counter({ to, duration = 1.2 }: { to: number; duration?: number }) {
+    const [value, setValue] = useState(0)
+    useEffect(() => {
+      let raf: number
+      const start = performance.now()
+      const step = (now: number) => {
+        const t = Math.min(1, (now - start) / (duration * 1000))
+        setValue(Math.floor(t * to))
+        if (t < 1) raf = requestAnimationFrame(step)
+      }
+      raf = requestAnimationFrame(step)
+      return () => cancelAnimationFrame(raf)
+    }, [to, duration])
+    return <>{value}</>
+  }
+
   return (
     <main className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="relative py-24 bg-gradient-to-br from-primary/5 to-accent/5">
+      <section aria-labelledby="projects-title" role="region" className="relative py-24 bg-gradient-to-br from-primary/5 to-accent/5 overflow-hidden">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-24 -left-24 w-80 h-80 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-muted/30 blur-2xl" />
+        </div>
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -65,16 +86,20 @@ export default function ProjectsPage() {
             transition={{ duration: 0.8 }}
             className="text-center max-w-4xl mx-auto"
           >
-            <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6 text-balance">Our Projects</h1>
+            <h1 id="projects-title" className="text-5xl md:text-6xl font-bold text-foreground mb-6 text-balance">Our Projects</h1>
             <p className="text-xl text-muted-foreground mb-8 text-pretty">
               Discover our portfolio of exceptional modular cabinet installations across Palawan and beyond
             </p>
+            <div className="flex flex-wrap gap-3 justify-center">
+              <Link href="#projects-grid"><Button size="lg" className="transition-transform duration-200 ease-out hover:-translate-y-[1px]">Browse Projects<span className="ml-2">→</span></Button></Link>
+              <Link href="/contact"><Button variant="outline" size="lg" className="transition-transform duration-200 ease-out hover:-translate-y-[1px]">Get a Free Quote<span className="ml-2">→</span></Button></Link>
+            </div>
           </motion.div>
         </div>
       </section>
 
       {/* Projects Grid */}
-      <section className="py-20">
+      <section id="projects-grid" className="py-20">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {projects.map((project, index) => (
@@ -125,36 +150,39 @@ export default function ProjectsPage() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 bg-primary/5">
-        <div className="container mx-auto px-4">
+      <section aria-labelledby="stats-title" role="region" className="relative py-20 bg-primary/5 overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 opacity-30">
+          <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(500px circle at 10% 90%, rgba(16,185,129,.08) 0%, transparent 60%)" }} />
+        </div>
+        <div className="container mx-auto px-4 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             className="text-center mb-12"
           >
-            <h2 className="text-4xl font-bold text-foreground mb-6 text-balance">Project Statistics</h2>
+            <h2 id="stats-title" className="text-4xl font-bold text-foreground mb-6 text-balance">Project Statistics</h2>
             <p className="text-xl text-muted-foreground text-pretty">
               Our commitment to excellence reflected in numbers
             </p>
           </motion.div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { number: "300+", label: "Projects Completed", icon: <Calendar className="w-8 h-8" /> },
-              { number: "300+", label: "Happy Clients", icon: <Users className="w-8 h-8" /> },
-              { number: "10+", label: "Years of Combined Excellence", icon: <MapPin className="w-8 h-8" /> },
+              { value: 300, suffix: "+", label: "Projects Completed", icon: <Calendar className="w-8 h-8" /> },
+              { value: 300, suffix: "+", label: "Happy Clients", icon: <Users className="w-8 h-8" /> },
+              { value: 10, suffix: "+", label: "Years of Combined Excellence", icon: <MapPin className="w-8 h-8" /> },
             ].map((stat, index) => (
               <motion.div
                 key={stat.label}
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
-                className="text-center bg-card border border-border rounded-xl p-8"
+                className="text-center bg-card border border-border rounded-xl p-8 hover:shadow-md transition-all"
               >
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-accent/10 text-accent rounded-full mb-4">
                   {stat.icon}
                 </div>
-                <div className="text-4xl font-bold text-foreground mb-2">{stat.number}</div>
+                <div className="text-4xl font-bold text-foreground mb-2"><Counter to={stat.value} />{stat.suffix}</div>
                 <div className="text-muted-foreground">{stat.label}</div>
               </motion.div>
             ))}

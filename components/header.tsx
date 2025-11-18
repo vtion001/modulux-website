@@ -14,7 +14,10 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 border-b border-border/50">
+      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 border-b border-border/50 relative">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "linear-gradient(135deg, rgba(16,185,129,.06), rgba(99,102,241,.04))" }} />
+        </div>
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="hover:scale-105 transition-transform duration-200">
             <Link href="/" aria-label="ModuLux Home">
@@ -64,6 +67,8 @@ export function Header() {
                   aria-current={pathname === item.href ? "page" : undefined}
                   aria-expanded={item.hasDropdown ? isProductsOpen : undefined}
                   aria-haspopup={item.hasDropdown ? "menu" : undefined}
+                  onFocus={() => item.hasDropdown && setIsProductsOpen(true)}
+                  onBlur={() => item.hasDropdown && setIsProductsOpen(false)}
                 >
                   {item.name}
                   {item.hasDropdown && (
@@ -78,7 +83,7 @@ export function Header() {
                     </svg>
                   )}
                   <div
-                    className={`absolute -bottom-1 left-0 h-0.5 bg-primary transition-all duration-300 ${
+                    className={`absolute -bottom-1 left-0 h-0.5 bg-gradient-to-r from-primary to-accent transition-all duration-300 ${
                       pathname === item.href || (item.hasDropdown && pathname.startsWith("/products"))
                         ? "w-full"
                         : "w-0 group-hover:w-full"
@@ -138,6 +143,7 @@ export function Header() {
             <MobileMenu />
           </div>
         </div>
+        <div className="signature-ribbon absolute inset-x-0 bottom-0 h-[2px]" />
       </header>
 
       <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />

@@ -174,7 +174,33 @@
 }
 
 .hero-gradient {
-  background: linear-gradient(135deg, rgba(30, 58, 46, 0.1) 0%, rgba(184, 134, 11, 0.05) 100%);
+  background: radial-gradient(1200px circle at 10% 10%, rgba(30, 58, 46, 0.10) 0%, transparent 60%),
+    radial-gradient(800px circle at 90% 90%, rgba(184, 134, 11, 0.08) 0%, transparent 50%),
+    linear-gradient(135deg, rgba(30, 41, 59, 0.10) 0%, rgba(30, 58, 46, 0.06) 50%, rgba(184, 134, 11, 0.06) 100%);
+  background-size: 120% 120%;
+  animation: gradientShift 20s ease-in-out infinite alternate;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 50% 50%; }
+  100% { background-position: 100% 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-gradient { animation: none; }
+}
+
+.signature-ribbon {
+  background-image: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+  background-size: 200% 100%;
+  animation: ribbonShift 6s ease-in-out infinite;
+}
+
+@keyframes ribbonShift {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 0%; }
+  100% { background-position: 0% 0%; }
 }
 
 .glass-effect {

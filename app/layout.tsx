@@ -4,6 +4,7 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Suspense } from "react"
 import { Header } from "@/components/header"
+import { ConditionalHeader } from "@/components/conditional-header"
 import { Footer } from "@/components/footer"
 import { LoadingSpinner } from "@/components/loading-spinner"
 import { FloatingContact } from "@/components/floating-contact"
@@ -108,7 +109,7 @@ export default function RootLayout({
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
           <AccessibilitySkipLink />
-          <Header />
+          <ConditionalHeader />
           <Breadcrumb />
           <main id="main-content" role="main">
             <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
