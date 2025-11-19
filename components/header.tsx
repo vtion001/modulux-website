@@ -48,7 +48,6 @@ export function Header() {
               { name: "Projects", href: "/projects" },
               { name: "About", href: "/about" },
               { name: "Blog", href: "/blog" },
-              { name: "Calculator", href: "/calculator" },
               { name: "Contact", href: "/contact" },
             ].map((item) => (
               <div
