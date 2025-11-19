@@ -93,11 +93,20 @@ export default async function AdminProjectsPage() {
             <h1 className="text-2xl font-bold">Projects</h1>
             <p className="text-sm text-muted-foreground">Manage portfolio entries displayed on the site</p>
           </div>
-          <AddModal
-            trigger={<><Plus className="w-4 h-4" /> Add New</>}
-            title="Add Project"
-            description="Create a new portfolio entry"
-          >
+          <div className="flex items-center gap-3">
+            <Link
+              href="/calculator"
+              className="text-foreground hover:text-primary transition-colors relative group flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:rounded-md px-2 py-1 text-primary"
+              aria-current="page"
+            >
+              Calculator
+              <div className="absolute -bottom-1 left-0 h-0.5 bg-gradient-to-r from-primary to-accent transition-all duration-300 w-full" aria-hidden="true"></div>
+            </Link>
+            <AddModal
+              trigger={<><Plus className="w-4 h-4" /> Add New</>}
+              title="Add Project"
+              description="Create a new portfolio entry"
+            >
             <form action={addProject} className="space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
@@ -154,7 +163,8 @@ export default async function AdminProjectsPage() {
                 Add Project
               </button>
             </form>
-          </AddModal>
+            </AddModal>
+          </div>
         </div>
 
         <div className="flex items-center gap-3 mb-6">
