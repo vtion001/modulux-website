@@ -55,6 +55,11 @@ export default function AdminLoginPage({ searchParams }: { searchParams?: Record
             Sign In
           </button>
         </form>
+        <div className="mt-4 text-center">
+          <a href="/proposal" className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border/50 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">
+            View Business Proposal (public)
+          </a>
+        </div>
       </div>
     </main>
   )
