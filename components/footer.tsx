@@ -3,8 +3,11 @@
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { Mail, Phone, MapPin, Facebook, Instagram, Linkedin } from "lucide-react"
+import { usePathname } from "next/navigation"
 
 export function Footer() {
+  const pathname = usePathname()
+  if (pathname === "/proposal" || pathname?.startsWith("/proposal/")) return null
   return (
     <motion.footer
       className="bg-background text-foreground border-t border-border relative overflow-hidden"
