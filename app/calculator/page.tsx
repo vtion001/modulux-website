@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { estimateCabinetCost } from "@/lib/estimator"
 import { LazyImage } from "@/components/lazy-image"
+import { toast } from "sonner"
 
 interface CalculatorState {
   projectType: string
@@ -68,10 +69,21 @@ export default function CalculatorPage() {
   })
 
   const [estimate, setEstimate] = useState<number | null>(null)
+  const [subtotal, setSubtotal] = useState<number | null>(null)
+  const [tax, setTax] = useState<number | null>(null)
   const [baseRates, setBaseRates] = useState<{ base: number; hanging: number; tall: number } | null>(null)
   const [tiers, setTiers] = useState<{ luxury: number; premium: number; standard: number } | null>(null)
   const [cabinetCategory, setCabinetCategory] = useState<string>("base")
   const [tier, setTier] = useState<string>("luxury")
+
+  const [units, setUnits] = useState([
+    { enabled: true, category: "base", meters: 0, material: "", finish: "", hardware: "", tier: "" },
+    { enabled: false, category: "hanging", meters: 0, material: "", finish: "", hardware: "", tier: "" },
+    { enabled: false, category: "tall", meters: 0, material: "", finish: "", hardware: "", tier: "" },
+  ])
+  const [applyTax, setApplyTax] = useState(true)
+  const [taxRate, setTaxRate] = useState(0.12)
+  const [discount, setDiscount] = useState(0)
 
   useEffect(() => {
     ;(async () => {
@@ -85,19 +97,40 @@ export default function CalculatorPage() {
   }, [])
 
   const calculateEstimate = () => {
-    const lm = parseFloat(formData.linearMeter)
-    if (!formData.projectType || !formData.cabinetType || isNaN(lm) || lm <= 0) return
-    const res = estimateCabinetCost({
-      projectType: formData.projectType,
-      cabinetType: formData.cabinetType,
-      linearMeter: lm,
-      installation: formData.installation,
-      cabinetCategory,
-      tier,
-      baseRates: baseRates || undefined,
-      tierMultipliers: tiers || undefined,
-    })
-    setEstimate(res.total)
+    try {
+      if (!formData.projectType || !formData.cabinetType) return
+      const activeUnits = units
+        .filter((u) => u.enabled && Number(u.meters) > 0)
+        .map((u) => ({
+          category: u.category,
+          meters: Number(u.meters),
+          material: u.material || undefined,
+          finish: u.finish || undefined,
+          hardware: u.hardware || undefined,
+          tier: u.tier || tier,
+        }))
+      const legacyLm = parseFloat(formData.linearMeter)
+      const useLegacy = !activeUnits.length && !isNaN(legacyLm) && legacyLm > 0
+      const res = estimateCabinetCost({
+        projectType: formData.projectType,
+        cabinetType: formData.cabinetType,
+        linearMeter: useLegacy ? legacyLm : undefined,
+        installation: formData.installation,
+        cabinetCategory,
+        tier,
+        baseRates: baseRates || undefined,
+        tierMultipliers: tiers || undefined,
+        units: activeUnits,
+        discount,
+        applyTax,
+        taxRate,
+      })
+      setEstimate(res.total)
+      setSubtotal(res.breakdown?.subtotal ?? null)
+      setTax(res.breakdown?.tax ?? null)
+    } catch (e) {
+      toast.error("Invalid inputs. Please check your configuration.")
+    }
   }
 
   const handleInputChange = (field: keyof CalculatorState, value: string | boolean) => {
@@ -178,24 +211,45 @@ export default function CalculatorPage() {
                 )}
               </div>
 
-              {/* Linear Meters */}
+              {/* Unit Selections */}
               <div>
-                <label htmlFor="linearMeter" className="block text-sm font-medium text-foreground mb-3">
-                  Linear Meters (total cabinet length)
-                </label>
-                <input
-                  id="linearMeter"
-                  type="number"
-                  min="1"
-                  step="0.1"
-                  placeholder="e.g., 8.5"
-                  value={formData.linearMeter}
-                  onChange={(e) => handleInputChange("linearMeter", e.target.value)}
-                  className="w-full p-3 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Measure the total length of cabinets you need in meters.
-                </p>
+                <label className="block text-sm font-medium text-foreground mb-3">Cabinet Units</label>
+                <div className="space-y-3">
+                  {units.map((u, i) => (
+                    <div key={u.category} className="border border-border/40 rounded-md p-3">
+                      <div className="flex items-center justify-between">
+                        <div className="font-medium capitalize">{u.category} units</div>
+                        <label className="flex items-center gap-2 text-sm">
+                          <input type="checkbox" checked={u.enabled} onChange={(e) => setUnits(prev => prev.map((x, idx) => idx === i ? { ...x, enabled: e.target.checked } : x))} />
+                          Enable
+                        </label>
+                      </div>
+                      <div className="mt-3 grid grid-cols-1 md:grid-cols-4 gap-2">
+                        <input type="number" min="0" step="0.1" placeholder="Meters" value={u.meters} onChange={(e) => setUnits(prev => prev.map((x, idx) => idx === i ? { ...x, meters: e.target.value } : x))} className="p-2 border border-border/40 rounded-md" />
+                        <select value={u.material} onChange={(e) => setUnits(prev => prev.map((x, idx) => idx === i ? { ...x, material: e.target.value } : x))} className="p-2 border border-border/40 rounded-md">
+                          <option value="">Material</option>
+                          <option value="melamine">Melamine</option>
+                          <option value="laminate">Laminate</option>
+                          <option value="wood">Solid Wood</option>
+                          <option value="premium">Premium Wood</option>
+                        </select>
+                        <select value={u.finish} onChange={(e) => setUnits(prev => prev.map((x, idx) => idx === i ? { ...x, finish: e.target.value } : x))} className="p-2 border border-border/40 rounded-md">
+                          <option value="">Finish</option>
+                          <option value="standard">Standard</option>
+                          <option value="painted">Painted</option>
+                          <option value="stained">Stained</option>
+                          <option value="lacquer">Lacquer</option>
+                        </select>
+                        <select value={u.hardware} onChange={(e) => setUnits(prev => prev.map((x, idx) => idx === i ? { ...x, hardware: e.target.value } : x))} className="p-2 border border-border/40 rounded-md">
+                          <option value="">Hardware</option>
+                          <option value="basic">Basic</option>
+                          <option value="soft_close">Soft-close</option>
+                          <option value="premium">Premium</option>
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Cabinet Type */}
@@ -259,6 +313,25 @@ export default function CalculatorPage() {
               >
                 Calculate Estimate
               </button>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Discount (0–1)</label>
+                  <input type="number" min="0" max="1" step="0.01" value={discount} onChange={(e)=>setDiscount(parseFloat(e.target.value)||0)} className="w-full p-2 border border-border/40 rounded-md" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Tax Rate</label>
+                  <input type="number" min="0" max="1" step="0.01" value={taxRate} onChange={(e)=>setTaxRate(parseFloat(e.target.value)||0)} className="w-full p-2 border border-border/40 rounded-md" />
+                </div>
+                <label className="flex items-center gap-2 text-sm mt-6">
+                  <input type="checkbox" checked={applyTax} onChange={(e)=>setApplyTax(e.target.checked)} /> Apply Tax
+                </label>
+              </div>
+              <div className="mt-4 flex gap-2">
+                <button onClick={()=>{localStorage.setItem("calculator_config", JSON.stringify({ formData, units, applyTax, taxRate, discount, cabinetCategory, tier })); toast.success("Configuration saved")}} className="px-3 py-2 rounded-md border">Save Config</button>
+                <button onClick={()=>{try{const raw=localStorage.getItem("calculator_config"); if(!raw){toast.error("No saved config") ;return} const cfg=JSON.parse(raw); setFormData(cfg.formData); setUnits(cfg.units); setApplyTax(cfg.applyTax); setTaxRate(cfg.taxRate); setDiscount(cfg.discount); setCabinetCategory(cfg.cabinetCategory); setTier(cfg.tier); toast.success("Configuration loaded")}catch{toast.error("Failed to load config")}}} className="px-3 py-2 rounded-md border">Load Config</button>
+                <button onClick={()=>window.print()} className="px-3 py-2 rounded-md border">Print / PDF</button>
+              </div>
             </div>
           </div>
 
@@ -281,6 +354,17 @@ export default function CalculatorPage() {
                 <div className="text-center p-6 bg-primary/5 rounded-lg border border-primary/20">
                   <div className="text-3xl font-bold text-primary mb-2">₱{estimate.toLocaleString()}</div>
                   <p className="text-sm text-muted-foreground">Estimated Project Cost</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="p-3 rounded border">
+                    <div className="font-medium">Subtotal</div>
+                    <div>₱{(subtotal||0).toLocaleString()}</div>
+                  </div>
+                  <div className="p-3 rounded border">
+                    <div className="font-medium">Tax</div>
+                    <div>₱{(tax||0).toLocaleString()}</div>
+                  </div>
                 </div>
 
                 <div className="space-y-3 text-sm">
@@ -331,7 +415,12 @@ export default function CalculatorPage() {
                     * This is an approximate estimate. Final pricing may vary based on specific requirements, site
                     conditions, and material availability.
                   </p>
-                  <button className="w-full bg-secondary text-white py-3 px-6 rounded-md font-medium hover:bg-secondary/90 transition-colors duration-200">
+                  <button className="w-full bg-secondary text-white py-3 px-6 rounded-md font-medium hover:bg-secondary/90 transition-colors duration-200"
+                    onClick={()=>{
+                      const body = `Estimate Total: ₱${estimate?.toLocaleString()}\nSubtotal: ₱${(subtotal||0).toLocaleString()}\nTax: ₱${(tax||0).toLocaleString()}`
+                      window.location.href = `mailto:?subject=ModuLux Estimate&body=${encodeURIComponent(body)}`
+                    }}
+                  >
                     Request Detailed Quote
                   </button>
                 </div>

@@ -1,0 +1,153 @@
+[
+  {
+    "ts": 1764185631565,
+    "data": {
+      "baseRates": {
+        "base": 2,
+        "hanging": 1.6,
+        "tall": 2.2
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      }
+    }
+  },
+  {
+    "ts": 1764201030920,
+    "data": {
+      "baseRates": {
+        "base": 2,
+        "hanging": 1.6,
+        "tall": 2.2
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      },
+      "cabinetTypeMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "basic": 0.8
+      }
+    }
+  },
+  {
+    "ts": 1764201031373,
+    "data": {
+      "baseRates": {
+        "base": 2,
+        "hanging": 1.6,
+        "tall": 2.2
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      },
+      "cabinetTypeMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "basic": 0.8
+      }
+    }
+  },
+  {
+    "ts": 1764201032284,
+    "data": {
+      "baseRates": {
+        "base": 2,
+        "hanging": 1.6,
+        "tall": 2.2
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      },
+      "cabinetTypeMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "basic": 0.8
+      }
+    }
+  },
+  {
+    "ts": 1764201033227,
+    "data": {
+      "baseRates": {
+        "base": 2,
+        "hanging": 1.6,
+        "tall": 2.2
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      },
+      "cabinetTypeMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "basic": 0.8
+      }
+    }
+  }
+]

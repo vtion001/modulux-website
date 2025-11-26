@@ -38,6 +38,15 @@ export function AdminSidePanel() {
   const utility = [
     { title: "Settings", href: "/admin/settings", iconName: "settings" },
     { title: "Help", href: "/admin/help", iconName: "help" },
+    {
+      title: "Business Roadmap",
+      href: "/roadmap",
+      iconName: "file",
+      children: [
+        { title: "Business Proposal", href: "/proposal", iconName: "file" },
+        { title: "Pitch Deck", href: "/pitch-deck", iconName: "file" },
+      ],
+    },
   ]
 
   return (

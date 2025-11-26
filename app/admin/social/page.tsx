@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { SaveForm, SubmitButton } from "/components/admin/save-form"
 import { SelectOnFocusInput, SelectOnFocusTextarea } from "/components/select-on-focus"
 import { ChevronLeft, ChevronRight, Search, Bell, ChevronDown } from "lucide-react"
+import { AdminCalculatorEmbed } from "@/components/admin/admin-calculator-embed"
 
 const postsPath = path.join(process.cwd(), "data", "social.json")
 const providersPath = path.join(process.cwd(), "data", "social-providers.json")
@@ -304,91 +305,9 @@ export default async function AdminSocialPage() {
           </div>
         </div>
 
-        {/* Calendar Grid */}
+        {/* Calculator Embed replacing calendar grid */}
         <div className="flex-1 overflow-auto bg-gray-50">
-          <div className="min-w-max">
-            {/* Day Headers */}
-            <div className="grid grid-cols-7 bg-white border-b border-gray-200 sticky top-0 z-10">
-              {weekDates.map((date, index) => (
-                <div key={index} className="p-3 text-center border-r border-gray-200 last:border-r-0">
-                  <div className="text-xs text-gray-500 font-medium tracking-wide">
-                    {date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}
-                  </div>
-                  <div className="text-lg font-semibold text-gray-900 mt-0.5">
-                    {date.getDate()}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* All Day Events Bar */}
-            <div className="bg-blue-50 border-b border-blue-200 px-6 py-3">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                <span className="text-sm font-medium text-blue-900">New Flavours Launch</span>
-              </div>
-            </div>
-
-            {/* Time Grid */}
-            <div className="relative">
-              {Array.from({ length: 24 }, (_, hour) => (
-                <div key={hour} className="grid grid-cols-7 border-b border-gray-100">
-                  {/* Time Label */}
-                  <div className="absolute left-0 w-16 text-xs text-gray-500 text-right pr-3 pt-3 font-medium">
-                    {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
-                  </div>
-                  
-                  {/* Hour Columns */}
-                  {weekDates.map((date, dayIndex) => {
-                    const dayPosts = mockPosts.filter(post => {
-                      const postDate = new Date(post.schedule)
-                      return postDate.getDate() === date.getDate() && 
-                             postDate.getMonth() === date.getMonth() && 
-                             postDate.getFullYear() === date.getFullYear() &&
-                             postDate.getHours() === hour
-                    })
-
-                    return (
-                      <div key={dayIndex} className="border-r border-gray-100 last:border-r-0 min-h-20 pl-16 relative bg-white">
-                        {dayPosts.map((post, postIndex) => (
-                          <div key={post.id} className="absolute top-2 left-16 right-2 bg-white rounded-lg border border-gray-200 p-3 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group">
-                            <div className="flex items-center gap-2 mb-2 flex-wrap">
-                              {post.platforms.map((platform) => (
-                                <span 
-                                  key={platform} 
-                                  className={`px-2 py-1 text-xs text-white rounded-full font-medium ${
-                                    platform === 'instagram' 
-                                      ? platformColors[platform as keyof typeof platformColors]
-                                      : platformColors[platform as keyof typeof platformColors] || 'bg-gray-500'
-                                  }`}
-                                >
-                                  {platform === 'facebook' ? 'Facebook' :
-                                   platform === 'instagram' ? 'Instagram' :
-                                   platform === 'twitter' ? 'Twitter' :
-                                   platform === 'linkedin' ? 'LinkedIn' :
-                                   platform === 'blog' ? 'Blog' :
-                                   platform === 'newsletter' ? 'Newsletter' : platform}
-                                </span>
-                              ))}
-                              <div className={`w-2 h-2 rounded-full ${statusColors[post.status as keyof typeof statusColors]} flex-shrink-0`}></div>
-                            </div>
-                            <div className="text-xs text-gray-600 mb-1 font-medium">{post.time}</div>
-                            <div className="text-sm text-gray-900 leading-relaxed">{post.content}</div>
-                            {post.metrics && (
-                              <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                                <span className="flex items-center gap-1">💬 {post.metrics.comments}</span>
-                                <span className="flex items-center gap-1">❤️ {post.metrics.likes}</span>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
+          <AdminCalculatorEmbed />
         </div>
       </div>
 

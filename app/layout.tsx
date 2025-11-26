@@ -6,6 +6,7 @@ import { Suspense } from "react"
 import { Header } from "@/components/header"
 import { ConditionalHeader } from "@/components/conditional-header"
 import { Footer } from "@/components/footer"
+import { ConditionalFooter } from "@/components/conditional-footer"
 import { LoadingSpinner } from "@/components/loading-spinner"
 import { FloatingContact } from "@/components/floating-contact"
 import { LiveChat } from "@/components/live-chat"
@@ -114,7 +115,7 @@ export default function RootLayout({
           <main id="main-content" role="main">
             <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
           </main>
-          <Footer />
+          <ConditionalFooter />
           <FloatingContact />
           <LiveChat />
           <ScrollToTop />
