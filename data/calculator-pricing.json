@@ -1,0 +1,13 @@
+{
+  "baseRates": {
+    "base": 2.0,
+    "hanging": 1.6,
+    "tall": 2.2
+  },
+  "tierMultipliers": {
+    "luxury": 1.0,
+    "premium": 0.9,
+    "standard": 0.8
+  }
+}
+

@@ -1,0 +1,13 @@
+[
+  {
+    "id": "fab_1764175569684",
+    "name": "Test Fabricator",
+    "rates": {
+      "board_cut": 10,
+      "edge_band": 5,
+      "assembly": 20,
+      "install": 30
+    },
+    "history": []
+  }
+]

@@ -52,12 +52,20 @@ export function Breadcrumb() {
             ))}
           </div>
           {pathname.startsWith("/admin") && (
-            <Link
-              href="/proposal"
-              className="inline-flex items-center gap-2 bg-primary text-white px-3 py-2 rounded-md hover:bg-primary/90 transition-colors"
-            >
-              Business Proposal
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/proposal"
+                className="inline-flex items-center gap-2 bg-primary text-white px-3 py-2 rounded-md hover:bg-primary/90 transition-colors"
+              >
+                Business Proposal
+              </Link>
+              <Link
+                href="/pitch-deck"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border/50 hover:shadow-md transition-colors"
+              >
+                Pitch Deck
+              </Link>
+            </div>
           )}
         </div>
       </div>
