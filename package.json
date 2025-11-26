@@ -6,7 +6,9 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "test:estimator": "node scripts/test-estimator.js",
+    "test:fabricators": "node scripts/test-fabricators.js"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "latest",

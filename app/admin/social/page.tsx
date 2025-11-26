@@ -275,75 +275,7 @@ export default async function AdminSocialPage() {
   const currentMonth = weekDates[0].toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
   return (
-    <div className="flex h-screen bg-white">
-      {/* Sidebar */}
-      <div className="w-64 bg-white border-r border-gray-100 flex flex-col">
-        {/* Search */}
-        <div className="p-4 border-b border-gray-100">
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-            <input 
-              type="text" 
-              placeholder="Search..." 
-              className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-gray-50"
-            />
-          </div>
-        </div>
-
-        {/* Notifications */}
-        <div className="p-4 border-b border-gray-100">
-          <button className="flex items-center gap-2 text-sm text-gray-700 hover:text-gray-900">
-            <Bell className="h-4 w-4" />
-            <span>Notifications</span>
-          </button>
-        </div>
-
-        {/* Workspace */}
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-gray-900">Workspace</h3>
-            <ChevronDown className="h-4 w-4 text-gray-400" />
-          </div>
-          <div className="space-y-1">
-            <a href="#" className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-700 bg-gray-100 rounded-md">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              Content
-            </a>
-            <a href="#" className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">
-              Campaigns
-            </a>
-            <a href="#" className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">
-              Analytics
-            </a>
-          </div>
-        </div>
-
-        {/* Channels */}
-        <div className="p-4 flex-1">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-gray-900">Channels</h3>
-            <ChevronDown className="h-4 w-4 text-gray-400" />
-          </div>
-          <div className="space-y-1">
-            {mockChannels.map((channel) => (
-              <a key={channel.id} href="#" className="flex items-center gap-2 px-2 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">
-                <div className={`w-2 h-2 ${channel.color} rounded-full`}></div>
-                {channel.name}
-              </a>
-            ))}
-          </div>
-        </div>
-
-        {/* New Post Button */}
-        <div className="p-4 border-t border-gray-100">
-          <SaveForm action={addPost}>
-            <SubmitButton className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
-              New Post
-            </SubmitButton>
-          </SaveForm>
-        </div>
-      </div>
-
+    <div className="flex min-h-screen bg-white">
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}

@@ -1,6 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { estimateCabinetCost } from "@/lib/estimator"
+import { LazyImage } from "@/components/lazy-image"
 
 interface CalculatorState {
   projectType: string
@@ -66,30 +68,37 @@ export default function CalculatorPage() {
   })
 
   const [estimate, setEstimate] = useState<number | null>(null)
+  const [baseRates, setBaseRates] = useState<{ base: number; hanging: number; tall: number } | null>(null)
+  const [tiers, setTiers] = useState<{ luxury: number; premium: number; standard: number } | null>(null)
+  const [cabinetCategory, setCabinetCategory] = useState<string>("base")
+  const [tier, setTier] = useState<string>("luxury")
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const res = await fetch("/data/calculator-pricing.json")
+        const cfg = await res.json()
+        if (cfg?.baseRates) setBaseRates(cfg.baseRates)
+        if (cfg?.tierMultipliers) setTiers(cfg.tierMultipliers)
+      } catch {}
+    })()
+  }, [])
 
   const calculateEstimate = () => {
-    const lm = parseFloat(formData.linearMeter);
-    if (!formData.projectType || !formData.cabinetType || isNaN(lm) || lm <= 0) {
-      return;
-    }
-
-    // Use luxury as the base price per linear meter, then apply tier discounts
-    const luxuryBaseRate = pricing.cabinetType.luxury;
-    let total = luxuryBaseRate * lm;
-
-    // Apply tier-based discounts off the luxury base price
-    if (formData.cabinetType === "premium") {
-      total *= 0.9; // 10% discount from luxury for premium tier
-    } else if (formData.cabinetType === "basic") {
-      total *= 0.8; // 20% total discount from luxury for basic tier
-    }
-
-    if (formData.installation) {
-      total += luxuryBaseRate * pricing.installation * lm;
-    }
-
-    setEstimate(Math.round(total));
-  };
+    const lm = parseFloat(formData.linearMeter)
+    if (!formData.projectType || !formData.cabinetType || isNaN(lm) || lm <= 0) return
+    const res = estimateCabinetCost({
+      projectType: formData.projectType,
+      cabinetType: formData.cabinetType,
+      linearMeter: lm,
+      installation: formData.installation,
+      cabinetCategory,
+      tier,
+      baseRates: baseRates || undefined,
+      tierMultipliers: tiers || undefined,
+    })
+    setEstimate(res.total)
+  }
 
   const handleInputChange = (field: keyof CalculatorState, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -134,6 +143,24 @@ export default function CalculatorPage() {
                       {option.label}
                     </button>
                   ))}
+                </div>
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-3">Cabinet Type</label>
+                    <select value={cabinetCategory} onChange={(e) => setCabinetCategory(e.target.value)} className="w-full p-3 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+                      <option value="base">Base Cabinet</option>
+                      <option value="hanging">Hanging Cabinet</option>
+                      <option value="tall">Tall Units</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-3">Quality Tier</label>
+                    <select value={tier} onChange={(e) => setTier(e.target.value)} className="w-full p-3 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+                      <option value="luxury">Luxury</option>
+                      <option value="premium">Premium</option>
+                      <option value="standard">Standard</option>
+                    </select>
+                  </div>
                 </div>
                 {formData.projectType === "kitchen" && (
                   <div className="mt-4">
@@ -239,6 +266,16 @@ export default function CalculatorPage() {
           <div className="bg-card rounded-lg shadow-sm border border-border/40 p-6">
             <h2 className="text-2xl font-semibold text-foreground mb-6">Your Estimate</h2>
 
+            <div className="mb-6">
+              <LazyImage
+                src={cabinetCategory === "base" ? "/placeholder.svg?height=200&width=400&text=Base+Cabinet" : cabinetCategory === "hanging" ? "/placeholder.svg?height=200&width=400&text=Hanging+Cabinet" : "/placeholder.svg?height=200&width=400&text=Tall+Unit"}
+                alt="Cabinet preview"
+                width={400}
+                height={200}
+                className="rounded-md border"
+              />
+            </div>
+
             {estimate ? (
               <div className="space-y-6">
                 <div className="text-center p-6 bg-primary/5 rounded-lg border border-primary/20">
@@ -250,6 +287,14 @@ export default function CalculatorPage() {
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Project Type:</span>
                     <span className="font-medium text-foreground capitalize">{formData.projectType}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Cabinet Type:</span>
+                    <span className="font-medium text-foreground capitalize">{cabinetCategory}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Quality Tier:</span>
+                    <span className="font-medium text-foreground capitalize">{tier}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Linear Meters:</span>

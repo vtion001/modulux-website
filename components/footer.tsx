@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation"
 
 export function Footer() {
   const pathname = usePathname()
-  if (pathname === "/proposal" || pathname?.startsWith("/proposal/")) return null
+  if (pathname === "/proposal" || pathname?.startsWith("/proposal/") || pathname === "/pitch-deck" || pathname?.startsWith("/pitch-deck/")) return null
   return (
     <motion.footer
       className="bg-background text-foreground border-t border-border relative overflow-hidden"
