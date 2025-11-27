@@ -1,7 +1,8 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
-import { Mail, Phone, Clock, Paperclip, Tag as TagIcon, Save as SaveIcon, Reply as ReplyIcon, X, Send, CheckCircle, Hourglass, Circle, Wand2, Bot } from "lucide-react"
+import { Mail, Phone, Clock, Paperclip, Tag as TagIcon, Save as SaveIcon, Reply as ReplyIcon, X, Send, CheckCircle, Hourglass, Circle, Wand2, Bot, UserPlus } from "lucide-react"
+import { toast } from "sonner"
 
 export function InquiryItem({ inquiry }: { inquiry: any }) {
   const [status, setStatus] = useState(inquiry.status || "new")
@@ -13,6 +14,7 @@ export function InquiryItem({ inquiry }: { inquiry: any }) {
   const [includeSignature, setIncludeSignature] = useState(true)
   const [busy, setBusy] = useState(false)
   const [showPreview, setShowPreview] = useState(true)
+  const [crmBusy, setCrmBusy] = useState(false)
   const toRef = useRef<HTMLInputElement | null>(null)
   const modalRef = useRef<HTMLDivElement | null>(null)
 
@@ -53,7 +55,7 @@ export function InquiryItem({ inquiry }: { inquiry: any }) {
   }, [openReply])
 
   const aiRewrite = async () => {
-    const base = (text || "").trim() || String(inquiry.message || "").trim()
+    const base = (text || "").trim()
     if (!base) return
     try {
       const res = await fetch("/api/ai/rewrite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "rewrite", text: base, keywords: `${inquiry?.name||""} inquiry`, length: "medium" }) })
@@ -64,9 +66,7 @@ export function InquiryItem({ inquiry }: { inquiry: any }) {
         return
       }
     } catch {}
-    const name = String(inquiry.name || "").trim() || "there"
-    const polite = `Hi ${name},\n\n${base}\n\nLet me know if you prefer a call to discuss details and timeline.\n\nBest regards,\n`
-    setText(polite)
+    setText(base)
   }
 
   const aiReply = async () => {
@@ -120,6 +120,30 @@ export function InquiryItem({ inquiry }: { inquiry: any }) {
     }
   }
 
+  const captureToCRM = async () => {
+    if (crmBusy) return
+    setCrmBusy(true)
+    try {
+      const payload = {
+        name: String(inquiry.name || "").trim(),
+        email: String(inquiry.email || "").trim(),
+        phone: String(inquiry.phone || "").trim(),
+        company: String(inquiry.company || "").trim(),
+        source: "Inquiry",
+        notes: String(inquiry.message || "").trim(),
+      }
+      const res = await fetch("/api/crm/lead", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error || "Failed")
+      toast.success("Captured to CRM")
+      await fetch(`/api/inquiries/${inquiry.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ appendTag: "crm" }) })
+    } catch (e: any) {
+      toast.error(e?.message || "Capture failed")
+    } finally {
+      setCrmBusy(false)
+    }
+  }
+
   return (
     <div className="group relative bg-card border border-border/60 rounded-2xl p-5 transition-all duration-200 hover:shadow-md hover:-translate-y-[2px]">
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-br from-primary/10 to-transparent rounded-2xl pointer-events-none" />
@@ -141,7 +165,10 @@ export function InquiryItem({ inquiry }: { inquiry: any }) {
             </div>
           </div>
         </div>
-        <div className="text-xs text-muted-foreground inline-flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(inquiry.date).toLocaleString()}</div>
+        <div className="flex items-center gap-2">
+          <div className="text-xs text-muted-foreground inline-flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(inquiry.date).toLocaleString()}</div>
+          <button type="button" onClick={captureToCRM} disabled={crmBusy} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border text-xs transition-all hover:shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"><UserPlus className="w-3.5 h-3.5" />Capture to CRM</button>
+        </div>
       </div>
       <div className="relative mt-3 whitespace-pre-wrap text-sm text-foreground/90">{inquiry.message}</div>
       {Array.isArray(inquiry.attachments) && inquiry.attachments.length > 0 && (
@@ -222,7 +249,7 @@ export function InquiryItem({ inquiry }: { inquiry: any }) {
                       <div className="flex items-center justify-between mb-2">
                         <div className="text-sm font-medium text-foreground">Preview</div>
                         <div className="flex items-center gap-2">
-                          <button type="button" onClick={aiRewrite} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border text-xs transition-all hover:shadow-sm"><Wand2 className="w-3.5 h-3.5" />AI Rewrite</button>
+                          <button type="button" onClick={aiRewrite} disabled={!String(text||"").trim()} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border text-xs transition-all hover:shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"><Wand2 className="w-3.5 h-3.5" />AI Rewrite</button>
                           <button type="button" onClick={aiReply} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border text-xs transition-all hover:shadow-sm"><Bot className="w-3.5 h-3.5" />AI Reply</button>
                         </div>
                       </div>
