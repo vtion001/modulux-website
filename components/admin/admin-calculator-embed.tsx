@@ -34,6 +34,38 @@ export function AdminCalculatorEmbed() {
   const [subtotal, setSubtotal] = useState<number | null>(null)
   const [tax, setTax] = useState<number | null>(null)
   const [lines, setLines] = useState<any[]>([])
+  const tierSpecs: Record<string, { items: string[]; exclusive: string[] }> = {
+    standard: {
+      items: [
+        "Carcass: 18mm MR MFC Melamine Board",
+        "Door: 18mm MR MFC Melamine Board",
+        "Hinges: Zinc Plated 3D Hinges Soft Closing",
+        "Drawers: Regular Wooden Drawing Box ( Soft Closing )",
+        "Countertop: Granite Countertop",
+      ],
+      exclusive: ["Special Mechanism", "Lighting", "Appliances"],
+    },
+    premium: {
+      items: [
+        "Carcass: 18mm Melamine Marine Plywood",
+        "Door: 18mm MDF PETG/UV Ray Gloss / Synchronized Boards",
+        "Hinges: Hettich Hinges ( Soft Closing )",
+        "Drawers: Hettich Tandem Box Drawers ( Soft Closing )",
+        "Countertop: Synthetic Quartz Countertop",
+      ],
+      exclusive: ["Special Mechanism", "Lighting", "Appliances"],
+    },
+    luxury: {
+      items: [
+        "Carcass: 18mm Celuka PVC Boards",
+        "Door: 18mm MDF PETG/Acrylic Boards",
+        "Hinges: Blum Hinges ( Soft Closing )",
+        "Drawers: Blum Tandem Box Drawers ( Soft Closing )",
+        "Countertop: Synthetic Quartz Countertop",
+      ],
+      exclusive: ["Special Mechanism", "Lighting", "Appliances"],
+    },
+  }
   const [baseRates, setBaseRates] = useState<{ base: number; hanging: number; tall: number } | null>(null)
   const [tiers, setTiers] = useState<{ luxury: number; premium: number; standard: number } | null>(null)
   const [cabinetCategory, setCabinetCategory] = useState<string>("base")
@@ -305,6 +337,27 @@ export function AdminCalculatorEmbed() {
                     </div>
                   </div>
                 )}
+                <div className="text-xs border rounded">
+                  <div className="p-2 font-semibold">Specification • {tier[0].toUpperCase()+tier.slice(1)}</div>
+                  <div className="p-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <div className="font-medium mb-1">Included</div>
+                      <ul className="list-disc pl-5 space-y-1">
+                        {(tierSpecs[tier]?.items || []).map((it, idx) => (
+                          <li key={idx}>{it}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <div className="font-medium mb-1">Exclusive</div>
+                      <ul className="list-disc pl-5 space-y-1">
+                        {(tierSpecs[tier]?.exclusive || []).map((it, idx) => (
+                          <li key={idx}>{it}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
                 <div className="pt-4 border-t border-border/40">
                   <p className="text-xs text-muted-foreground mb-4">* Approximate estimate for planning purposes.</p>
                   <button className="w-full bg-secondary text-white py-3 px-6 rounded-md font-medium hover:bg-secondary/90" onClick={()=>{const body=`Estimate Total: ₱${estimate?.toLocaleString()}\nSubtotal: ₱${(subtotal||0).toLocaleString()}\nTax: ₱${(tax||0).toLocaleString()}`; window.location.href=`mailto:?subject=ModuLux Estimate&body=${encodeURIComponent(body)}`}}>Request Detailed Quote</button>
