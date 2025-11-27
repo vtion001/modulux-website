@@ -1,5 +1,242 @@
 [
   {
+    "text": "Thank you for your inquiry regarding our cabinet offerings. We understand that obtaining a quote is an essential step in your decision-making process, and we are here to assist you. \n\nTo provide you with the most accurate quote for your specific needs, we kindly ask for more details regarding your project. This includes the type of cabinets you are interested in, the dimensions, preferred materials, and any specific design features you may have in mind. Our team is dedicated to delivering high-quality solutions tailored to your requirements, and a comprehensive understanding of your project will enable us to provide an optimal quote.\n\nWe look forward to assisting you with your cabinet needs and ensuring you receive the best possible value. Please reach out with the necessary details, and let's get started on your project today!",
+    "variants": [
+      "Thank you for your inquiry regarding our cabinet offerings. We understand that obtaining a quote is an essential step in your decision-making process, and we are here to assist you. \n\nTo provide you with the most accurate quote for your specific needs, we kindly ask for more details regarding your project. This includes the type of cabinets you are interested in, the dimensions, preferred materials, and any specific design features you may have in mind. Our team is dedicated to delivering high-quality solutions tailored to your requirements, and a comprehensive understanding of your project will enable us to provide an optimal quote.\n\nWe look forward to assisting you with your cabinet needs and ensuring you receive the best possible value. Please reach out with the necessary details, and let's get started on your project today!",
+      "Subject: VJ Ruado Inquiry - Request for Quote\n\nDear [Recipient's Name],\n\nThank you for your interest in our cabinets. We appreciate your inquiry regarding a quote for the VJ Ruado line. Our cabinets are crafted with precision and designed to meet your aesthetic and functional needs, ensuring you receive both quality and value.\n\nTo provide you with an accurate quote, could you please share more details about your specific requirements? Information such as dimensions, preferred finishes, and any additional features you may want will help us tailor our offering to your project. Our team is committed to delivering exceptional service and ensuring your satisfaction with every aspect of your cabinet selection.\n\nWe look forward to assisting you further with your VJ Ruado inquiry. Please reply at your earliest convenience so we can begin crafting the perfect solution for your space.\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Company]  \n[Contact Information]  ",
+      "Subject: Request for Quote - VJ Ruado Inquiry\n\nDear [Recipient's Name],\n\nI hope this message finds you well. I am reaching out to request a quote for the VJ Ruado cabinets. We are interested in exploring your offerings, and would like to understand the pricing and options available to us. \n\nAs we seek to enhance our space with high-quality cabinetry, your expertise in craftsmanship and design is essential to our decision-making process. Please provide us with the relevant details regarding the VJ Ruado line, including material specifications, customization options, and lead times for delivery.\n\nThank you for your attention to this inquiry. We look forward to your prompt response so we can move forward with our project.\n\nBest regards,  \n[Your Name]  \n[Your Contact Information]  \n[Your Company Name]  \n"
+    ],
+    "items": [
+      {
+        "id": "v1",
+        "text": "Thank you for your inquiry regarding our cabinet offerings. We understand that obtaining a quote is an essential step in your decision-making process, and we are here to assist you. \n\nTo provide you with the most accurate quote for your specific needs, we kindly ask for more details regarding your project. This includes the type of cabinets you are interested in, the dimensions, preferred materials, and any specific design features you may have in mind. Our team is dedicated to delivering high-quality solutions tailored to your requirements, and a comprehensive understanding of your project will enable us to provide an optimal quote.\n\nWe look forward to assisting you with your cabinet needs and ensuring you receive the best possible value. Please reach out with the necessary details, and let's get started on your project today!",
+        "meta": {
+          "mode": "rewrite",
+          "keywords": "vj ruado inquiry",
+          "length": "medium",
+          "sizeHint": "250-400 words"
+        },
+        "quality": {
+          "words": 138,
+          "passed": false
+        },
+        "similarity": {
+          "to_v2": 0.34532374100719426,
+          "to_v3": 0.2932330827067669
+        },
+        "timestamp": 1764226819382
+      },
+      {
+        "id": "v2",
+        "text": "Subject: VJ Ruado Inquiry - Request for Quote\n\nDear [Recipient's Name],\n\nThank you for your interest in our cabinets. We appreciate your inquiry regarding a quote for the VJ Ruado line. Our cabinets are crafted with precision and designed to meet your aesthetic and functional needs, ensuring you receive both quality and value.\n\nTo provide you with an accurate quote, could you please share more details about your specific requirements? Information such as dimensions, preferred finishes, and any additional features you may want will help us tailor our offering to your project. Our team is committed to delivering exceptional service and ensuring your satisfaction with every aspect of your cabinet selection.\n\nWe look forward to assisting you further with your VJ Ruado inquiry. Please reply at your earliest convenience so we can begin crafting the perfect solution for your space.\n\nBest regards,\n\n[Your Name]  \n[Your Position]  \n[Your Company]  \n[Contact Information]  ",
+        "meta": {
+          "mode": "rewrite",
+          "keywords": "vj ruado inquiry",
+          "length": "medium",
+          "sizeHint": "250-400 words"
+        },
+        "quality": {
+          "words": 150,
+          "passed": false
+        },
+        "similarity": {
+          "to_v1": 0.34532374100719426,
+          "to_v3": 0.3120567375886525
+        },
+        "timestamp": 1764226819382
+      },
+      {
+        "id": "v3",
+        "text": "Subject: Request for Quote - VJ Ruado Inquiry\n\nDear [Recipient's Name],\n\nI hope this message finds you well. I am reaching out to request a quote for the VJ Ruado cabinets. We are interested in exploring your offerings, and would like to understand the pricing and options available to us. \n\nAs we seek to enhance our space with high-quality cabinetry, your expertise in craftsmanship and design is essential to our decision-making process. Please provide us with the relevant details regarding the VJ Ruado line, including material specifications, customization options, and lead times for delivery.\n\nThank you for your attention to this inquiry. We look forward to your prompt response so we can move forward with our project.\n\nBest regards,  \n[Your Name]  \n[Your Contact Information]  \n[Your Company Name]  \n",
+        "meta": {
+          "mode": "rewrite",
+          "keywords": "vj ruado inquiry",
+          "length": "medium",
+          "sizeHint": "250-400 words"
+        },
+        "quality": {
+          "words": 129,
+          "passed": false
+        },
+        "similarity": {
+          "to_v1": 0.2932330827067669,
+          "to_v2": 0.3120567375886525
+        },
+        "timestamp": 1764226819382
+      }
+    ],
+    "source": "openai",
+    "original": {
+      "text": "i need a quote for this."
+    },
+    "meta": {
+      "mode": "rewrite",
+      "keywords": "vj ruado inquiry",
+      "length": "medium",
+      "sizeHint": "250-400 words",
+      "generated": 3,
+      "timestamp": 1764226819382
+    }
+  },
+  {
+    "text": "Subject: Request for Quote on VJ Ruado Inquiry\n\nDear [Recipient's Name],\n\nI hope this message finds you well. I am reaching out to request a quote regarding our VJ Ruado inquiry. We are looking to explore options and pricing for cabinets that adhere to our specifications and aesthetic preferences. \n\nUnderstanding the details of your offerings will greatly assist us in making an informed decision. We appreciate your timely response, as we are eager to move forward with this project.\n\nThank you for your attention to this matter. Please provide the requested quote at your earliest convenience.\n\nBest regards,  \n[Your Name]  \n[Your Contact Information]  \n[Your Company Name]  ",
+    "variants": [
+      "Subject: Request for Quote on VJ Ruado Inquiry\n\nDear [Recipient's Name],\n\nI hope this message finds you well. I am reaching out to request a quote regarding our VJ Ruado inquiry. We are looking to explore options and pricing for cabinets that adhere to our specifications and aesthetic preferences. \n\nUnderstanding the details of your offerings will greatly assist us in making an informed decision. We appreciate your timely response, as we are eager to move forward with this project.\n\nThank you for your attention to this matter. Please provide the requested quote at your earliest convenience.\n\nBest regards,  \n[Your Name]  \n[Your Contact Information]  \n[Your Company Name]  ",
+      "Thank you for your inquiry regarding a quote for our cabinetry products. We understand that you are seeking detailed information on pricing, and we are here to assist you with that process. \n\nAt [Your Company Name], we pride ourselves on providing high-quality cabinetry solutions tailored to meet the unique needs of our clients. Our extensive range of options ensures that you can find the perfect fit for your space, whether it’s for a kitchen remodel, bathroom upgrade, or custom storage solution. To provide you with the most accurate quote, we would appreciate more details about your specific project requirements, including dimensions, preferred materials, and any particular styles you have in mind.\n\nOnce we receive this information, our team will promptly prepare a comprehensive and competitive quote that reflects your vision and budget. We are committed to delivering exceptional value and service to every customer. \n\nPlease feel free to reach out with additional details or any questions you may have. We look forward to helping you bring your cabinetry project to life. \n\nContact us today to get started!",
+      "Subject: VJ Ruado Inquiry - Request for Quote \n\nDear [Recipient's Name],\n\nThank you for your interest in our cabinet solutions. We appreciate your inquiry regarding a quote for your project. At [Your Company Name], we specialize in providing high-quality cabinetry tailored to meet the unique needs of our clients. \n\nTo ensure we can deliver an accurate and competitive quote for your VJ Ruado inquiry, please provide us with additional details about your project. Specifically, let us know the dimensions, preferred materials, and any design features you envision. This information will help us create a customized solution that aligns with your expectations and budget.\n\nWe look forward to assisting you further. Please reply with the requested information, and we will prepare a comprehensive quote for your review.\n\nBest regards,  \n[Your Name]  \n[Your Position]  \n[Your Company Name]  \n[Your Contact Information]  \n\n---\n\nIf you're ready to take the next step, don't hesitate to send us the details today!"
+    ],
+    "items": [
+      {
+        "id": "v1",
+        "text": "Subject: Request for Quote on VJ Ruado Inquiry\n\nDear [Recipient's Name],\n\nI hope this message finds you well. I am reaching out to request a quote regarding our VJ Ruado inquiry. We are looking to explore options and pricing for cabinets that adhere to our specifications and aesthetic preferences. \n\nUnderstanding the details of your offerings will greatly assist us in making an informed decision. We appreciate your timely response, as we are eager to move forward with this project.\n\nThank you for your attention to this matter. Please provide the requested quote at your earliest convenience.\n\nBest regards,  \n[Your Name]  \n[Your Contact Information]  \n[Your Company Name]  ",
+        "meta": {
+          "mode": "rewrite",
+          "keywords": "vj ruado inquiry",
+          "length": "medium",
+          "sizeHint": "250-400 words"
+        },
+        "quality": {
+          "words": 107,
+          "passed": false
+        },
+        "similarity": {
+          "to_v2": 0.2389937106918239,
+          "to_v3": 0.3157894736842105
+        },
+        "timestamp": 1764226817867
+      },
+      {
+        "id": "v2",
+        "text": "Thank you for your inquiry regarding a quote for our cabinetry products. We understand that you are seeking detailed information on pricing, and we are here to assist you with that process. \n\nAt [Your Company Name], we pride ourselves on providing high-quality cabinetry solutions tailored to meet the unique needs of our clients. Our extensive range of options ensures that you can find the perfect fit for your space, whether it’s for a kitchen remodel, bathroom upgrade, or custom storage solution. To provide you with the most accurate quote, we would appreciate more details about your specific project requirements, including dimensions, preferred materials, and any particular styles you have in mind.\n\nOnce we receive this information, our team will promptly prepare a comprehensive and competitive quote that reflects your vision and budget. We are committed to delivering exceptional value and service to every customer. \n\nPlease feel free to reach out with additional details or any questions you may have. We look forward to helping you bring your cabinetry project to life. \n\nContact us today to get started!",
+        "meta": {
+          "mode": "rewrite",
+          "keywords": "vj ruado inquiry",
+          "length": "medium",
+          "sizeHint": "250-400 words"
+        },
+        "quality": {
+          "words": 179,
+          "passed": false
+        },
+        "similarity": {
+          "to_v1": 0.2389937106918239,
+          "to_v3": 0.35403726708074534
+        },
+        "timestamp": 1764226817867
+      },
+      {
+        "id": "v3",
+        "text": "Subject: VJ Ruado Inquiry - Request for Quote \n\nDear [Recipient's Name],\n\nThank you for your interest in our cabinet solutions. We appreciate your inquiry regarding a quote for your project. At [Your Company Name], we specialize in providing high-quality cabinetry tailored to meet the unique needs of our clients. \n\nTo ensure we can deliver an accurate and competitive quote for your VJ Ruado inquiry, please provide us with additional details about your project. Specifically, let us know the dimensions, preferred materials, and any design features you envision. This information will help us create a customized solution that aligns with your expectations and budget.\n\nWe look forward to assisting you further. Please reply with the requested information, and we will prepare a comprehensive quote for your review.\n\nBest regards,  \n[Your Name]  \n[Your Position]  \n[Your Company Name]  \n[Your Contact Information]  \n\n---\n\nIf you're ready to take the next step, don't hesitate to send us the details today!",
+        "meta": {
+          "mode": "rewrite",
+          "keywords": "vj ruado inquiry",
+          "length": "medium",
+          "sizeHint": "250-400 words"
+        },
+        "quality": {
+          "words": 157,
+          "passed": false
+        },
+        "similarity": {
+          "to_v1": 0.3157894736842105,
+          "to_v2": 0.35403726708074534
+        },
+        "timestamp": 1764226817867
+      }
+    ],
+    "source": "openai",
+    "original": {
+      "text": "i need a quote for this."
+    },
+    "meta": {
+      "mode": "rewrite",
+      "keywords": "vj ruado inquiry",
+      "length": "medium",
+      "sizeHint": "250-400 words",
+      "generated": 3,
+      "timestamp": 1764226817867
+    }
+  },
+  {
+    "text": "Thank you for your inquiry regarding our VJ Ruado cabinets. We appreciate your interest and are eager to assist you in finding the perfect solution for your needs.\n\nTo provide you with an accurate quote, we would need a bit more information about your specific requirements. Please let us know the dimensions, style preferences, and any additional features you are considering. This will allow us to tailor our offerings to match your vision and ensure you receive the best possible value.\n\nFeel free to reach out with any details or questions you may have. We look forward to helping you with your VJ Ruado cabinet project. Request your quote today, and let us bring your ideas to life!",
+    "variants": [
+      "Thank you for your inquiry regarding our VJ Ruado cabinets. We appreciate your interest and are eager to assist you in finding the perfect solution for your needs.\n\nTo provide you with an accurate quote, we would need a bit more information about your specific requirements. Please let us know the dimensions, style preferences, and any additional features you are considering. This will allow us to tailor our offerings to match your vision and ensure you receive the best possible value.\n\nFeel free to reach out with any details or questions you may have. We look forward to helping you with your VJ Ruado cabinet project. Request your quote today, and let us bring your ideas to life!",
+      "Thank you for reaching out with your inquiry regarding VJ Ruado cabinets. We understand that obtaining a quote is an essential step in your decision-making process, and we are here to assist you every step of the way.\n\nTo provide you with the most accurate quote, we would appreciate some additional details about your specific needs. Please let us know the dimensions, styles, and any particular features you have in mind for your VJ Ruado cabinets. This information will enable us to tailor our offer to suit your requirements perfectly.\n\nWe look forward to assisting you further and delivering exceptional cabinets that meet your expectations. Please don't hesitate to reach out with your specifications so we can provide you with a comprehensive quote for your project. Contact us today to get started!",
+      "Subject: Request for VJ Ruado Inquiry Quote\n\nDear [Recipient's Name],\n\nI hope this message finds you well. I am reaching out to request a quote for the VJ Ruado inquiry. We are interested in exploring your range of cabinets that would align with our specific requirements. Your expertise in cabinet manufacturing assures us that you can provide a tailored solution that meets our needs.\n\nCould you please provide an estimate that includes details on pricing, available options, and lead times? Additionally, any insights into the materials used and customization possibilities would be greatly appreciated. Understanding these details will help us make an informed decision moving forward.\n\nThank you for your attention to this request. I look forward to your prompt response and the opportunity to collaborate on our cabinet needs.\n\nBest regards,  \n[Your Name]  \n[Your Contact Information]  \n[Your Company Name]  "
+    ],
+    "items": [
+      {
+        "id": "v1",
+        "text": "Thank you for your inquiry regarding our VJ Ruado cabinets. We appreciate your interest and are eager to assist you in finding the perfect solution for your needs.\n\nTo provide you with an accurate quote, we would need a bit more information about your specific requirements. Please let us know the dimensions, style preferences, and any additional features you are considering. This will allow us to tailor our offerings to match your vision and ensure you receive the best possible value.\n\nFeel free to reach out with any details or questions you may have. We look forward to helping you with your VJ Ruado cabinet project. Request your quote today, and let us bring your ideas to life!",
+        "meta": {
+          "mode": "rewrite",
+          "keywords": "vj ruado inquiry",
+          "length": "medium",
+          "sizeHint": "250-400 words"
+        },
+        "quality": {
+          "words": 118,
+          "passed": false
+        },
+        "similarity": {
+          "to_v2": 0.4117647058823529,
+          "to_v3": 0.2753623188405797
+        },
+        "timestamp": 1764226816410
+      },
+      {
+        "id": "v2",
+        "text": "Thank you for reaching out with your inquiry regarding VJ Ruado cabinets. We understand that obtaining a quote is an essential step in your decision-making process, and we are here to assist you every step of the way.\n\nTo provide you with the most accurate quote, we would appreciate some additional details about your specific needs. Please let us know the dimensions, styles, and any particular features you have in mind for your VJ Ruado cabinets. This information will enable us to tailor our offer to suit your requirements perfectly.\n\nWe look forward to assisting you further and delivering exceptional cabinets that meet your expectations. Please don't hesitate to reach out with your specifications so we can provide you with a comprehensive quote for your project. Contact us today to get started!",
+        "meta": {
+          "mode": "rewrite",
+          "keywords": "vj ruado inquiry",
+          "length": "medium",
+          "sizeHint": "250-400 words"
+        },
+        "quality": {
+          "words": 134,
+          "passed": false
+        },
+        "similarity": {
+          "to_v1": 0.4117647058823529,
+          "to_v3": 0.2777777777777778
+        },
+        "timestamp": 1764226816410
+      },
+      {
+        "id": "v3",
+        "text": "Subject: Request for VJ Ruado Inquiry Quote\n\nDear [Recipient's Name],\n\nI hope this message finds you well. I am reaching out to request a quote for the VJ Ruado inquiry. We are interested in exploring your range of cabinets that would align with our specific requirements. Your expertise in cabinet manufacturing assures us that you can provide a tailored solution that meets our needs.\n\nCould you please provide an estimate that includes details on pricing, available options, and lead times? Additionally, any insights into the materials used and customization possibilities would be greatly appreciated. Understanding these details will help us make an informed decision moving forward.\n\nThank you for your attention to this request. I look forward to your prompt response and the opportunity to collaborate on our cabinet needs.\n\nBest regards,  \n[Your Name]  \n[Your Contact Information]  \n[Your Company Name]  ",
+        "meta": {
+          "mode": "rewrite",
+          "keywords": "vj ruado inquiry",
+          "length": "medium",
+          "sizeHint": "250-400 words"
+        },
+        "quality": {
+          "words": 141,
+          "passed": false
+        },
+        "similarity": {
+          "to_v1": 0.2753623188405797,
+          "to_v2": 0.2777777777777778
+        },
+        "timestamp": 1764226816410
+      }
+    ],
+    "source": "openai",
+    "original": {
+      "text": "i need a quote for this."
+    },
+    "meta": {
+      "mode": "rewrite",
+      "keywords": "vj ruado inquiry",
+      "length": "medium",
+      "sizeHint": "250-400 words",
+      "generated": 3,
+      "timestamp": 1764226816410
+    }
+  },
+  {
     "text": "Transform your culinary space with a complete kitchen renovation that features modular cabinets and premium countertops. This approach not only enhances the aesthetic appeal of your kitchen but also maximizes functionality and efficiency. Modular cabinets offer versatility in design, allowing you to customize your kitchen layout to suit your specific needs and style preferences. With various finishes and configurations available, you can create a space that reflects your personal taste while ensuring optimal storage solutions.\n\nIncorporating premium countertops elevates the overall look and feel of your kitchen. High-quality materials, such as granite, quartz, or marble, not only provide durability but also bring a touch of luxury to your cooking environment. These surfaces are designed to withstand daily wear and tear, making them a practical choice for any busy kitchen. By pairing these premium countertops with well-designed modular cabinets, you achieve a harmonious balance of beauty and functionality.\n\nReady to elevate your kitchen? Contact us today to explore our range of modular cabinets and premium countertop options, and let us help you create the kitchen of your dreams.",
     "variants": [
       "Transform your culinary space with a complete kitchen renovation that features modular cabinets and premium countertops. This approach not only enhances the aesthetic appeal of your kitchen but also maximizes functionality and efficiency. Modular cabinets offer versatility in design, allowing you to customize your kitchen layout to suit your specific needs and style preferences. With various finishes and configurations available, you can create a space that reflects your personal taste while ensuring optimal storage solutions.\n\nIncorporating premium countertops elevates the overall look and feel of your kitchen. High-quality materials, such as granite, quartz, or marble, not only provide durability but also bring a touch of luxury to your cooking environment. These surfaces are designed to withstand daily wear and tear, making them a practical choice for any busy kitchen. By pairing these premium countertops with well-designed modular cabinets, you achieve a harmonious balance of beauty and functionality.\n\nReady to elevate your kitchen? Contact us today to explore our range of modular cabinets and premium countertop options, and let us help you create the kitchen of your dreams.",
