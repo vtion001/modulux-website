@@ -29,7 +29,6 @@ export function AdminSidePanel() {
     {
       title: "OPERATIONS",
       items: [
-        { title: "Clients", href: "/admin/clients", iconName: "users" },
         { title: "CRM", href: "/admin/crm", iconName: "users" },
         { title: "Project Management", href: "/admin/project-management", iconName: "chart" },
       ],

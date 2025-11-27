@@ -27,9 +27,12 @@ export default async function AdminDashboardPage() {
         <StatCard title="Products" value={products.length} icon={<Package className="w-24 h-24" />} href="/admin/products" />
         <StatCard title="Inquiries" value={inquiries.length} icon={<MessageSquare className="w-24 h-24" />} href="/admin/inquiries" />
       </div>
-      <div className="flex items-center justify-between bg-muted/30 border border-border/40 rounded-lg p-4">
-        <div className="text-sm text-muted-foreground">Quick access</div>
-        <Link href="/proposal" className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border/50 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">
+      <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-lg p-4">
+        <div className="text-sm text-foreground">Quick access</div>
+        <Link
+          href="/proposal"
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm transition-all duration-200 ease-out transform hover:bg-primary/90 hover:-translate-y-[1px]"
+        >
           Business Proposal (public)
         </Link>
       </div>

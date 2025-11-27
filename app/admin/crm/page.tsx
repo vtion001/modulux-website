@@ -1,8 +1,8 @@
 import path from "path"
 import { readFile, writeFile, mkdir } from "fs/promises"
 import { revalidatePath } from "next/cache"
-import { SaveForm, SubmitButton } from "/components/admin/save-form"
-import { SelectOnFocusInput, SelectOnFocusTextarea } from "/components/select-on-focus"
+import { SaveForm, SubmitButton } from "@/components/admin/save-form"
+import { SelectOnFocusInput, SelectOnFocusTextarea } from "@/components/select-on-focus"
 
 const crmPath = path.join(process.cwd(), "data", "crm.json")
 
@@ -104,7 +104,7 @@ export default async function AdminCRMPage() {
   return (
     <div className="flex min-h-screen bg-gradient-to-b from-white to-gray-50">
       <div className="flex-1 flex flex-col">
-        <div className="relative isolate overflow-hidden rounded-b-2xl bg-gradient-to-r from-purple-700 via-indigo-600 to-blue-600 text-white animate-in fade-in slide-in-from-top-1 duration-300">
+        <div className="relative isolate overflow-hidden rounded-b-2xl bg-gradient-to-r from-primary to-primary/80 text-white animate-in fade-in slide-in-from-top-1 duration-300">
           <div className="px-6 py-8">
             <div className="flex items-center justify-between">
               <div>
@@ -135,15 +135,15 @@ export default async function AdminCRMPage() {
         <div className="sticky top-16 z-10 bg-white/80 backdrop-blur border-b border-gray-100 animate-in fade-in slide-in-from-bottom-1 duration-300">
           <div className="px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm">
-              <span className="px-2 py-1 rounded bg-purple-50 text-purple-700">Leads {leads.length}</span>
-              <span className="px-2 py-1 rounded bg-blue-50 text-blue-700">Deals {deals.length}</span>
+              <span className="px-2 py-1 rounded bg-primary/10 text-primary">Leads {leads.length}</span>
+              <span className="px-2 py-1 rounded bg-primary/10 text-primary">Deals {deals.length}</span>
               <span className="px-2 py-1 rounded bg-gray-100 text-gray-700">Contacts {contacts.length}</span>
             </div>
             <div className="flex items-center gap-2">
               <label className="sr-only" htmlFor="crm-search">Search</label>
-              <input id="crm-search" placeholder="Search" className="p-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200" aria-label="Search CRM" />
-              <button className="px-2 py-1 text-sm border rounded hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-200" aria-label="Filter">Filter</button>
-              <button className="px-2 py-1 text-sm border rounded hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-200" aria-label="Sort">Sort</button>
+              <input id="crm-search" placeholder="Search" className="p-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" aria-label="Search CRM" />
+              <button className="px-2 py-1 text-sm border rounded hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/20" aria-label="Filter">Filter</button>
+              <button className="px-2 py-1 text-sm border rounded hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/20" aria-label="Sort">Sort</button>
             </div>
           </div>
         </div>
@@ -177,7 +177,7 @@ export default async function AdminCRMPage() {
                         <td className="p-2">
                           <SaveForm action={updateLeadStatus} className="flex items-center gap-2">
                             <input type="hidden" name="id" defaultValue={l.id} />
-                            <select name="status" defaultValue={l.status} className="text-xs border rounded p-1 focus:outline-none focus:ring-2 focus:ring-indigo-200" aria-label="Update lead status">
+                            <select name="status" defaultValue={l.status} className="text-xs border rounded p-1 focus:outline-none focus:ring-2 focus:ring-primary/20" aria-label="Update lead status">
                               <option>New</option>
                               <option>Contacted</option>
                               <option>Qualified</option>
@@ -206,7 +206,7 @@ export default async function AdminCRMPage() {
                           <div className="text-xs text-gray-500">₱{Number(d.value||0).toLocaleString()}</div>
                           <SaveForm action={updateDealStage} className="flex items-center gap-2 mt-2">
                             <input type="hidden" name="id" defaultValue={d.id} />
-                            <select name="stage" defaultValue={d.stage} className="text-xs border rounded p-1 focus:outline-none focus:ring-2 focus:ring-indigo-200" aria-label="Move deal stage">
+                            <select name="stage" defaultValue={d.stage} className="text-xs border rounded p-1 focus:outline-none focus:ring-2 focus:ring-primary/20" aria-label="Move deal stage">
                               {stages.map((x) => (
                                 <option key={x}>{x}</option>
                               ))}
@@ -254,13 +254,13 @@ export default async function AdminCRMPage() {
             <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm animate-in fade-in slide-in-from-bottom-1 duration-300">
               <h2 className="text-sm font-semibold text-gray-900 mb-3">Quick Add Lead</h2>
               <SaveForm action={addLead} className="grid grid-cols-1 gap-3">
-                <SelectOnFocusInput name="name" placeholder="Name" className="p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-200" />
-                <SelectOnFocusInput name="email" placeholder="Email" className="p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-200" />
-                <SelectOnFocusInput name="phone" placeholder="Phone" className="p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-200" />
-                <SelectOnFocusInput name="company" placeholder="Company" className="p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-200" />
-                <SelectOnFocusInput name="source" placeholder="Source" className="p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-200" />
-                <SelectOnFocusTextarea name="notes" placeholder="Notes" className="p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-indigo-200" />
-                <SubmitButton className="px-3 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700">Add Lead</SubmitButton>
+                <SelectOnFocusInput name="name" placeholder="Name" className="p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                <SelectOnFocusInput name="email" placeholder="Email" className="p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                <SelectOnFocusInput name="phone" placeholder="Phone" className="p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                <SelectOnFocusInput name="company" placeholder="Company" className="p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                <SelectOnFocusInput name="source" placeholder="Source" className="p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                <SelectOnFocusTextarea name="notes" placeholder="Notes" className="p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                <SubmitButton className="px-3 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90">Add Lead</SubmitButton>
               </SaveForm>
             </div>
 
@@ -272,7 +272,7 @@ export default async function AdminCRMPage() {
                 <SelectOnFocusInput name="contact_id" placeholder="Lead ID" className="p-2 border border-gray-200 rounded" />
                 <SelectOnFocusInput name="due_date" placeholder="Due Date" className="p-2 border border-gray-200 rounded" />
                 <SelectOnFocusInput name="next_activity" placeholder="Next Activity" className="p-2 border border-gray-200 rounded" />
-                <SubmitButton className="px-3 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700">Add Deal</SubmitButton>
+                <SubmitButton className="px-3 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90">Add Deal</SubmitButton>
               </SaveForm>
             </div>
 
@@ -284,7 +284,7 @@ export default async function AdminCRMPage() {
                 <SelectOnFocusInput name="c_phone" placeholder="Phone" className="p-2 border border-gray-200 rounded" />
                 <SelectOnFocusInput name="c_company" placeholder="Company" className="p-2 border border-gray-200 rounded" />
                 <SelectOnFocusInput name="c_tags" placeholder="Tags (comma-separated)" className="p-2 border border-gray-200 rounded" />
-                <SubmitButton className="px-3 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700">Add Contact</SubmitButton>
+                <SubmitButton className="px-3 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90">Add Contact</SubmitButton>
               </SaveForm>
             </div>
           </div>
