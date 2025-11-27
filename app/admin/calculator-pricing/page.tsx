@@ -61,6 +61,7 @@ async function importPricing(formData: FormData) {
   revalidatePath("/admin/calculator-pricing")
 }
 
+export default async function AdminCalculatorPricingPage() {
   return (
     <div className="max-w-6xl mx-auto">
       <AdminCalculatorEmbed />
