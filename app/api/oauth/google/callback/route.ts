@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server"
 import path from "path"
-import { writeFile, readFile, mkdir } from "fs/promises"
-
-const storePath = path.join(process.cwd(), "data", "gmail.json")
+import { cookies } from "next/headers"
+import { signSession } from "@/lib/auth"
 
 export async function GET(req: Request) {
   const url = new URL(req.url)
@@ -19,10 +18,26 @@ export async function GET(req: Request) {
   })
   const data = await res.json()
   if (!res.ok) return NextResponse.json({ error: data?.error || "Token exchange failed" }, { status: 500 })
-  await mkdir(path.join(process.cwd(), "data"), { recursive: true })
-  let prev: any = {}
-  try { prev = JSON.parse(await readFile(storePath, "utf-8")) } catch {}
-  const next = { ...prev, token: { access_token: data.access_token, refresh_token: data.refresh_token, expires_in: data.expires_in, scope: data.scope, token_type: data.token_type, obtained_at: Date.now() } }
-  await writeFile(storePath, JSON.stringify(next, null, 2))
-  return NextResponse.redirect("/admin/inquiries")
+  const idToken = String(data.id_token || "")
+  let profile: any = {}
+  try {
+    const parts = idToken.split(".")
+    if (parts.length === 3) {
+      const payload = JSON.parse(Buffer.from(parts[1], "base64").toString("utf8"))
+      profile = { email: payload.email, name: payload.name, picture: payload.picture, sub: payload.sub }
+    }
+  } catch {}
+  const allowedDomain = process.env.GOOGLE_ALLOWED_DOMAIN || ""
+  if (allowedDomain && profile.email && !profile.email.endsWith(`@${allowedDomain}`)) {
+    return NextResponse.redirect("/admin/login?error=domain")
+  }
+  const token = signSession({ provider: "google", email: profile.email, name: profile.name, picture: profile.picture, ts: Date.now() })
+  cookies().set("admin_session", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 8,
+  })
+  return NextResponse.redirect("/admin")
 }
