@@ -6,7 +6,13 @@ export function AnalyticsDashboard({ projects, blog, products, inquiries }: { pr
   const [dataset, setDataset] = useState("inquiries")
   const [chart, setChart] = useState("line")
 
-  const colors = ["#7c3aed", "#10b981", "#f59e0b", "#ef4444", "#3b82f6"]
+  const colors = [
+    "var(--chart-1)",
+    "var(--chart-2)",
+    "var(--chart-3)",
+    "var(--chart-4)",
+    "var(--chart-5)"
+  ]
 
   const data = useMemo(() => {
     if (dataset === "inquiries") {
@@ -65,7 +71,7 @@ export function AnalyticsDashboard({ projects, blog, products, inquiries }: { pr
               <XAxis dataKey="label" tick={{ fontSize: 12 }} />
               <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
               <Tooltip />
-              <Line type="monotone" dataKey="value" stroke="#7c3aed" strokeWidth={2} dot={{ r: 2 }} />
+              <Line type="monotone" dataKey="value" stroke="var(--chart-1)" strokeWidth={2} dot={{ r: 2 }} />
             </LineChart>
           </ResponsiveContainer>
         )}
@@ -76,7 +82,7 @@ export function AnalyticsDashboard({ projects, blog, products, inquiries }: { pr
               <XAxis dataKey="label" tick={{ fontSize: 12 }} />
               <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
               <Tooltip />
-              <Bar dataKey="value" fill="#10b981" />
+              <Bar dataKey="value" fill="var(--chart-2)" />
             </BarChart>
           </ResponsiveContainer>
         )}
