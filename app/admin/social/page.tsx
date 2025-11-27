@@ -1,13 +1,15 @@
 import path from "path"
 import { readFile, writeFile } from "fs/promises"
 import { revalidatePath } from "next/cache"
-import { SaveForm, SubmitButton } from "/components/admin/save-form"
-import { SelectOnFocusInput, SelectOnFocusTextarea } from "/components/select-on-focus"
-import { ChevronLeft, ChevronRight, Search, Bell, ChevronDown } from "lucide-react"
-import { AdminCalculatorEmbed } from "@/components/admin/admin-calculator-embed"
+import { SaveForm, SubmitButton } from "@/components/admin/save-form"
+import { SelectOnFocusInput, SelectOnFocusTextarea } from "@/components/select-on-focus"
+import { ChevronLeft, ChevronRight, Settings } from "lucide-react"
+import ListBulk from "@/components/admin/list-bulk"
+import WeekDnd from "@/components/admin/week-dnd"
+import MonthDnd from "@/components/admin/month-dnd"
 
 const postsPath = path.join(process.cwd(), "data", "social.json")
-const providersPath = path.join(process.cwd(), "data", "social-providers.json")
+//
 
 // Helper function to get week dates
 function getWeekDates(date: Date = new Date()) {
@@ -23,6 +25,28 @@ function getWeekDates(date: Date = new Date()) {
     dates.push(current)
   }
   return dates
+}
+
+function getMonthMatrix(date: Date = new Date()) {
+  const base = new Date(date)
+  const year = base.getFullYear()
+  const month = base.getMonth()
+  const first = new Date(year, month, 1)
+  const dow = first.getDay()
+  const start = new Date(first)
+  const diff = first.getDate() - dow + (dow === 0 ? -6 : 1)
+  start.setDate(diff)
+  const weeks: Date[][] = []
+  for (let w = 0; w < 6; w++) {
+    const row: Date[] = []
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start)
+      d.setDate(start.getDate() + (w * 7) + i)
+      row.push(d)
+    }
+    weeks.push(row)
+  }
+  return weeks
 }
 
 // Mock data for demonstration - in real implementation this would come from your data files
@@ -218,7 +242,10 @@ async function addPost(prev: any, formData: FormData) {
   const content = String(formData.get("content") || "").trim()
   const platforms = formData.getAll("platforms").map((v) => String(v || "")).filter(Boolean)
   const schedule = String(formData.get("schedule") || "").trim()
-  const channel = String(formData.get("channel") || "").trim()
+  const channels = formData.getAll("channels").map((v) => String(v || "")).filter(Boolean)
+  const channel = channels[0] || ""
+  const media_url = String(formData.get("media_url") || "").trim()
+  const link_url = String(formData.get("link_url") || "").trim()
   
   if (!content || platforms.length === 0) return { ok: false }
   
@@ -232,7 +259,9 @@ async function addPost(prev: any, formData: FormData) {
     channel,
     status: schedule ? "scheduled" : "draft", 
     created_at: Date.now(),
-    time: schedule ? new Date(schedule).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : ""
+    time: schedule ? new Date(schedule).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : "",
+    media_url,
+    link_url
   }
   list.unshift(post)
   await writeFile(postsPath, JSON.stringify(list, null, 2))
@@ -240,23 +269,7 @@ async function addPost(prev: any, formData: FormData) {
   return { ok: true }
 }
 
-async function saveProviders(prev: any, formData: FormData) {
-  "use server"
-  const fb = String(formData.get("facebook_token") || "").trim()
-  const ig = String(formData.get("instagram_token") || "").trim()
-  const tw = String(formData.get("twitter_token") || "").trim()
-  const prevRaw = await readFile(providersPath, "utf-8").catch(() => "{}")
-  const prevCfg = JSON.parse(prevRaw || "{}")
-  const next = {
-    ...prevCfg,
-    facebook: { ...(prevCfg.facebook || {}), token: fb },
-    instagram: { ...(prevCfg.instagram || {}), token: ig },
-    twitter: { ...(prevCfg.twitter || {}), token: tw },
-  }
-  await writeFile(providersPath, JSON.stringify(next, null, 2))
-  revalidatePath("/admin/social")
-  return { ok: true }
-}
+//
 
 async function sendNow(prev: any, formData: FormData) {
   "use server"
@@ -266,48 +279,279 @@ async function sendNow(prev: any, formData: FormData) {
   return { ok: res.ok }
 }
 
-export default async function AdminSocialPage() {
+async function reschedulePost(prev: any, formData: FormData) {
+  "use server"
+  const id = String(formData.get("id") || "").trim()
+  const schedule = String(formData.get("schedule") || "").trim()
+  if (!id || !schedule) return { ok: false }
+  const raw = await readFile(postsPath, "utf-8").catch(() => "[]")
+  const list = JSON.parse(raw || "[]")
+  const next = list.map((p: any) => {
+    if (String(p.id) !== id) return p
+    const time = new Date(schedule).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    return { ...p, schedule, status: "scheduled", time }
+  })
+  await writeFile(postsPath, JSON.stringify(next, null, 2))
+  revalidatePath("/admin/social")
+  return { ok: true }
+}
+
+async function bulkReschedule(prev: any, formData: FormData) {
+  "use server"
+  const schedule = String(formData.get("schedule") || "").trim()
+  const ids = formData.getAll("ids").map((v)=>String(v||"")).filter(Boolean)
+  if (!schedule || ids.length === 0) return { ok: false }
+  const raw = await readFile(postsPath, "utf-8").catch(() => "[]")
+  const list = JSON.parse(raw || "[]")
+  const next = list.map((p: any) => {
+    if (!ids.includes(String(p.id))) return p
+    const time = new Date(schedule).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+    return { ...p, schedule, status: "scheduled", time }
+  })
+  await writeFile(postsPath, JSON.stringify(next, null, 2))
+  revalidatePath("/admin/social")
+  return { ok: true }
+}
+
+async function deletePosts(prev: any, formData: FormData) {
+  "use server"
+  const ids = formData.getAll("ids").map((v)=>String(v||"")).filter(Boolean)
+  if (ids.length === 0) return { ok: false }
+  const raw = await readFile(postsPath, "utf-8").catch(() => "[]")
+  const list = JSON.parse(raw || "[]")
+  const next = list.filter((p: any) => !ids.includes(String(p.id)))
+  await writeFile(postsPath, JSON.stringify(next, null, 2))
+  revalidatePath("/admin/social")
+  return { ok: true }
+}
+
+export default async function AdminSocialPage({ searchParams }: { searchParams?: Record<string, string> }) {
   const postsRaw = await readFile(postsPath, "utf-8").catch(() => "[]")
   const list = JSON.parse(postsRaw || "[]") as any[]
-  const providersRaw = await readFile(providersPath, "utf-8").catch(() => "{}")
-  const providers = JSON.parse(providersRaw || "{}")
+  const providers = {}
   
   const weekDates = getWeekDates()
-  const currentMonth = weekDates[0].toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  const monthParam = String(searchParams?.month || "")
+  const monthBase = (() => {
+    if (/^\d{4}-\d{2}$/.test(monthParam)) {
+      const [y, m] = monthParam.split("-").map(Number)
+      return new Date(y, m - 1, 1)
+    }
+    return new Date()
+  })()
+  const currentMonth = monthBase.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  const posts = (Array.isArray(list) && list.length) ? list : mockPosts
+  const selectedChannel = String(searchParams?.channel || "").trim()
+  const selectedView = String(searchParams?.view || "week").trim()
+  const selectedTab = String(searchParams?.tab || "queue").trim()
+  const filtered = selectedChannel ? posts.filter((p) => String(p.channel || "") === selectedChannel) : posts
+  const queuePosts = filtered.filter((p) => String(p.status || "") === "scheduled")
+  const draftPosts = filtered.filter((p) => String(p.status || "") === "draft")
+  const sentPosts = filtered.filter((p) => String(p.status || "") === "published")
+  const viewPosts = (() => {
+    switch (selectedTab) {
+      case "drafts": return draftPosts
+      case "sent": return sentPosts
+      case "queue": return queuePosts
+      case "approvals": return []
+      default: return filtered
+    }
+  })()
+  const q = String(searchParams?.q || "").trim().toLowerCase()
+  const statusQuery = String(searchParams?.status || "").trim().toLowerCase()
+  const listPosts = viewPosts.filter((p) => {
+    const byText = q ? String(p.content || "").toLowerCase().includes(q) : true
+    const byStatus = statusQuery ? String(p.status || "").toLowerCase() === statusQuery : true
+    return byText && byStatus
+  })
+  const byDay: Record<string, any[]> = {}
+  for (const d of weekDates) {
+    const key = d.toISOString().slice(0,10)
+    byDay[key] = []
+  }
+  for (const p of viewPosts) {
+    const iso = (() => {
+      const s = String(p.schedule || "")
+      if (!s) return ""
+      try { return new Date(s.replace(" ", "T")).toISOString().slice(0,10) } catch { return "" }
+    })()
+    if (iso && byDay[iso]) byDay[iso].push(p)
+  }
+
+  async function fetchLinkMeta(url: string) {
+    try {
+      const res = await fetch(url, { method: "GET" })
+      const html = await res.text()
+      const get = (prop: string) => {
+        const rgx = new RegExp(`<meta[^>]+property=[\"']${prop}[\"'][^>]+content=[\"']([^\"']+)[\"']`, "i")
+        const m = html.match(rgx)
+        return m ? m[1] : ""
+      }
+      const title = get("og:title") || (html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] || "")
+      const site = get("og:site_name")
+      const image = get("og:image")
+      return { title, site, image }
+    } catch {
+      return { title: "", site: "", image: "" }
+    }
+  }
+
+  const uniqueLinks = Array.from(new Set(viewPosts.map((p) => String(p.link_url || "")).filter(Boolean)))
+  const linkMetaMap: Record<string, { title?: string; site?: string; image?: string }> = {}
+  for (const u of uniqueLinks.slice(0, 20)) {
+    linkMetaMap[u] = await fetchLinkMeta(u)
+  }
+  const monthWeeks = getMonthMatrix(monthBase)
+  const byDate: Record<string, any[]> = {}
+  for (const w of monthWeeks) {
+    for (const d of w) {
+      const k = d.toISOString().slice(0,10)
+      byDate[k] = []
+    }
+  }
+  for (const p of viewPosts) {
+    const s = String(p.schedule || "")
+    if (!s) continue
+    try {
+      const iso = new Date(s.replace(" ", "T")).toISOString().slice(0,10)
+      if (byDate[iso]) byDate[iso].push(p)
+    } catch {}
+  }
+  const calendarWeeks = monthWeeks.map((week) => week.map((d) => ({
+    key: d.toISOString().slice(0,10),
+    dayName: d.toLocaleDateString('en-US', { weekday: 'short' }),
+    dayNum: d.getDate(),
+    inMonth: d.getMonth() === monthBase.getMonth(),
+    items: byDate[d.toISOString().slice(0,10)] || []
+  })))
 
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="flex min-h-screen bg-background">
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-white border-b border-gray-100 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <h1 className="text-xl font-semibold text-gray-900">{currentMonth}</h1>
+        <div className="relative isolate overflow-hidden rounded-2xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground animate-in fade-in slide-in-from-top-1 duration-300 mx-6 mt-4" role="banner" aria-label="Planner header">
+          <div className="px-6 py-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Social Planner</h1>
+                <p className="text-sm md:text-base/relaxed opacity-90">{currentMonth}</p>
+              </div>
               <div className="flex items-center gap-2">
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                  <ChevronLeft className="h-4 w-4 text-gray-600" />
-                </button>
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                  <ChevronRight className="h-4 w-4 text-gray-600" />
-                </button>
+                <a href="/api/oauth/google/authorize" className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-white/10 border border-white/20 text-sm transition-all duration-200 ease-out transform hover:bg-white/20 hover:-translate-y-[1px]" aria-label="Connect">
+                  Connect
+                </a>
+                <a href="/admin/login" className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-white/10 border border-white/20 text-sm transition-all">Account</a>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <button className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                Today
-              </button>
-              <div className="flex bg-gray-100 rounded-lg p-0.5">
-                <button className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 rounded-md transition-colors">Month</button>
-                <button className="px-3 py-1.5 text-sm text-white bg-blue-600 rounded-md font-medium">Week</button>
+            <div className="mt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2" role="tablist" aria-label="Content tabs">
+                <a href={`/admin/social?tab=queue&view=${encodeURIComponent(selectedView)}${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center ${selectedTab==='queue'?'bg-white/15 text-white':'bg-white/10 text-white/80 hover:bg-white/15 hover:text-white'}`}>Queue ({queuePosts.length})</a>
+                <a href={`/admin/social?tab=drafts&view=${encodeURIComponent(selectedView)}${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center ${selectedTab==='drafts'?'bg-white/15 text-white':'bg-white/10 text-white/80 hover:bg-white/15 hover:text-white'}`}>Drafts ({draftPosts.length})</a>
+                <a href={`/admin/social?tab=approvals&view=${encodeURIComponent(selectedView)}${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center ${selectedTab==='approvals'?'bg-white/15 text-white':'bg-white/10 text-white/80 hover:bg-white/15 hover:text-white'}`}>Approvals</a>
+                <a href={`/admin/social?tab=sent&view=${encodeURIComponent(selectedView)}${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center ${selectedTab==='sent'?'bg-white/15 text-white':'bg-white/10 text-white/80 hover:bg-white/15 hover:text-white'}`}>Sent ({sentPosts.length})</a>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <a href={`/admin/social?tab=${encodeURIComponent(selectedTab)}&view=list${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center w-24 ${selectedView==='list'?'bg-white text-primary-foreground':'bg-white/10 border border-white/20 text-white hover:bg-white/15 hover:text-white'}`}>List</a>
+                <a href={`/admin/social?tab=${encodeURIComponent(selectedTab)}&view=calendar${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center w-24 ${selectedView==='calendar'?'bg-white text-primary-foreground':'bg-white/10 border border-white/20 text-white hover:bg-white/15 hover:text-white'}`}>Calendar</a>
+                <a href={`/admin/social?tab=${encodeURIComponent(selectedTab)}&view=week${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center w-24 ${selectedView==='week'?'bg-white text-primary-foreground':'bg-white/10 border border-white/20 text-white hover:bg-white/15 hover:text-white'}`}>Week</a>
+                <form method="GET" className="inline-flex items-center gap-2">
+                  <input type="hidden" name="tab" value={selectedTab} />
+                  <input type="hidden" name="view" value={selectedView} />
+                  <select name="channel" defaultValue={selectedChannel} className="px-2 py-1.5 rounded-md bg-white/10 border border-white/20 text-sm">
+                    <option value="">All channels</option>
+                    {mockChannels.map((c)=> (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  <button className="px-2 py-1.5 rounded-md bg-white/10 border border-white/20 text-sm">Apply</button>
+                </form>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Calculator Embed replacing calendar grid */}
-        <div className="flex-1 overflow-auto bg-gray-50">
-          <AdminCalculatorEmbed />
+        {/* Weekly Planner Grid */}
+        <div className="flex-1 overflow-auto bg-muted">
+          <div className="px-6 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4" aria-label="Planner legend">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Status:</span>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1 text-xs text-foreground"><span className="w-2 h-2 rounded-full bg-green-500"></span>Published</span>
+                  <span className="inline-flex items-center gap-1 text-xs text-foreground"><span className="w-2 h-2 rounded-full bg-orange-500"></span>Scheduled</span>
+                  <span className="inline-flex items-center gap-1 text-xs text-foreground"><span className="w-2 h-2 rounded-full bg-gray-400"></span>Draft</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Platforms:</span>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1 text-xs text-foreground"><span className={`w-2 h-2 rounded ${platformColors.facebook}`}></span>Facebook</span>
+                  <span className="inline-flex items-center gap-1 text-xs text-foreground"><span className={`w-2 h-2 rounded ${platformColors.instagram}`}></span>Instagram</span>
+                  <span className="inline-flex items-center gap-1 text-xs text-foreground"><span className={`w-2 h-2 rounded ${platformColors.twitter}`}></span>Twitter</span>
+                  <span className="inline-flex items-center gap-1 text-xs text-foreground"><span className={`w-2 h-2 rounded ${platformColors.blog}`}></span>Blog</span>
+                  <span className="inline-flex items-center gap-1 text-xs text-foreground"><span className={`w-2 h-2 rounded ${platformColors.newsletter}`}></span>Newsletter</span>
+                </div>
+              </div>
+            </div>
+            {selectedView === 'list' ? (
+              <div className="space-y-3">
+                <form method="GET" className="flex items-center gap-2">
+                  <input type="hidden" name="tab" value={selectedTab} />
+                  <input type="hidden" name="view" value={selectedView} />
+                  {selectedChannel ? (<input type="hidden" name="channel" value={selectedChannel} />) : null}
+                  <input name="q" defaultValue={q} placeholder="Search content..." className="px-2 py-1.5 rounded-md bg-card border border-border/40 text-sm w-56" />
+                  <select name="status" defaultValue={statusQuery} className="px-2 py-1.5 rounded-md bg-card border border-border/40 text-sm">
+                    <option value="">All statuses</option>
+                    <option value="draft">Draft</option>
+                    <option value="scheduled">Scheduled</option>
+                    <option value="published">Published</option>
+                  </select>
+                  <button className="px-2 py-1.5 rounded-md bg-card border border-border/40 text-sm">Filter</button>
+                  <a href={`/admin/social?tab=${encodeURIComponent(selectedTab)}&view=${encodeURIComponent(selectedView)}${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className="px-2 py-1.5 rounded-md bg-card border border-border/40 text-sm">Clear</a>
+                </form>
+                <ListBulk
+                  posts={listPosts}
+                  statusColors={statusColors as any}
+                  platformColors={platformColors as any}
+                  channelColors={channelColors as any}
+                  deletePosts={deletePosts}
+                  bulkReschedule={bulkReschedule}
+                />
+              </div>
+            ) : selectedView === 'calendar' ? (
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-sm text-muted-foreground">{currentMonth}</div>
+                  <div className="flex items-center gap-2">
+                    <a href={`/admin/social?tab=${encodeURIComponent(selectedTab)}&view=calendar${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}&month=${(() => { const d=new Date(monthBase); d.setMonth(d.getMonth()-1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` })()}`} className="px-2 py-1.5 rounded-md bg-card border border-border/40 text-sm">Prev</a>
+                    <a href={`/admin/social?tab=${encodeURIComponent(selectedTab)}&view=calendar${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}&month=${(() => { const d=new Date(monthBase); d.setMonth(d.getMonth()+1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}` })()}`} className="px-2 py-1.5 rounded-md bg-card border border-border/40 text-sm">Next</a>
+                    <a href={`/admin/social?tab=${encodeURIComponent(selectedTab)}&view=calendar${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className="px-2 py-1.5 rounded-md bg-card border border-border/40 text-sm">This Month</a>
+                  </div>
+                </div>
+                <MonthDnd
+                  weeks={calendarWeeks}
+                  onReschedule={reschedulePost}
+                  statusColors={statusColors as any}
+                  platformColors={platformColors as any}
+                  channelColors={channelColors as any}
+                />
+              </div>
+            ) : (
+              <WeekDnd
+                days={weekDates.map((d) => ({
+                  key: d.toISOString().slice(0,10),
+                  dayName: d.toLocaleDateString('en-US', { weekday: 'short' }),
+                  dayNum: d.getDate(),
+                  items: byDay[d.toISOString().slice(0,10)] || []
+                }))}
+                onReschedule={reschedulePost}
+                statusColors={statusColors as any}
+                platformColors={platformColors as any}
+                channelColors={channelColors as any}
+              />
+            )}
+          </div>
         </div>
       </div>
 
@@ -317,80 +561,52 @@ export default async function AdminSocialPage() {
           <h3 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h3>
           
           {/* New Post Form */}
-          <SaveForm action={addPost} className="space-y-3">
-            <div>
-              <SelectOnFocusTextarea 
-                name="content" 
-                placeholder="What's on your mind?" 
-                className="w-full p-3 border border-gray-200 rounded-lg text-sm min-h-[100px] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-gray-50" 
-              />
-            </div>
-            
-            <div>
-              <label className="text-xs text-gray-600 mb-1 block font-medium">Channels</label>
-              <div className="grid grid-cols-2 gap-2">
-                {mockChannels.slice(0, 4).map((channel) => (
-                  <label key={channel.id} className="flex items-center gap-2 text-xs cursor-pointer">
-                    <input type="checkbox" name="channels" value={channel.id} className="rounded border-gray-300" />
-                    <span>{channel.name}</span>
-                  </label>
-                ))}
+          <div className="space-y-4">
+            <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
+              <div className="p-4 border-b border-gray-100">
+                <div className="text-sm font-medium">Compose</div>
               </div>
+              <SaveForm action={addPost} className="p-4 space-y-4">
+                <SelectOnFocusTextarea name="content" placeholder="Write content..." className="w-full p-3 border border-border/40 rounded-md bg-gray-50 min-h-[120px] focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <div className="text-xs text-gray-600 font-medium">Channels</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {mockChannels.slice(0, 4).map((channel) => (
+                        <label key={channel.id} className="flex items-center gap-2 text-xs cursor-pointer">
+                          <input type="checkbox" name="channels" value={channel.id} className="rounded border-gray-300" />
+                          <span>{channel.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-xs text-gray-600 font-medium">Platforms</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {Object.keys(platformColors).map((platform) => (
+                        <label key={platform} className="flex items-center gap-2 text-xs cursor-pointer">
+                          <input type="checkbox" name="platforms" value={platform} className="rounded border-gray-300" />
+                          <span className="capitalize">{platform}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-3">
+                  <SelectOnFocusInput name="media_url" placeholder="Media URL" className="w-full p-2 border border-border/40 rounded-md bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                  <SelectOnFocusInput name="link_url" placeholder="Link URL" className="w-full p-2 border border-border/40 rounded-md bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                  <SelectOnFocusInput name="schedule" placeholder="Schedule (YYYY-MM-DD HH:mm)" className="w-full p-2 border border-border/40 rounded-md bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary/30" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <SubmitButton className="flex-1 bg-primary text-white py-2 px-4 rounded-md hover:bg-primary/90 transition-colors text-sm font-medium">Schedule</SubmitButton>
+                  <a href="/api/oauth/google/authorize" className="px-3 py-2 rounded-md border border-border/40 text-sm">Connect</a>
+                </div>
+              </SaveForm>
             </div>
-            
-            <div>
-              <label className="text-xs text-gray-600 mb-1 block font-medium">Platforms</label>
-              <div className="grid grid-cols-2 gap-2">
-                {Object.keys(platformColors).map((platform) => (
-                  <label key={platform} className="flex items-center gap-2 text-xs cursor-pointer">
-                    <input type="checkbox" name="platforms" value={platform} className="rounded border-gray-300" />
-                    <span className="capitalize">{platform}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            
-            <div>
-              <SelectOnFocusInput 
-                name="schedule" 
-                placeholder="Schedule for later..." 
-                className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-gray-50" 
-              />
-            </div>
-            
-            <SubmitButton className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
-              Schedule Post
-            </SubmitButton>
-          </SaveForm>
+          </div>
         </div>
         
-        {/* Provider Tokens */}
-        <div className="p-4">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">Provider Tokens</h3>
-          <SaveForm action={saveProviders} className="space-y-2">
-            <SelectOnFocusInput 
-              name="facebook_token" 
-              defaultValue={providers.facebook?.token || ""} 
-              placeholder="Facebook token" 
-              className="w-full p-2 border border-gray-200 rounded-lg text-sm bg-gray-50" 
-            />
-            <SelectOnFocusInput 
-              name="instagram_token" 
-              defaultValue={providers.instagram?.token || ""} 
-              placeholder="Instagram token" 
-              className="w-full p-2 border border-gray-200 rounded-lg text-sm bg-gray-50" 
-            />
-            <SelectOnFocusInput 
-              name="twitter_token" 
-              defaultValue={providers.twitter?.token || ""} 
-              placeholder="Twitter/X token" 
-              className="w-full p-2 border border-gray-200 rounded-lg text-sm bg-gray-50" 
-            />
-            <SubmitButton className="w-full bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium">
-              Save Tokens
-            </SubmitButton>
-          </SaveForm>
-        </div>
+        
       </div>
     </div>
   )
