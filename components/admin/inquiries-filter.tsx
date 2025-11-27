@@ -30,19 +30,19 @@ export function InquiriesFilter({ inquiries }: { inquiries: Inquiry[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border bg-card/60 p-4 backdrop-blur">
+      <div className="rounded-2xl border border-border/60 bg-card/60 p-4 backdrop-blur animate-in fade-in slide-in-from-bottom-1 duration-300">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">From</label>
-            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-full px-3 py-2 rounded-md border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            <label className="text-xs text-muted-foreground block mb-1" htmlFor="inq-from">From</label>
+            <input id="inq-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-full px-3 py-2 rounded-md border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">To</label>
-            <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-full px-3 py-2 rounded-md border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            <label className="text-xs text-muted-foreground block mb-1" htmlFor="inq-to">To</label>
+            <input id="inq-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-full px-3 py-2 rounded-md border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">Status</label>
-            <select value={status} onChange={(e) => setStatus(e.target.value)} className="w-full px-3 py-2 rounded-md border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/20">
+            <label className="text-xs text-muted-foreground block mb-1" htmlFor="inq-status">Status</label>
+            <select id="inq-status" value={status} onChange={(e) => setStatus(e.target.value)} className="w-full px-3 py-2 rounded-md border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/20">
               <option value="">Any</option>
               <option value="new">New</option>
               <option value="in_progress">In Progress</option>
@@ -50,16 +50,16 @@ export function InquiriesFilter({ inquiries }: { inquiries: Inquiry[] }) {
             </select>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">Tag contains</label>
-            <input value={tag} onChange={(e) => setTag(e.target.value)} placeholder="e.g., replied" className="w-full px-3 py-2 rounded-md border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            <label className="text-xs text-muted-foreground block mb-1" htmlFor="inq-tag">Tag contains</label>
+            <input id="inq-tag" value={tag} onChange={(e) => setTag(e.target.value)} placeholder="e.g., replied" className="w-full px-3 py-2 rounded-md border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
           </div>
           <div className="flex items-end">
             <div className="w-full flex gap-2">
-              <div className="inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm">
+              <div className="inline-flex items-center gap-2 px-3 py-2 rounded-md border text-sm" role="status" aria-live="polite">
                 <span className="text-muted-foreground">Showing</span>
                 <span className="font-medium text-foreground">{filtered.length}</span>
               </div>
-              <button onClick={() => { setFrom(""); setTo(""); setStatus(""); setTag("") }} className="px-3 py-2 rounded-md border text-sm transition-all duration-200 hover:shadow-md">Clear</button>
+              <button onClick={() => { setFrom(""); setTo(""); setStatus(""); setTag("") }} className="px-3 py-2 rounded-md border text-sm transition-all duration-200 hover:shadow-md" aria-label="Clear filters">Clear</button>
             </div>
           </div>
         </div>

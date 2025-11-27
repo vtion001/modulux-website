@@ -1,6 +1,7 @@
 "use client"
-import { useState } from "react"
-import { Mail, Phone, Clock, Paperclip, Tag as TagIcon, Save as SaveIcon, Reply as ReplyIcon, X, Send, CheckCircle, Hourglass, Circle } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { createPortal } from "react-dom"
+import { Mail, Phone, Clock, Paperclip, Tag as TagIcon, Save as SaveIcon, Reply as ReplyIcon, X, Send, CheckCircle, Hourglass, Circle, Wand2, Bot } from "lucide-react"
 
 export function InquiryItem({ inquiry }: { inquiry: any }) {
   const [status, setStatus] = useState(inquiry.status || "new")
@@ -11,6 +12,84 @@ export function InquiryItem({ inquiry }: { inquiry: any }) {
   const [text, setText] = useState<string>("")
   const [includeSignature, setIncludeSignature] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [showPreview, setShowPreview] = useState(true)
+  const toRef = useRef<HTMLInputElement | null>(null)
+  const modalRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (openReply) {
+      const prev = document.body.style.overflow
+      document.body.style.overflow = "hidden"
+      setTimeout(() => { toRef.current?.focus() }, 0)
+      const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          e.preventDefault()
+          setOpenReply(false)
+        } else if (e.key === "Tab") {
+          const root = modalRef.current
+          if (!root) return
+          const focusables = Array.from(root.querySelectorAll<HTMLElement>(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          )).filter(el => !el.hasAttribute('disabled'))
+          const first = focusables[0]
+          const last = focusables[focusables.length - 1]
+          if (!first || !last) return
+          if (e.shiftKey) {
+            if (document.activeElement === first) {
+              e.preventDefault()
+              last.focus()
+            }
+          } else {
+            if (document.activeElement === last) {
+              e.preventDefault()
+              first.focus()
+            }
+          }
+        }
+      }
+      document.addEventListener("keydown", onKeyDown)
+      return () => { document.body.style.overflow = prev }
+    }
+  }, [openReply])
+
+  const aiRewrite = async () => {
+    const base = (text || "").trim() || String(inquiry.message || "").trim()
+    if (!base) return
+    try {
+      const res = await fetch("/api/ai/rewrite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "rewrite", text: base, keywords: `${inquiry?.name||""} inquiry`, length: "medium" }) })
+      if (res.ok) {
+        const data = await res.json()
+        const v = (Array.isArray(data?.variants) ? data.variants[0] : (data?.text || base)) || base
+        setText(v)
+        return
+      }
+    } catch {}
+    const name = String(inquiry.name || "").trim() || "there"
+    const polite = `Hi ${name},\n\n${base}\n\nLet me know if you prefer a call to discuss details and timeline.\n\nBest regards,\n`
+    setText(polite)
+  }
+
+  const aiReply = async () => {
+    const name = String(inquiry.name || "").trim() || "there"
+    const msg = String(inquiry.message || "").trim()
+    const attachments = Array.isArray(inquiry.attachments) ? inquiry.attachments : []
+    const basePrompt = `Client message: ${msg}\nAttachments: ${attachments.map(a=>a.name).join(", ")}`
+    try {
+      const res = await fetch("/api/ai/rewrite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "compose", text: basePrompt, keywords: "quote request, next steps, schedule", length: "medium" }) })
+      if (res.ok) {
+        const data = await res.json()
+        const v = (Array.isArray(data?.variants) ? data.variants[0] : (data?.text || ""))
+        if (v) {
+          setSubject(subject || `Re: ${msg.slice(0, 60)}`)
+          setText(v)
+          return
+        }
+      }
+    } catch {}
+    const body = `Hi ${name},\n\nThanks for reaching out${msg ? ` about: \"${msg}\"` : ""}. We’d be happy to provide a detailed quotation. Could you share:\n\n• Approximate dimensions and materials\n• Budget range and preferred timeline\n• Any reference photos or plans\n\nWe can also hop on a quick call to align requirements and next steps.\n\nLooking forward to your reply.\n\nBest regards,\n`
+    setSubject(subject || `Re: ${msg.slice(0, 60)}`)
+    setText(body)
+  }
 
   const saveMeta = async () => {
     setBusy(true)
@@ -43,7 +122,7 @@ export function InquiryItem({ inquiry }: { inquiry: any }) {
 
   return (
     <div className="group relative bg-card border border-border/60 rounded-2xl p-5 transition-all duration-200 hover:shadow-md hover:-translate-y-[2px]">
-      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-br from-primary/10 to-transparent rounded-2xl" />
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-br from-primary/10 to-transparent rounded-2xl pointer-events-none" />
       <div className="relative flex items-start justify-between">
         <div className="flex items-center gap-3">
           <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-muted text-foreground font-medium">
@@ -95,33 +174,73 @@ export function InquiryItem({ inquiry }: { inquiry: any }) {
         </div>
       </div>
       <div className="mt-3 flex gap-2">
-        <button onClick={saveMeta} disabled={busy} className="inline-flex items-center gap-2 px-3 py-2 rounded-md border transition-all hover:shadow-md"><SaveIcon className="w-4 h-4" />Save</button>
-        <button onClick={() => setOpenReply(true)} className="inline-flex items-center gap-2 px-3 py-2 rounded-md border transition-all hover:shadow-md"><ReplyIcon className="w-4 h-4" />Reply</button>
+        <button type="button" onClick={saveMeta} disabled={busy} className="inline-flex items-center gap-2 px-3 py-2 rounded-md border transition-all hover:shadow-md"><SaveIcon className="w-4 h-4" />Save</button>
+        <button type="button" onClick={() => setOpenReply(true)} className="inline-flex items-center gap-2 px-3 py-2 rounded-md border transition-all hover:shadow-md" aria-label="Reply to inquiry"><ReplyIcon className="w-4 h-4" />Reply</button>
       </div>
-      {openReply && (
-        <div className="mt-4 rounded-xl border border-border/60 bg-card/60 p-4 space-y-3">
-          <div>
-            <label className="text-xs text-muted-foreground block mb-1">To</label>
-            <input value={to} onChange={(e) => setTo(e.target.value)} className="w-full px-3 py-2 rounded-md border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground block mb-1">Subject</label>
-            <input value={subject} onChange={(e) => setSubject(e.target.value)} className="w-full px-3 py-2 rounded-md border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground block mb-1">Message</label>
-            <textarea value={text} onChange={(e) => setText(e.target.value)} className="w-full px-3 py-2 rounded-md border border-border/40 bg-background min-h-28 focus:outline-none focus:ring-2 focus:ring-primary/20" />
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center text-xs text-muted-foreground">
-              <input type="checkbox" checked={includeSignature} onChange={(e) => setIncludeSignature(e.target.checked)} className="mr-2" /> Include signature
+      {openReply && createPortal(
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby={`reply-title-${inquiry.id}`}> 
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setOpenReply(false)} aria-hidden="true" />
+          <div ref={modalRef} className="relative z-[1001] w-[95%] max-w-4xl animate-in fade-in slide-in-from-bottom-1 duration-300">
+            <div className="rounded-t-2xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-6 py-4 flex items-center justify-between">
+              <div>
+                <div id={`reply-title-${inquiry.id}`} className="text-base md:text-lg font-semibold">Compose Reply</div>
+                <div className="text-xs md:text-sm opacity-90">To {inquiry.name} • {inquiry.email}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => setShowPreview(v => !v)} className="px-3 py-2 rounded-md border border-white/20 text-xs md:text-sm hover:bg-white/10 transition-all">{showPreview ? "Hide Preview" : "Show Preview"}</button>
+                <button type="button" onClick={() => setOpenReply(false)} className="px-3 py-2 rounded-md border border-white/20 text-xs md:text-sm"><X className="w-4 h-4" /> Close</button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <button onClick={() => setOpenReply(false)} className="inline-flex items-center gap-2 px-3 py-2 rounded-md border"><X className="w-4 h-4" />Cancel</button>
-              <button onClick={sendReply} disabled={busy} className="inline-flex items-center gap-2 px-3 py-2 rounded-md border bg-primary text-white"><Send className="w-4 h-4" />Send</button>
+            <div className="bg-card border-x border-b border-border rounded-b-2xl p-6">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div className="md:col-span-3 space-y-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1" htmlFor={`reply-to-${inquiry.id}`}>To</label>
+                    <input ref={toRef} id={`reply-to-${inquiry.id}`} value={to} onChange={(e) => setTo(e.target.value)} className="w-full px-3 py-2 rounded-md border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1" htmlFor={`reply-subject-${inquiry.id}`}>Subject</label>
+                    <input id={`reply-subject-${inquiry.id}`} value={subject} onChange={(e) => setSubject(e.target.value)} className="w-full px-3 py-2 rounded-md border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground block mb-1" htmlFor={`reply-message-${inquiry.id}`}>Message</label>
+                    <textarea id={`reply-message-${inquiry.id}`} value={text} onChange={(e) => setText(e.target.value)} className="w-full px-3 py-2 rounded-md border border-border/40 bg-background min-h-40 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <input id={`reply-include-signature-${inquiry.id}`} type="checkbox" checked={includeSignature} onChange={(e) => setIncludeSignature(e.target.checked)} className="mr-2" /> Include signature
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => setOpenReply(false)} className="inline-flex items-center gap-2 px-3 py-2 rounded-md border transition-all hover:shadow-md"><X className="w-4 h-4" />Cancel</button>
+                      <button type="button" onClick={sendReply} disabled={busy} className="inline-flex items-center gap-2 px-3 py-2 rounded-md border bg-primary text-white transition-all hover:shadow-md disabled:opacity-70 disabled:cursor-not-allowed">{busy ? "Sending…" : <><Send className="w-4 h-4" />Send</>}</button>
+                    </div>
+                  </div>
+                </div>
+                {showPreview && (
+                  <div className="md:col-span-2">
+                    <div className="rounded-xl border border-border/40 bg-background p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm font-medium text-foreground">Preview</div>
+                        <div className="flex items-center gap-2">
+                          <button type="button" onClick={aiRewrite} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border text-xs transition-all hover:shadow-sm"><Wand2 className="w-3.5 h-3.5" />AI Rewrite</button>
+                          <button type="button" onClick={aiReply} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border text-xs transition-all hover:shadow-sm"><Bot className="w-3.5 h-3.5" />AI Reply</button>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground mb-2">Subject</div>
+                      <div className="text-sm mb-3">{subject}</div>
+                      <div className="text-xs text-muted-foreground mb-2">Message</div>
+                      <div className="text-sm whitespace-pre-wrap">{text || ""}</div>
+                      {includeSignature && (
+                        <div className="mt-4 text-xs text-muted-foreground">Signature will be appended</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
