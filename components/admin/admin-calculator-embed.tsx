@@ -33,6 +33,7 @@ export function AdminCalculatorEmbed() {
   const [estimate, setEstimate] = useState<number | null>(null)
   const [subtotal, setSubtotal] = useState<number | null>(null)
   const [tax, setTax] = useState<number | null>(null)
+  const [lines, setLines] = useState<any[]>([])
   const [baseRates, setBaseRates] = useState<{ base: number; hanging: number; tall: number } | null>(null)
   const [tiers, setTiers] = useState<{ luxury: number; premium: number; standard: number } | null>(null)
   const [cabinetCategory, setCabinetCategory] = useState<string>("base")
@@ -155,6 +156,7 @@ export function AdminCalculatorEmbed() {
       setEstimate(res.total)
       setSubtotal(res.breakdown?.subtotal ?? null)
       setTax(res.breakdown?.tax ?? null)
+      setLines(res.breakdown?.units || [])
     } catch {
       toast.error("Invalid inputs. Please check your configuration.")
     }
@@ -266,6 +268,43 @@ export function AdminCalculatorEmbed() {
                   <div className="p-3 rounded border"><div className="font-medium text-foreground">Subtotal</div><div className="text-foreground">₱{(subtotal||0).toLocaleString()}</div></div>
                   <div className="p-3 rounded border"><div className="font-medium text-foreground">Tax</div><div className="text-foreground">₱{(tax||0).toLocaleString()}</div></div>
                 </div>
+                {lines.length > 0 && (
+                  <div className="text-xs border rounded">
+                    <div className="p-2 font-semibold">Breakdown</div>
+                    <div className="overflow-auto">
+                      <table className="min-w-full text-xs">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="text-left p-2">Category</th>
+                            <th className="text-left p-2">Meters</th>
+                            <th className="text-left p-2">Rate</th>
+                            <th className="text-left p-2">Tier</th>
+                            <th className="text-left p-2">Material</th>
+                            <th className="text-left p-2">Finish</th>
+                            <th className="text-left p-2">Hardware</th>
+                            <th className="text-left p-2">Install</th>
+                            <th className="text-right p-2">Line Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {lines.map((row, idx) => (
+                            <tr key={idx} className="border-t">
+                              <td className="p-2 capitalize">{row.category}</td>
+                              <td className="p-2">{row.meters}</td>
+                              <td className="p-2">₱{Number(row.baseRate||0).toLocaleString()}/m</td>
+                              <td className="p-2">×{row.tierFactor}</td>
+                              <td className="p-2">×{row.materialFactor}</td>
+                              <td className="p-2">×{row.finishFactor}</td>
+                              <td className="p-2">×{row.hardwareFactor}</td>
+                              <td className="p-2">₱{Number(row.installationAdd||0).toLocaleString()}</td>
+                              <td className="p-2 text-right">₱{Number(row.lineTotal||0).toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
                 <div className="pt-4 border-t border-border/40">
                   <p className="text-xs text-muted-foreground mb-4">* Approximate estimate for planning purposes.</p>
                   <button className="w-full bg-secondary text-white py-3 px-6 rounded-md font-medium hover:bg-secondary/90" onClick={()=>{const body=`Estimate Total: ₱${estimate?.toLocaleString()}\nSubtotal: ₱${(subtotal||0).toLocaleString()}\nTax: ₱${(tax||0).toLocaleString()}`; window.location.href=`mailto:?subject=ModuLux Estimate&body=${encodeURIComponent(body)}`}}>Request Detailed Quote</button>
