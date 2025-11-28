@@ -1,8 +1,8 @@
 import path from "path"
 import { readFile, writeFile, mkdir } from "fs/promises"
 import { revalidatePath } from "next/cache"
-import { SaveForm, SubmitButton } from "/components/admin/save-form"
-import { SelectOnFocusInput } from "/components/select-on-focus"
+import { SaveForm, SubmitButton } from "@/components/admin/save-form"
+import { SelectOnFocusInput } from "@/components/select-on-focus"
 
 const clientsPath = path.join(process.cwd(), "data", "clients.json")
 

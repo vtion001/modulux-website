@@ -16,6 +16,7 @@ type Project = {
   image?: string
   images?: string[]
   services?: string[]
+  client?: string
   details?: {
     duration?: string
     area?: string
@@ -97,11 +98,13 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
   }
 
   const nextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % project.images.length)
+    const total = project.images?.length ?? 1
+    setCurrentImageIndex((prev) => (prev + 1) % total)
   }
 
   const prevImage = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + project.images.length) % project.images.length)
+    const total = project.images?.length ?? 1
+    setCurrentImageIndex((prev) => (prev - 1 + total) % total)
   }
 
   return (
@@ -156,7 +159,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
           >
             <div className="relative aspect-[16/10] rounded-2xl overflow-hidden mb-6">
               <img
-                src={project.images[currentImageIndex] || "/placeholder.svg"}
+                src={project.images?.[currentImageIndex] || "/placeholder.svg"}
                 alt={`${project.title} - Image ${currentImageIndex + 1}`}
                 className="w-full h-full object-cover"
               />
@@ -173,7 +176,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                 <ChevronRight className="w-6 h-6" />
               </button>
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                {project.images!.map((_, index) => (
+                {(project.images || []).map((_, index) => (
                   <button
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
@@ -185,7 +188,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
-              {project.images!.map((image, index) => (
+              {(project.images || []).map((image, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentImageIndex(index)}

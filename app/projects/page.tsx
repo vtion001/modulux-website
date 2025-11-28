@@ -134,7 +134,7 @@ export default function ProjectsPage() {
                       </div>
                       <p className="text-muted-foreground mb-4 text-sm text-pretty">{project.description}</p>
                       <div className="flex flex-wrap gap-2">
-                        {project.services.map((service) => (
+                        {(project.services || []).map((service: string) => (
                           <span key={service} className="px-3 py-1 bg-accent/10 text-accent text-xs rounded-full">
                             {service}
                           </span>

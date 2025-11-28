@@ -73,7 +73,7 @@ export function InquiryItem({ inquiry }: { inquiry: any }) {
     const name = String(inquiry.name || "").trim() || "there"
     const msg = String(inquiry.message || "").trim()
     const attachments = Array.isArray(inquiry.attachments) ? inquiry.attachments : []
-    const basePrompt = `Client message: ${msg}\nAttachments: ${attachments.map(a=>a.name).join(", ")}`
+    const basePrompt = `Client message: ${msg}\nAttachments: ${attachments.map((a: { name?: string }) => a?.name || "").join(", ")}`
     try {
       const res = await fetch("/api/ai/rewrite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "compose", text: basePrompt, keywords: "quote request, next steps, schedule", length: "medium" }) })
       if (res.ok) {

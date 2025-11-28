@@ -225,7 +225,7 @@ export default function CalculatorPage() {
                         </label>
                       </div>
                       <div className="mt-3 grid grid-cols-1 md:grid-cols-4 gap-2">
-                        <input type="number" min="0" step="0.1" placeholder="Meters" value={u.meters} onChange={(e) => setUnits(prev => prev.map((x, idx) => idx === i ? { ...x, meters: e.target.value } : x))} className="p-2 border border-border/40 rounded-md" />
+                        <input type="number" min="0" step="0.1" placeholder="Meters" value={u.meters} onChange={(e) => setUnits(prev => prev.map((x, idx) => idx === i ? { ...x, meters: Number(e.target.value) } : x))} className="p-2 border border-border/40 rounded-md" />
                         <select value={u.material} onChange={(e) => setUnits(prev => prev.map((x, idx) => idx === i ? { ...x, material: e.target.value } : x))} className="p-2 border border-border/40 rounded-md">
                           <option value="">Material</option>
                           <option value="melamine">Melamine</option>

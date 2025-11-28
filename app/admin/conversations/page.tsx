@@ -1,5 +1,6 @@
 import path from "path"
 import { readFile } from "fs/promises"
+import { SaveForm } from "@/components/admin/save-form"
 
 const filePath = path.join(process.cwd(), "data", "conversations.json")
 
@@ -28,20 +29,31 @@ export default async function AdminConversationsPage() {
                 ))}
               </div>
               <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
-                <form action={async (formData: FormData) => {
-                  "use server"
-                  const appendText = String(formData.get("text") || "").trim()
-                  await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/conversations/${c.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ appendText, status: "open" }) })
-                }} className="md:col-span-3">
+                <SaveForm
+                  action={async (formData: FormData) => {
+                    "use server"
+                    const id = String(formData.get("id") || "").trim()
+                    const appendText = String(formData.get("text") || "").trim()
+                    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/conversations/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ appendText, status: "open" }) })
+                  }}
+                  className="md:col-span-3"
+                >
+                  <input type="hidden" name="id" value={c.id} />
                   <input type="text" name="text" placeholder="Write a reply..." className="w-full p-2 border border-border/40 rounded" />
                   <div className="mt-2 flex gap-2">
                     <button className="px-3 py-2 rounded-md border">Send</button>
-                    <button formAction={async () => {
-                      "use server"
-                      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/conversations/${c.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "closed" }) })
-                    }} className="px-3 py-2 rounded-md border">Close</button>
+                    <SaveForm
+                      action={async (formData: FormData) => {
+                        "use server"
+                        const id = String(formData.get("id") || "").trim()
+                        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/conversations/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "closed" }) })
+                      }}
+                    >
+                      <input type="hidden" name="id" value={c.id} />
+                      <button className="px-3 py-2 rounded-md border">Close</button>
+                    </SaveForm>
                   </div>
-                </form>
+                </SaveForm>
               </div>
             </div>
           ))
@@ -49,13 +61,16 @@ export default async function AdminConversationsPage() {
       </div>
       <div className="rounded-xl border border-border p-4">
         <div className="text-sm text-muted-foreground mb-2">Start a new conversation</div>
-        <form action={async (formData: FormData) => {
-          "use server"
-          const platform = String(formData.get("platform") || "").trim()
-          const client = String(formData.get("client") || "").trim()
-          const text = String(formData.get("text") || "").trim()
-          await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/conversations`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ platform, client, text }) })
-        }} className="space-y-2">
+        <SaveForm
+          action={async (formData: FormData) => {
+            "use server"
+            const platform = String(formData.get("platform") || "").trim()
+            const client = String(formData.get("client") || "").trim()
+            const text = String(formData.get("text") || "").trim()
+            await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/conversations`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ platform, client, text }) })
+          }}
+          className="space-y-2"
+        >
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <select name="platform" className="p-2 border border-border/40 rounded">
               <option value="facebook">Facebook</option>
@@ -67,7 +82,7 @@ export default async function AdminConversationsPage() {
           </div>
           <input name="text" placeholder="Message" className="p-2 border border-border/40 rounded w-full" />
           <button className="px-3 py-2 rounded-md border">Create</button>
-        </form>
+        </SaveForm>
       </div>
     </div>
   )
