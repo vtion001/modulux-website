@@ -87,13 +87,13 @@ export default async function AdminProjectsPage() {
   const raw = await readFile(filePath, "utf-8")
   const projects = JSON.parse(raw) as any[]
   return (
-    <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div>
+    <div className="max-w-4xl mx-auto px-4">
+        <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold">Projects</h1>
             <p className="text-sm text-muted-foreground">Manage portfolio entries displayed on the site</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <Link
               href="/calculator"
               className="text-foreground hover:text-primary transition-colors relative group flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:rounded-md px-2 py-1 text-primary"
@@ -167,7 +167,7 @@ export default async function AdminProjectsPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-3 mb-6 flex-wrap">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -175,7 +175,7 @@ export default async function AdminProjectsPage() {
               className="w-full pl-10 pr-3 py-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
-          <div className="hidden md:flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-2 flex-wrap">
             <button className="px-3 py-2 rounded-md border border-border/40 text-sm hover:border-primary/60 transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">All</button>
             <button className="px-3 py-2 rounded-md border border-border/40 text-sm hover:border-primary/60 transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Residential</button>
             <button className="px-3 py-2 rounded-md border border-border/40 text-sm hover:border-primary/60 transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Commercial</button>

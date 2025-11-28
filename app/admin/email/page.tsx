@@ -6,7 +6,7 @@ import { SaveForm, SubmitButton } from "@/components/admin/save-form"
 import { SelectOnFocusInput, SelectOnFocusTextarea } from "@/components/select-on-focus"
 
 const filePath = path.join(process.cwd(), "data", "email.json")
-const gmailStorePath = path.join(process.cwd(), "data", "gmail.json")
+const gmailStorePath = ""
 
 async function saveEmailConfig(prev: any, formData: FormData) {
   "use server"
@@ -26,57 +26,9 @@ async function saveEmailConfig(prev: any, formData: FormData) {
 export default async function AdminEmailPage() {
   const raw = await readFile(filePath, "utf-8").catch(() => "{}")
   const cfg = JSON.parse(raw || "{}")
-  async function getToken() {
-    try {
-      const rawStore = await readFile(gmailStorePath, "utf-8").catch(() => "{}")
-      const store = JSON.parse(rawStore || "{}")
-      const t = store?.token
-      if (!t) return null
-      const expiresAt = t.obtained_at + (t.expires_in || 0) * 1000 - 60_000
-      if (Date.now() < expiresAt) return t.access_token
-      const clientId = process.env.GOOGLE_CLIENT_ID || ""
-      const clientSecret = process.env.GOOGLE_CLIENT_SECRET || ""
-      const refreshToken = t.refresh_token
-      if (!refreshToken || !clientId || !clientSecret) return null
-      const res = await fetch("https://oauth2.googleapis.com/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, refresh_token: refreshToken, grant_type: "refresh_token" }),
-      })
-      const data = await res.json()
-      if (!res.ok) return null
-      store.token.access_token = data.access_token
-      store.token.expires_in = data.expires_in
-      store.token.obtained_at = Date.now()
-      await writeFile(gmailStorePath, JSON.stringify(store, null, 2))
-      return store.token.access_token
-    } catch {
-      return null
-    }
-  }
+  async function getToken() { return null }
 
-  async function readInbox() {
-    const token = await getToken()
-    if (!token) return [] as any[]
-    try {
-      const listRes = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20&q=in%3Ainbox", { headers: { Authorization: `Bearer ${token}` } })
-      const listData = await listRes.json()
-      const ids: string[] = Array.isArray(listData?.messages) ? listData.messages.map((m: any) => m.id) : []
-      const out: any[] = []
-      for (const id of ids) {
-        const msgRes = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`, { headers: { Authorization: `Bearer ${token}` } })
-        const msg = await msgRes.json()
-        if (msg?.id) {
-          const headers: Record<string, string> = {}
-          for (const h of msg.payload?.headers || []) headers[h.name] = h.value
-          out.push({ id: msg.id, threadId: msg.threadId, snippet: msg.snippet || "", subject: headers.Subject || "(no subject)", from: headers.From || "", date: headers.Date || "" })
-        }
-      }
-      return out
-    } catch {
-      return [] as any[]
-    }
-  }
+  async function readInbox() { return [] as any[] }
 
   const inbox = await readInbox()
   return (
@@ -89,7 +41,7 @@ export default async function AdminEmailPage() {
               <p className="text-sm md:text-base/relaxed opacity-90">Inbox and configuration</p>
             </div>
             <div className="flex items-center gap-2">
-              <a href="/api/oauth/google/start" className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-white/10 border border-white/20 text-sm transition-all duration-200 ease-out transform hover:bg-white/20 hover:-translate-y-[1px]" aria-label="Connect Gmail">
+              <a href="/api/oauth/google/authorize" className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-white/10 border border-white/20 text-sm transition-all duration-200 ease-out transform hover:bg-white/20 hover:-translate-y-[1px]" aria-label="Connect Gmail">
                 Connect Gmail
               </a>
               <details className="relative">

@@ -63,13 +63,13 @@ export default async function AdminProductsPage() {
   const raw = await readFile(filePath, "utf-8")
   const items = JSON.parse(raw) as any[]
   return (
-    <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div>
+    <div className="max-w-4xl mx-auto px-4">
+        <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold">Products</h1>
             <p className="text-sm text-muted-foreground">Manage product entries displayed on the site</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <AddModal trigger={<><Plus className="w-4 h-4" /> Add New</>} title="Add Product" description="Create a new product">
               <form action={addProduct} className="space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -90,7 +90,7 @@ export default async function AdminProductsPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-3 mb-6 flex-wrap">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
