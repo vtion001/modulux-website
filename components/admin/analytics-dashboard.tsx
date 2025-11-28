@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react"
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, PieChart, Pie, Cell, Legend } from "recharts"
 
-export function AnalyticsDashboard({ projects, blog, products, inquiries }: { projects: any[]; blog: any[]; products: any[]; inquiries: any[] }): React.ReactElement {
+export function AnalyticsDashboard({ projects, blog, products, inquiries }: { projects: any[]; blog: any[]; products: any[]; inquiries: any[] }): JSX.Element {
   const [dataset, setDataset] = useState("inquiries")
   const [chart, setChart] = useState("line")
 

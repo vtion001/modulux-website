@@ -3,7 +3,7 @@ import * as React from "react"
 import Link from "next/link"
 import { SidePanelNavigationEnhanced, type NavSection } from "@/components/side-panel-navigation-enhanced"
 
-export function AdminSidePanel(): React.ReactElement {
+export function AdminSidePanel(): JSX.Element {
   const navigation: NavSection[] = [
     {
       title: "OVERVIEW",
