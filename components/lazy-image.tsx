@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import { useState } from "react"
 import Image from "next/image"
 
@@ -12,7 +13,7 @@ interface LazyImageProps {
   priority?: boolean
 }
 
-export function LazyImage({ src, alt, width, height, className, priority = false }: LazyImageProps) {
+export function LazyImage({ src, alt, width, height, className, priority = false }: LazyImageProps): JSX.Element {
   const [isLoading, setIsLoading] = useState(true)
   const [hasError, setHasError] = useState(false)
 

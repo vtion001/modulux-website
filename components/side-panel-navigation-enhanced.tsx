@@ -175,7 +175,7 @@ export function SidePanelNavigationEnhanced({
   brandInitial,
   breadcrumbItems,
   rightActions,
-}: SidePanelNavigationEnhancedProps) {
+}: SidePanelNavigationEnhancedProps): JSX.Element {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())

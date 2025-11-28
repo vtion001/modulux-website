@@ -1,7 +1,9 @@
 import path from "path"
 import { readFile } from "fs/promises"
 import { SaveForm } from "@/components/admin/save-form"
-import { MessageBubble } from "@/components/admin/chat/message-bubble"
+import { ConversationList } from "@/components/admin/chat/conversation-list"
+import { MessageLog } from "@/components/admin/chat/message-log"
+import { SubmitButton } from "@/components/admin/save-form"
 
 type Message = { from: "agent" | "client"; text: string; time?: string }
 type Conversation = { id: string; client: string; platform: string; status: string; messages: Message[]; members?: string[] }
@@ -46,19 +48,7 @@ export default async function AdminConversationsPage({ searchParams }: { searchP
               <input name="q" className="w-full px-3 py-2 rounded-md border border-border/40 text-sm" placeholder="Search" aria-label="Search" />
             </form>
           </div>
-          <ul className="overflow-auto h-[calc(100%-80px)]" role="listbox" aria-label="Conversation list">
-            {list.map((c) => (
-              <li key={c.id} role="option" aria-selected={c.id === selectedId}>
-                <a href={`/admin/conversations?id=${encodeURIComponent(c.id)}`} className={`flex items-center gap-3 px-4 py-3 border-b border-border/40 transition-colors hover:bg-muted ${c.id === selectedId ? 'bg-muted' : 'bg-white'}`}>
-                  <span className="w-8 h-8 rounded-full bg-accent/20 border border-border/40" aria-hidden="true"></span>
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium text-foreground truncate">{c.client}</div>
-                    <div className="text-xs text-muted-foreground truncate">{c.platform} • {c.status}</div>
-                  </div>
-                </a>
-              </li>
-            ))}
-          </ul>
+          <ConversationList items={list} selectedId={selectedId} />
         </aside>
 
         {/* Conversation panel */}
@@ -90,11 +80,7 @@ export default async function AdminConversationsPage({ searchParams }: { searchP
               </div>
 
               {/* Messages */}
-              <div className="overflow-auto px-6 py-4 space-y-3" role="log" aria-live="polite">
-                {current.messages.map((m, i) => (
-                  <MessageBubble key={i} from={m.from} text={m.text} time={m.time} />
-                ))}
-              </div>
+              <MessageLog messages={current.messages} />
 
               {/* Composer */}
               <div className="border-t border-border/50 px-6 py-3">
@@ -110,7 +96,7 @@ export default async function AdminConversationsPage({ searchParams }: { searchP
                   <label className="sr-only" htmlFor="composer">Write a reply</label>
                   <div className="flex items-center gap-2">
                     <input id="composer" name="text" placeholder="Write a reply..." className="flex-1 px-3 py-2 rounded-md border border-border/40 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
-                    <button className="px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/30">Send</button>
+                    <SubmitButton className="px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/30 data-[pending=true]:opacity-70">Send</SubmitButton>
                   </div>
                 </SaveForm>
               </div>

@@ -1,6 +1,6 @@
 import Link from "next/link"
 
-export function RecentInquiries({ inquiries }: { inquiries: { id: string; name: string; email: string; phone: string; message: string; attachments?: any[]; date: string }[] }): React.ReactElement {
+export function RecentInquiries({ inquiries }: { inquiries: { id: string; name: string; email: string; phone: string; message: string; attachments?: any[]; date: string }[] }): JSX.Element {
   const items = Array.isArray(inquiries) ? inquiries.slice(0, 5) : []
   return (
     <div className="rounded-xl border border-border bg-card">

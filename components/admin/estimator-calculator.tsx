@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import { useState } from "react"
 import { estimateCabinetCost } from "@/lib/estimator"
 
@@ -25,7 +26,7 @@ const pricing = {
   installation: 0.3,
 }
 
-export function EstimatorCalculator() {
+export function EstimatorCalculator(): JSX.Element {
   const [formData, setFormData] = useState<CalculatorState>({
     projectType: "",
     roomSize: "",

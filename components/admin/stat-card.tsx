@@ -2,7 +2,7 @@
 import * as React from "react"
 import Link from "next/link"
 
-export function StatCard({ title, value, icon, href, subtext }: { title: string; value: string | number; icon: React.ReactNode; href?: string; subtext?: string }): React.ReactElement {
+export function StatCard({ title, value, icon, href, subtext }: { title: string; value: string | number; icon: React.ReactNode; href?: string; subtext?: string }): JSX.Element {
   return (
     <div className="relative overflow-hidden rounded-xl border border-border bg-gradient-to-br from-primary/10 to-accent/5">
       <div className="absolute -right-6 -top-6 opacity-20 text-accent">{icon}</div>
