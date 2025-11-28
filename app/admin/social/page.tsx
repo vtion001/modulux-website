@@ -3,6 +3,7 @@ import { readFile, writeFile } from "fs/promises"
 import { revalidatePath } from "next/cache"
 import { SaveForm, SubmitButton } from "@/components/admin/save-form"
 import { SelectOnFocusInput, SelectOnFocusTextarea } from "@/components/select-on-focus"
+import { SocialQuickCompose } from "@/components/admin/social-quick-compose"
 import { ChevronLeft, ChevronRight, Settings } from "lucide-react"
 import ListBulk from "@/components/admin/list-bulk"
 import WeekDnd from "@/components/admin/week-dnd"
@@ -431,43 +432,43 @@ export default async function AdminSocialPage({ searchParams }: { searchParams?:
       <div className="flex-1 flex flex-col">
         {/* Header */}
         <div className="relative isolate overflow-hidden rounded-2xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground animate-in fade-in slide-in-from-top-1 duration-300 mx-6 mt-4" role="banner" aria-label="Planner header">
-          <div className="px-6 py-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Social Planner</h1>
-                <p className="text-sm md:text-base/relaxed opacity-90">{currentMonth}</p>
+            <div className="px-6 py-8">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Social Planner</h1>
+                  <p className="text-sm md:text-base/relaxed opacity-90">{currentMonth}</p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <a href="/api/oauth/google/authorize" className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-white/10 border border-white/20 text-sm text-white transition-all duration-200 ease-out transform hover:bg-primary/25 hover:-translate-y-[1px]" aria-label="Connect">
+                    Connect
+                  </a>
+                  <a href="/admin/login" className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-white/10 border border-white/20 text-sm text-white transition-all duration-200 ease-out hover:bg-primary/25">Account</a>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <a href="/api/oauth/google/authorize" className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-white/10 border border-white/20 text-sm transition-all duration-200 ease-out transform hover:bg-white/20 hover:-translate-y-[1px]" aria-label="Connect">
-                  Connect
-                </a>
-                <a href="/admin/login" className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-white/10 border border-white/20 text-sm transition-all">Account</a>
+              <div className="mt-4 flex flex-col md:flex-row md:flex-wrap md:items-center md:justify-between gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2" role="tablist" aria-label="Content tabs">
+                  <a href={`/admin/social?tab=queue&view=${encodeURIComponent(selectedView)}${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center transition-colors duration-200 ${selectedTab==='queue'?'bg-white text-primary-foreground font-medium':'bg-white/10 text-white/80 hover:bg-primary/25 hover:text-white'}`}>Queue ({queuePosts.length})</a>
+                  <a href={`/admin/social?tab=drafts&view=${encodeURIComponent(selectedView)}${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center transition-colors duration-200 ${selectedTab==='drafts'?'bg-white text-primary-foreground font-medium':'bg-white/10 text-white/80 hover:bg-primary/25 hover:text-white'}`}>Drafts ({draftPosts.length})</a>
+                  <a href={`/admin/social?tab=approvals&view=${encodeURIComponent(selectedView)}${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center transition-colors duration-200 ${selectedTab==='approvals'?'bg-white text-primary-foreground font-medium':'bg-white/10 text-white/80 hover:bg-primary/25 hover:text-white'}`}>Approvals</a>
+                  <a href={`/admin/social?tab=sent&view=${encodeURIComponent(selectedView)}${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center transition-colors duration-200 ${selectedTab==='sent'?'bg-white text-primary-foreground font-medium':'bg-white/10 text-white/80 hover:bg-primary/25 hover:text-white'}`}>Sent ({sentPosts.length})</a>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <a href={`/admin/social?tab=${encodeURIComponent(selectedTab)}&view=list${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center w-24 transition-all duration-200 ease-out ${selectedView==='list'?'bg-white text-primary-foreground font-medium':'bg-white/10 border border-white/20 text-white hover:bg-primary/25 hover:text-white hover:-translate-y-[1px]'}`}>List</a>
+                  <a href={`/admin/social?tab=${encodeURIComponent(selectedTab)}&view=calendar${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center w-24 transition-all duration-200 ease-out ${selectedView==='calendar'?'bg-white text-primary-foreground font-medium':'bg-white/10 border border-white/20 text-white hover:bg-primary/25 hover:text-white hover:-translate-y-[1px]'}`}>Calendar</a>
+                  <a href={`/admin/social?tab=${encodeURIComponent(selectedTab)}&view=week${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center w-24 transition-all duration-200 ease-out ${selectedView==='week'?'bg-white text-primary-foreground font-medium':'bg-white/10 border border-white/20 text-white hover:bg-primary/25 hover:text-white hover:-translate-y-[1px]'}`}>Week</a>
+                  <form method="GET" className="inline-flex items-center gap-2">
+                    <input type="hidden" name="tab" value={selectedTab} />
+                    <input type="hidden" name="view" value={selectedView} />
+                    <select name="channel" defaultValue={selectedChannel} className="px-2 py-1.5 rounded-md bg-white/10 border border-white/20 text-sm text-white transition-colors duration-200 hover:bg-primary/25">
+                      <option value="">All channels</option>
+                      {mockChannels.map((c)=> (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                    <button className="px-2 py-1.5 rounded-md bg-white/10 border border-white/20 text-sm text-white transition-all duration-200 ease-out hover:bg-primary/25 hover:-translate-y-[1px]">Apply</button>
+                  </form>
+                </div>
               </div>
-            </div>
-            <div className="mt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2" role="tablist" aria-label="Content tabs">
-                <a href={`/admin/social?tab=queue&view=${encodeURIComponent(selectedView)}${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center ${selectedTab==='queue'?'bg-white/15 text-white':'bg-white/10 text-white/80 hover:bg-white/15 hover:text-white'}`}>Queue ({queuePosts.length})</a>
-                <a href={`/admin/social?tab=drafts&view=${encodeURIComponent(selectedView)}${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center ${selectedTab==='drafts'?'bg-white/15 text-white':'bg-white/10 text-white/80 hover:bg-white/15 hover:text-white'}`}>Drafts ({draftPosts.length})</a>
-                <a href={`/admin/social?tab=approvals&view=${encodeURIComponent(selectedView)}${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center ${selectedTab==='approvals'?'bg-white/15 text-white':'bg-white/10 text-white/80 hover:bg-white/15 hover:text-white'}`}>Approvals</a>
-                <a href={`/admin/social?tab=sent&view=${encodeURIComponent(selectedView)}${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center ${selectedTab==='sent'?'bg-white/15 text-white':'bg-white/10 text-white/80 hover:bg-white/15 hover:text-white'}`}>Sent ({sentPosts.length})</a>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <a href={`/admin/social?tab=${encodeURIComponent(selectedTab)}&view=list${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center w-24 ${selectedView==='list'?'bg-white text-primary-foreground':'bg-white/10 border border-white/20 text-white hover:bg-white/15 hover:text-white'}`}>List</a>
-                <a href={`/admin/social?tab=${encodeURIComponent(selectedTab)}&view=calendar${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center w-24 ${selectedView==='calendar'?'bg-white text-primary-foreground':'bg-white/10 border border-white/20 text-white hover:bg-white/15 hover:text-white'}`}>Calendar</a>
-                <a href={`/admin/social?tab=${encodeURIComponent(selectedTab)}&view=week${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center w-24 ${selectedView==='week'?'bg-white text-primary-foreground':'bg-white/10 border border-white/20 text-white hover:bg-white/15 hover:text-white'}`}>Week</a>
-                <form method="GET" className="inline-flex items-center gap-2">
-                  <input type="hidden" name="tab" value={selectedTab} />
-                  <input type="hidden" name="view" value={selectedView} />
-                  <select name="channel" defaultValue={selectedChannel} className="px-2 py-1.5 rounded-md bg-white/10 border border-white/20 text-sm">
-                    <option value="">All channels</option>
-                    {mockChannels.map((c)=> (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                  <button className="px-2 py-1.5 rounded-md bg-white/10 border border-white/20 text-sm">Apply</button>
-                </form>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -559,54 +560,8 @@ export default async function AdminSocialPage({ searchParams }: { searchParams?:
       <div className="w-80 bg-white border-l border-gray-100">
         <div className="p-4 border-b border-gray-100">
           <h3 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h3>
-          
-          {/* New Post Form */}
-          <div className="space-y-4">
-            <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-              <div className="p-4 border-b border-gray-100">
-                <div className="text-sm font-medium">Compose</div>
-              </div>
-              <SaveForm action={addPost} className="p-4 space-y-4">
-                <SelectOnFocusTextarea name="content" placeholder="Write content..." className="w-full p-3 border border-border/40 rounded-md bg-gray-50 min-h-[120px] focus:outline-none focus:ring-1 focus:ring-primary/30" />
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <div className="text-xs text-gray-600 font-medium">Channels</div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {mockChannels.slice(0, 4).map((channel) => (
-                        <label key={channel.id} className="flex items-center gap-2 text-xs cursor-pointer">
-                          <input type="checkbox" name="channels" value={channel.id} className="rounded border-gray-300" />
-                          <span>{channel.name}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="text-xs text-gray-600 font-medium">Platforms</div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {Object.keys(platformColors).map((platform) => (
-                        <label key={platform} className="flex items-center gap-2 text-xs cursor-pointer">
-                          <input type="checkbox" name="platforms" value={platform} className="rounded border-gray-300" />
-                          <span className="capitalize">{platform}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 gap-3">
-                  <SelectOnFocusInput name="media_url" placeholder="Media URL" className="w-full p-2 border border-border/40 rounded-md bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary/30" />
-                  <SelectOnFocusInput name="link_url" placeholder="Link URL" className="w-full p-2 border border-border/40 rounded-md bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary/30" />
-                  <SelectOnFocusInput name="schedule" placeholder="Schedule (YYYY-MM-DD HH:mm)" className="w-full p-2 border border-border/40 rounded-md bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary/30" />
-                </div>
-                <div className="flex items-center gap-2">
-                  <SubmitButton className="flex-1 bg-primary text-white py-2 px-4 rounded-md hover:bg-primary/90 transition-colors text-sm font-medium">Schedule</SubmitButton>
-                  <a href="/api/oauth/google/authorize" className="px-3 py-2 rounded-md border border-border/40 text-sm">Connect</a>
-                </div>
-              </SaveForm>
-            </div>
-          </div>
+          <SocialQuickCompose platformColors={platformColors as any} mockChannels={mockChannels} onSubmit={addPost} />
         </div>
-        
-        
       </div>
     </div>
   )

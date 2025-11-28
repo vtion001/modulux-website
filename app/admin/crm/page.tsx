@@ -106,12 +106,12 @@ export default async function AdminCRMPage() {
       <div className="flex-1 flex flex-col">
         <div className="relative isolate overflow-hidden rounded-b-2xl bg-gradient-to-r from-primary to-primary/80 text-white animate-in fade-in slide-in-from-top-1 duration-300">
           <div className="px-6 py-8">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="min-w-0">
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight">CRM</h1>
                 <p className="text-sm md:text-base/relaxed opacity-90">Manage leads, contacts, deals and pipelines</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <a className="px-3 py-2 rounded-md border border-white/20 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/40" href="/data/crm.json" download aria-label="Export CRM data">Export</a>
               </div>
             </div>
@@ -133,13 +133,13 @@ export default async function AdminCRMPage() {
         </div>
 
         <div className="sticky top-16 z-10 bg-white/80 backdrop-blur border-b border-gray-100 animate-in fade-in slide-in-from-bottom-1 duration-300">
-          <div className="px-6 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm">
+          <div className="px-6 py-3 flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 text-sm flex-wrap">
               <span className="px-2 py-1 rounded bg-primary/10 text-primary">Leads {leads.length}</span>
               <span className="px-2 py-1 rounded bg-primary/10 text-primary">Deals {deals.length}</span>
               <span className="px-2 py-1 rounded bg-gray-100 text-gray-700">Contacts {contacts.length}</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <label className="sr-only" htmlFor="crm-search">Search</label>
               <input id="crm-search" placeholder="Search" className="p-2 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" aria-label="Search CRM" />
               <button className="px-2 py-1 text-sm border rounded hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/20" aria-label="Filter">Filter</button>

@@ -56,9 +56,9 @@ export default async function AdminBlogPage() {
   const raw = await readFile(filePath, "utf-8")
   const posts = JSON.parse(raw) as any[]
   return (
-    <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div>
+    <div className="max-w-4xl mx-auto px-4">
+        <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold">Blog</h1>
             <p className="text-sm text-muted-foreground">Manage articles displayed on the site</p>
           </div>
@@ -88,7 +88,7 @@ export default async function AdminBlogPage() {
           </AddModal>
         </div>
 
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-3 mb-6 flex-wrap">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <SelectOnFocusInput
