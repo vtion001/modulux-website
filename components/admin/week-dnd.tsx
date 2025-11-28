@@ -54,7 +54,7 @@ export default function WeekDnd({
       {days.map((d) => (
         <div
           key={d.key}
-          className="bg-card border border-border/40 rounded-lg p-3 shadow-sm transition-all duration-200 ease-out hover:shadow-md hover:-translate-y-[2px] focus:outline-none focus:ring-2 focus:ring-primary/20 animate-in slide-in-from-bottom-1 min-h-[240px]"
+          className="bg-card border border-border/40 rounded-lg p-3 shadow-sm transition-all duration-200 ease-out hover:shadow-md hover:-translate-y-[2px] focus:outline-none focus:ring-2 focus:ring-primary/20 animate-in slide-in-from-bottom-1 flex flex-col h-[220px] sm:h-[240px] lg:h-[260px]"
           role="gridcell"
           aria-label={`${d.dayName} ${d.dayNum}`}
           tabIndex={0}
@@ -69,7 +69,7 @@ export default function WeekDnd({
             <div className="text-sm font-medium text-foreground">{d.dayName}</div>
             <div className="text-xs text-muted-foreground">{d.dayNum}</div>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 flex-1 overflow-y-auto pr-1">
             {d.items.length === 0 ? (
               <div className="text-xs text-muted-foreground">No posts</div>
             ) : (

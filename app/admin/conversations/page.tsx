@@ -1,34 +1,103 @@
 import path from "path"
 import { readFile } from "fs/promises"
 import { SaveForm } from "@/components/admin/save-form"
+import { MessageBubble } from "@/components/admin/chat/message-bubble"
+
+type Message = { from: "agent" | "client"; text: string; time?: string }
+type Conversation = { id: string; client: string; platform: string; status: string; messages: Message[]; members?: string[] }
 
 const filePath = path.join(process.cwd(), "data", "conversations.json")
 
-export default async function AdminConversationsPage() {
+export default async function AdminConversationsPage({ searchParams }: { searchParams?: Record<string, string | string[]> }) {
   const raw = await readFile(filePath, "utf-8").catch(() => "[]")
-  const list = JSON.parse(raw || "[]") as any[]
+  const list = (JSON.parse(raw || "[]") as any[]).map((c) => ({
+    id: String(c.id || ""),
+    client: String(c.client || ""),
+    platform: String(c.platform || ""),
+    status: String(c.status || "open"),
+    messages: Array.isArray(c.messages) ? c.messages : [],
+    members: Array.isArray(c.members) ? c.members : [],
+  })) as Conversation[]
+
+  const selectedId = String((searchParams?.id as string) || list[0]?.id || "")
+  const current = list.find((c) => c.id === selectedId)
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Conversations</h1>
-        <p className="text-sm text-muted-foreground">Unified inbox for social platforms</p>
-      </div>
-      <div className="grid grid-cols-1 gap-3">
-        {list.length === 0 ? (
-          <div className="text-muted-foreground">No conversations yet</div>
-        ) : (
-          list.map((c) => (
-            <div key={c.id} className="rounded-xl border border-border p-4">
-              <div className="flex items-center justify-between">
-                <div className="font-medium">{c.client}</div>
-                <div className="text-xs text-muted-foreground">{c.platform} • {c.status}</div>
+    <div className="h-[calc(100vh-64px)] bg-muted/40">
+      <div className="mx-auto max-w-[1400px] h-full grid grid-cols-[64px_280px_1fr_320px]">
+        {/* Left vertical nav */}
+        <nav aria-label="Primary" className="bg-black text-white flex flex-col items-center py-4 gap-3">
+          <a href="/admin" className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-white/30 hover:bg-white/20" aria-label="Dashboard">SS</a>
+          <div className="flex-1 flex flex-col items-center gap-2" role="group" aria-label="Sections">
+            <a href="/admin/social" className="w-8 h-8 rounded-md bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/30" aria-label="Planner"></a>
+            <a href="/admin/conversations" className="w-8 h-8 rounded-md bg-primary hover:bg-primary/80 focus:outline-none focus:ring-2 focus:ring-white/30" aria-current="page" aria-label="Messages"></a>
+            <a href="/admin/projects" className="w-8 h-8 rounded-md bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/30" aria-label="Projects"></a>
+            <a href="/admin/blog" className="w-8 h-8 rounded-md bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/30" aria-label="Blog"></a>
+          </div>
+          <a href="/admin/settings" className="w-8 h-8 rounded-md bg-white/10 hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/30" aria-label="Settings"></a>
+        </nav>
+
+        {/* Conversations list */}
+        <aside className="bg-white border-r border-border/50 overflow-hidden" aria-label="All chats">
+          <div className="p-4 border-b border-border/50">
+            <div className="text-xs text-muted-foreground">ALL CHATS</div>
+            <div className="text-lg font-semibold">Messages <span className="text-muted-foreground">({list.length})</span></div>
+            <form method="GET" className="mt-3 flex items-center gap-2" aria-label="Search conversations">
+              <input name="q" className="w-full px-3 py-2 rounded-md border border-border/40 text-sm" placeholder="Search" aria-label="Search" />
+            </form>
+          </div>
+          <ul className="overflow-auto h-[calc(100%-80px)]" role="listbox" aria-label="Conversation list">
+            {list.map((c) => (
+              <li key={c.id} role="option" aria-selected={c.id === selectedId}>
+                <a href={`/admin/conversations?id=${encodeURIComponent(c.id)}`} className={`flex items-center gap-3 px-4 py-3 border-b border-border/40 transition-colors hover:bg-muted ${c.id === selectedId ? 'bg-muted' : 'bg-white'}`}>
+                  <span className="w-8 h-8 rounded-full bg-accent/20 border border-border/40" aria-hidden="true"></span>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-foreground truncate">{c.client}</div>
+                    <div className="text-xs text-muted-foreground truncate">{c.platform} • {c.status}</div>
+                  </div>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </aside>
+
+        {/* Conversation panel */}
+        <main className="bg-white" aria-label="Conversation">
+          {!current ? (
+            <div className="h-full flex items-center justify-center text-muted-foreground">Select a conversation</div>
+          ) : (
+            <div className="h-full grid grid-rows-[64px_1fr_72px]">
+              {/* Header */}
+              <div className="px-6 border-b border-border/50 flex items-center justify-between" role="toolbar" aria-label="Conversation toolbar">
+                <div className="flex items-center gap-3">
+                  <span className="w-8 h-8 rounded-full bg-accent/20 border border-border/40" aria-hidden="true"></span>
+                  <div>
+                    <div className="font-medium">{current.client}</div>
+                    <div className="text-xs text-muted-foreground">{current.platform}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button className="px-3 py-2 rounded-md border border-border/50 text-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary/20" aria-label="Invite">Invite</button>
+                  <SaveForm action={async (formData: FormData) => {
+                    "use server"
+                    const id = String(formData.get("id") || "")
+                    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/conversations/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "closed" }) })
+                  }}>
+                    <input type="hidden" name="id" value={current.id} />
+                    <button className="px-3 py-2 rounded-md border border-border/50 text-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary/20" aria-label="Close conversation">Close</button>
+                  </SaveForm>
+                </div>
               </div>
-              <div className="mt-2 space-y-2">
-                {Array.isArray(c.messages) && c.messages.map((m: any, i: number) => (
-                  <div key={i} className={`text-sm ${m.from === "agent" ? "text-foreground" : "text-muted-foreground"}`}>{m.text}</div>
+
+              {/* Messages */}
+              <div className="overflow-auto px-6 py-4 space-y-3" role="log" aria-live="polite">
+                {current.messages.map((m, i) => (
+                  <MessageBubble key={i} from={m.from} text={m.text} time={m.time} />
                 ))}
               </div>
-              <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
+
+              {/* Composer */}
+              <div className="border-t border-border/50 px-6 py-3">
                 <SaveForm
                   action={async (formData: FormData) => {
                     "use server"
@@ -36,53 +105,47 @@ export default async function AdminConversationsPage() {
                     const appendText = String(formData.get("text") || "").trim()
                     await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/conversations/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ appendText, status: "open" }) })
                   }}
-                  className="md:col-span-3"
                 >
-                  <input type="hidden" name="id" value={c.id} />
-                  <input type="text" name="text" placeholder="Write a reply..." className="w-full p-2 border border-border/40 rounded" />
-                  <div className="mt-2 flex gap-2">
-                    <button className="px-3 py-2 rounded-md border">Send</button>
-                    <SaveForm
-                      action={async (formData: FormData) => {
-                        "use server"
-                        const id = String(formData.get("id") || "").trim()
-                        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/conversations/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "closed" }) })
-                      }}
-                    >
-                      <input type="hidden" name="id" value={c.id} />
-                      <button className="px-3 py-2 rounded-md border">Close</button>
-                    </SaveForm>
+                  <input type="hidden" name="id" value={current.id} />
+                  <label className="sr-only" htmlFor="composer">Write a reply</label>
+                  <div className="flex items-center gap-2">
+                    <input id="composer" name="text" placeholder="Write a reply..." className="flex-1 px-3 py-2 rounded-md border border-border/40 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    <button className="px-4 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/30">Send</button>
                   </div>
                 </SaveForm>
               </div>
             </div>
-          ))
-        )}
-      </div>
-      <div className="rounded-xl border border-border p-4">
-        <div className="text-sm text-muted-foreground mb-2">Start a new conversation</div>
-        <SaveForm
-          action={async (formData: FormData) => {
-            "use server"
-            const platform = String(formData.get("platform") || "").trim()
-            const client = String(formData.get("client") || "").trim()
-            const text = String(formData.get("text") || "").trim()
-            await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ""}/api/conversations`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ platform, client, text }) })
-          }}
-          className="space-y-2"
-        >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-            <select name="platform" className="p-2 border border-border/40 rounded">
-              <option value="facebook">Facebook</option>
-              <option value="instagram">Instagram</option>
-              <option value="twitter">Twitter/X</option>
-              <option value="linkedin">LinkedIn</option>
-            </select>
-            <input name="client" placeholder="Client handle" className="p-2 border border-border/40 rounded md:col-span-2" />
-          </div>
-          <input name="text" placeholder="Message" className="p-2 border border-border/40 rounded w-full" />
-          <button className="px-3 py-2 rounded-md border">Create</button>
-        </SaveForm>
+          )}
+        </main>
+
+        {/* Details panel */}
+        <aside className="bg-white border-l border-border/50 px-6 py-4" aria-label="Conversation details">
+          {current && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-semibold">Designers</div>
+                  <div className="text-xs text-muted-foreground">Group</div>
+                </div>
+                <button className="px-3 py-2 rounded-md border border-border/50 text-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary/20">Invite</button>
+              </div>
+              <div className="space-y-2">
+                <div className="text-xs text-muted-foreground">Status</div>
+                <div className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-accent/10 text-accent text-xs">{current.status}</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-xs text-muted-foreground">Members</div>
+                <div className="grid grid-cols-4 gap-2">
+                  {(current.members || new Array(12).fill(""))
+                    .slice(0,12)
+                    .map((_, i) => (
+                      <span key={i} className="w-12 h-12 rounded-md bg-muted border border-border/40" aria-label={`Member ${i+1}`}></span>
+                    ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </aside>
       </div>
     </div>
   )

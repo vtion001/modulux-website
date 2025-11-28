@@ -4,7 +4,7 @@ import { createPortal } from "react-dom"
 import { Mail, Phone, Clock, Paperclip, Tag as TagIcon, Save as SaveIcon, Reply as ReplyIcon, X, Send, CheckCircle, Hourglass, Circle, Wand2, Bot, UserPlus } from "lucide-react"
 import { toast } from "sonner"
 
-export function InquiryItem({ inquiry }: { inquiry: any }) {
+export function InquiryItem({ inquiry }: { inquiry: any }): React.ReactElement {
   const [status, setStatus] = useState(inquiry.status || "new")
   const [tags, setTags] = useState<string>((Array.isArray(inquiry.tags) ? inquiry.tags : []).join(", "))
   const [openReply, setOpenReply] = useState(false)
