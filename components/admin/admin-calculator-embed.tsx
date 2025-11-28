@@ -17,7 +17,7 @@ interface CalculatorState {
   kitchenScope: string
 }
 
-export function AdminCalculatorEmbed() {
+export function AdminCalculatorEmbed(): React.ReactElement {
   const [formData, setFormData] = useState<CalculatorState>({
     projectType: "kitchen",
     roomSize: "",

@@ -1,9 +1,10 @@
 "use client"
 
+import * as React from "react"
 import { useEffect, useState } from "react"
 import { EstimatorCalculator } from "@/components/admin/estimator-calculator"
 
-export function AdminEstimatorPanel() {
+export function AdminEstimatorPanel(): React.ReactElement | null {
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
