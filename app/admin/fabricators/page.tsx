@@ -1,6 +1,7 @@
 import path from "path"
 import { readFile, writeFile } from "fs/promises"
 import { revalidatePath } from "next/cache"
+import { SaveForm } from "@/components/admin/save-form"
 
 const filePath = path.join(process.cwd(), "data", "fabricators.json")
 
@@ -56,7 +57,7 @@ export default async function AdminFabricatorsPage() {
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-card border border-border/40 rounded-xl p-4 shadow-sm animate-in fade-in slide-in-from-bottom-1 duration-300">
             <h2 className="text-sm font-semibold text-foreground mb-3">Add Fabricator</h2>
-            <form action={addFabricator} className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <SaveForm action={addFabricator} className="grid grid-cols-1 md:grid-cols-5 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground block mb-1" htmlFor="fab-id">ID</label>
                 <input id="fab-id" name="id" placeholder="fab_123" className="w-full p-2 border border-border/40 rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20" />
@@ -86,7 +87,7 @@ export default async function AdminFabricatorsPage() {
                   Add
                 </button>
               </div>
-            </form>
+            </SaveForm>
           </div>
 
           <div className="bg-card border border-border/40 rounded-xl p-4 shadow-sm animate-in fade-in slide-in-from-bottom-1 duration-300">
@@ -108,12 +109,12 @@ export default async function AdminFabricatorsPage() {
                     <a className="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-border/50 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]" href={`/admin/fabricators/${f.id}`} aria-label={`Edit ${f.name}`}>
                       Edit
                     </a>
-                    <form action={deleteFabricator}>
+                    <SaveForm action={deleteFabricator}>
                       <input type="hidden" name="id" value={f.id} />
                       <button className="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-border/50 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]" aria-label={`Delete ${f.name}`}>
                         Delete
                       </button>
-                    </form>
+                    </SaveForm>
                   </div>
                 </div>
               ))}

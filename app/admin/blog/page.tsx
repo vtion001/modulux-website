@@ -4,6 +4,7 @@ import { readFile, writeFile } from "fs/promises"
 import { Calendar, Pencil, Trash2, Search, Plus, Wand2, Image as ImageIcon } from "lucide-react"
 import Link from "next/link"
 import { BlogAiTools } from "@/components/admin/blog-ai-tools"
+import { SaveForm } from "@/components/admin/save-form"
 import { SelectOnFocusInput, SelectOnFocusTextarea } from "@/components/select-on-focus"
 import { AddModal } from "@/components/admin/add-modal"
 
@@ -63,7 +64,7 @@ export default async function AdminBlogPage() {
             <p className="text-sm text-muted-foreground">Manage articles displayed on the site</p>
           </div>
           <AddModal trigger={<><Plus className="w-4 h-4" /> Add New</>} title="Add Post" description="Create a new article">
-            <form action={addPost} className="space-y-3">
+            <SaveForm action={addPost} className="space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <SelectOnFocusInput name="id" placeholder="id" className="w-full p-2 border border-border/40 rounded" />
                 <SelectOnFocusInput name="title" placeholder="title" className="w-full p-2 border border-border/40 rounded" />
@@ -84,7 +85,7 @@ export default async function AdminBlogPage() {
               <SelectOnFocusInput name="image" placeholder="image url" className="w-full p-2 border border-border/40 rounded" />
               <BlogAiTools descriptionName="description" imageName="image" />
               <button className="w-full bg-primary text-white py-2 rounded transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Add</button>
-            </form>
+            </SaveForm>
           </AddModal>
         </div>
 
@@ -117,13 +118,13 @@ export default async function AdminBlogPage() {
                     <Pencil className="w-4 h-4" />
                     Edit
                   </Link>
-                  <form action={deletePost}>
+                  <SaveForm action={deletePost}>
                     <input type="hidden" name="id" value={p.id} />
                     <button className="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-border/50 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">
                       <Trash2 className="w-4 h-4" />
                       Delete
                     </button>
-                  </form>
+                  </SaveForm>
                 </div>
               </div>
             </div>

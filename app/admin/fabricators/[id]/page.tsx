@@ -1,6 +1,7 @@
 import path from "path"
 import { readFile, writeFile } from "fs/promises"
 import { revalidatePath } from "next/cache"
+import { SaveForm } from "@/components/admin/save-form"
 
 const filePath = path.join(process.cwd(), "data", "fabricators.json")
 
@@ -35,7 +36,7 @@ export default async function AdminFabricatorEditPage({ params }: { params: { id
         <h1 className="text-2xl font-bold">Edit Fabricator</h1>
         <a className="text-sm text-primary" href="/admin/fabricators">Back</a>
       </div>
-      <form action={saveFabricator} className="space-y-4">
+      <SaveForm action={saveFabricator} className="space-y-4">
         <input type="hidden" name="id" defaultValue={item.id} />
         <div>
           <label className="text-xs text-muted-foreground block mb-1">Name</label>
@@ -60,7 +61,7 @@ export default async function AdminFabricatorEditPage({ params }: { params: { id
           </div>
         </div>
         <button className="px-3 py-2 rounded-md border">Save</button>
-      </form>
+      </SaveForm>
       <div>
         <div className="text-sm font-medium">History</div>
         <div className="mt-2 grid grid-cols-1 gap-2">
@@ -72,4 +73,3 @@ export default async function AdminFabricatorEditPage({ params }: { params: { id
     </div>
   )
 }
-

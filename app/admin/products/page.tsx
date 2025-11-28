@@ -5,6 +5,7 @@ import { Pencil, Trash2, Search, Plus, Sparkles } from "lucide-react"
 import { SelectOnFocusInput } from "@/components/select-on-focus"
 import Link from "next/link"
 import { AddModal } from "@/components/admin/add-modal"
+import { SaveForm } from "@/components/admin/save-form"
 
 const filePath = path.join(process.cwd(), "data", "products.json")
 
@@ -71,7 +72,7 @@ export default async function AdminProductsPage() {
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <AddModal trigger={<><Plus className="w-4 h-4" /> Add New</>} title="Add Product" description="Create a new product">
-              <form action={addProduct} className="space-y-3">
+              <SaveForm action={addProduct} className="space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <SelectOnFocusInput name="id" placeholder="id" className="w-full p-2 border border-border/40 rounded" />
                   <SelectOnFocusInput name="name" placeholder="name" className="w-full p-2 border border-border/40 rounded" />
@@ -79,14 +80,14 @@ export default async function AdminProductsPage() {
                 <SelectOnFocusInput name="category" placeholder="category" className="w-full p-2 border border-border/40 rounded" />
                 <SelectOnFocusInput name="image" placeholder="image url" className="w-full p-2 border border-border/40 rounded" />
                 <button className="w-full bg-primary text-white py-2 rounded transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Add</button>
-              </form>
+              </SaveForm>
             </AddModal>
-            <form action={seedDefaults}>
+            <SaveForm action={seedDefaults}>
               <button className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-border/50 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">
                 <Sparkles className="w-4 h-4" />
                 Seed Defaults
               </button>
-            </form>
+            </SaveForm>
           </div>
         </div>
 
@@ -115,13 +116,13 @@ export default async function AdminProductsPage() {
                     <Pencil className="w-4 h-4" />
                     Edit
                   </Link>
-                  <form action={deleteProduct}>
+                  <SaveForm action={deleteProduct}>
                     <input type="hidden" name="id" value={p.id} />
                     <button className="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-border/50 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">
                       <Trash2 className="w-4 h-4" />
                       Delete
                     </button>
-                  </form>
+                  </SaveForm>
                 </div>
               </div>
             </div>

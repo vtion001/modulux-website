@@ -6,6 +6,7 @@ import Link from "next/link"
 import { SelectOnFocusInput, SelectOnFocusTextarea } from "@/components/select-on-focus"
 import { BlogAiTools } from "@/components/admin/blog-ai-tools"
 import { AddModal } from "@/components/admin/add-modal"
+import { SaveForm } from "@/components/admin/save-form"
 
 const filePath = path.join(process.cwd(), "data", "projects.json")
 
@@ -57,8 +58,8 @@ async function addProject(formData: FormData) {
     const ext = file.name.includes(".") ? file.name.substring(file.name.lastIndexOf(".")) : ""
     const name = `${id}-${Date.now()}${ext}`
     const dest = path.join(uploadsDir, name)
-    const buffer = Buffer.from(await file.arrayBuffer())
-    await writeFile(dest, buffer)
+    const bytes = new Uint8Array(await file.arrayBuffer())
+    await writeFile(dest, bytes)
     image = `/uploads/${name}`
     images.unshift(image)
   }
@@ -107,7 +108,7 @@ export default async function AdminProjectsPage() {
               title="Add Project"
               description="Create a new portfolio entry"
             >
-            <form action={addProject} className="space-y-3">
+            <SaveForm action={addProject} className="space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-muted-foreground block mb-1">ID</label>
@@ -162,7 +163,7 @@ export default async function AdminProjectsPage() {
                 <Plus className="w-4 h-4" />
                 Add Project
               </button>
-            </form>
+            </SaveForm>
             </AddModal>
           </div>
         </div>
@@ -225,13 +226,13 @@ export default async function AdminProjectsPage() {
                     <Pencil className="w-4 h-4" />
                     Edit
                   </Link>
-                  <form action={deleteProject}>
+                  <SaveForm action={deleteProject}>
                     <input type="hidden" name="id" value={p.id} />
                     <button className="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-border/50 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">
                       <Trash2 className="w-4 h-4" />
                       Delete
                     </button>
-                  </form>
+                  </SaveForm>
                 </div>
               </div>
             </div>
