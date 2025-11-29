@@ -11,5 +11,28 @@
       "notes": "i need a quote for this.",
       "created_at": 1764311136355
     }
+  ],
+  "contacts": [
+    {
+      "id": "contact_1764395200000",
+      "name": "Test Contact",
+      "email": "test.contact@example.com",
+      "phone": "0000000000",
+      "company": "Modulux",
+      "tags": ["Test"],
+      "created_at": 1764395200000
+    }
+  ],
+  "deals": [
+    {
+      "id": "deal_1764395200000",
+      "title": "Test Deal",
+      "contactId": "contact_1764395200000",
+      "value": 50000,
+      "stage": "New",
+      "nextActivity": "Intro call",
+      "dueDate": "2025-12-01",
+      "created_at": 1764395200000
+    }
   ]
 }

@@ -84,6 +84,9 @@ export default function CalculatorPage() {
   const [applyTax, setApplyTax] = useState(true)
   const [taxRate, setTaxRate] = useState(0.12)
   const [discount, setDiscount] = useState(0)
+  const [contactsAll, setContactsAll] = useState<any[]>([])
+  const [contacts, setContacts] = useState<any[]>([])
+  const [selectedClient, setSelectedClient] = useState<any | null>(null)
 
   useEffect(() => {
     ;(async () => {
@@ -92,6 +95,18 @@ export default function CalculatorPage() {
         const cfg = await res.json()
         if (cfg?.baseRates) setBaseRates(cfg.baseRates)
         if (cfg?.tierMultipliers) setTiers(cfg.tierMultipliers)
+      } catch {}
+    })()
+  }, [])
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const res = await fetch("/data/crm.json")
+        const db = await res.json().catch(() => ({}))
+        const arr = Array.isArray(db?.contacts) ? db.contacts : []
+        setContactsAll(arr)
+        setContacts(arr)
       } catch {}
     })()
   }, [])
@@ -415,10 +430,81 @@ export default function CalculatorPage() {
                     * This is an approximate estimate. Final pricing may vary based on specific requirements, site
                     conditions, and material availability.
                   </p>
-                  <button className="w-full bg-secondary text-white py-3 px-6 rounded-md font-medium hover:bg-secondary/90 transition-colors duration-200"
-                    onClick={()=>{
-                      const body = `Estimate Total: ₱${estimate?.toLocaleString()}\nSubtotal: ₱${(subtotal||0).toLocaleString()}\nTax: ₱${(tax||0).toLocaleString()}`
-                      window.location.href = `mailto:?subject=ModuLux Estimate&body=${encodeURIComponent(body)}`
+                  <div className="space-y-3 mb-3">
+                    <div className="text-sm font-semibold">Select Client</div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                      {contacts.slice(0,6).map((c)=> (
+                        <button key={c.id} type="button" onClick={()=>setSelectedClient(c)} className={`px-3 py-2 rounded-md border text-sm ${selectedClient?.id===c.id?"bg-primary text-white border-primary":"hover:bg-muted/50"}`}>
+                          <div className="font-medium truncate">{c.name}</div>
+                          <div className="text-xs opacity-80 truncate">{c.email}</div>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                      <input placeholder="Search contacts" className="p-2 border rounded-md text-sm" onChange={(e)=>{
+                        const q = e.target.value.toLowerCase()
+                        const db = contactsAll as any[]
+                        const filtered = db.filter((c)=> {
+                          const tags = Array.isArray(c.tags)?c.tags:[]
+                          return String(c.name||"").toLowerCase().includes(q)
+                            || String(c.email||"").toLowerCase().includes(q)
+                            || String(c.company||"").toLowerCase().includes(q)
+                            || tags.some((t:string)=>String(t||"").toLowerCase().includes(q))
+                        })
+                        setContacts(q?filtered:contactsAll)
+                      }} />
+                      {selectedClient && (
+                        <div className="md:col-span-2 text-xs text-muted-foreground">Selected: {selectedClient.name} ({selectedClient.email})</div>
+                      )}
+                    </div>
+                    {contacts.length === 0 && (
+                      <div className="text-xs text-muted-foreground">No matches. Manage contacts in <a href="/admin/crm" className="underline">CRM</a>.</div>
+                    )}
+                  </div>
+                  <button
+                    className={`w-full py-3 px-6 rounded-md font-medium transition-colors duration-200 ${selectedClient?"bg-secondary text-white hover:bg-secondary/90":"bg-muted text-muted-foreground cursor-not-allowed"}`}
+                    disabled={!selectedClient}
+                    onClick={async ()=>{
+                      if (!selectedClient || !estimate) return
+                      const legacyLm = parseFloat(formData.linearMeter)
+                      const activeUnits = units
+                        .filter((u) => u.enabled && Number(u.meters) > 0)
+                        .map((u) => ({ category: u.category, meters: Number(u.meters), material: u.material || undefined, finish: u.finish || undefined, hardware: u.hardware || undefined, tier: u.tier || tier }))
+                      const useLegacy = !activeUnits.length && !isNaN(legacyLm) && legacyLm > 0
+                      const calc = estimateCabinetCost({
+                        projectType: formData.projectType,
+                        cabinetType: formData.cabinetType,
+                        linearMeter: useLegacy ? legacyLm : undefined,
+                        installation: formData.installation,
+                        cabinetCategory,
+                        tier,
+                        baseRates: baseRates || undefined,
+                        tierMultipliers: tiers || undefined,
+                        units: activeUnits,
+                        discount,
+                        applyTax,
+                        taxRate,
+                      })
+                      const items = (calc?.breakdown?.units||[]).map((u:any)=>({
+                        description: `${u.category} cabinets (${formData.cabinetType})`,
+                        quantity: Number(u.meters||0),
+                        unitPrice: Math.round(Number(u.lineTotal||0)/Math.max(1, Number(u.meters||1)))
+                      }))
+                      const payload = {
+                        client: { name: selectedClient.name||"", email: selectedClient.email||"", company: selectedClient.company||"" },
+                        title: `${formData.projectType||"Project"} Proposal`,
+                        items,
+                        taxRate: applyTax ? taxRate*100 : 0,
+                        discount: Math.round((discount||0)* (calc?.breakdown?.subtotal||0)),
+                        notes: "Auto-generated from calculator",
+                      }
+                      try {
+                        const res = await fetch("/api/proposals/create", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+                        const data = await res.json().catch(()=>({}))
+                        if (data?.id) {
+                          window.location.href = `/admin/proposals?id=${encodeURIComponent(data.id)}`
+                        }
+                      } catch {}
                     }}
                   >
                     Request Detailed Quote

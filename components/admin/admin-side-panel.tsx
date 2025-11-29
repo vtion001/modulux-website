@@ -38,6 +38,7 @@ export function AdminSidePanel(): JSX.Element {
       items: [
         { title: "Calculator Pricing", href: "/admin/calculator-pricing", iconName: "calculator" },
         { title: "Fabricators", href: "/admin/fabricators", iconName: "wrench" },
+        { title: "Proposal Creator", href: "/admin/proposals", iconName: "file" },
       ],
     },
   ]

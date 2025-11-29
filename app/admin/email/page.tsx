@@ -8,6 +8,14 @@ import { SelectOnFocusInput, SelectOnFocusTextarea } from "@/components/select-o
 const filePath = path.join(process.cwd(), "data", "email.json")
 const gmailStorePath = ""
 
+type InboxItem = {
+  id: string
+  subject: string
+  date: string
+  from: string
+  snippet: string
+}
+
 async function saveEmailConfig(prev: any, formData: FormData) {
   "use server"
   const from_name = String(formData.get("from_name") || "").trim()
@@ -28,7 +36,21 @@ export default async function AdminEmailPage() {
   const cfg = JSON.parse(raw || "{}")
   async function getToken() { return null }
 
-  async function readInbox() { return [] as any[] }
+  async function readInbox(): Promise<InboxItem[]> {
+    const rawInbox = await readFile(filePath, "utf-8").catch(() => "{}")
+    const store = JSON.parse(rawInbox || "{}")
+    const arr = Array.isArray((store as any).inbox) ? (store as any).inbox : []
+    if (arr.length > 0) return arr
+    return [
+      {
+        id: `sample_${Date.now()}`,
+        subject: "Welcome to Modulux",
+        date: new Date().toLocaleString(),
+        from: "support@modulux.local",
+        snippet: "This is a sample message to preview the inbox."
+      }
+    ]
+  }
 
   const inbox = await readInbox()
   return (

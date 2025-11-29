@@ -20,7 +20,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="min-h-screen bg-background">
       {verified && <AdminSidePanel />}
-      <main className={`max-w-6xl mx-auto px-4 py-8 pt-16 ${verified ? "md:pl-64" : ""}`}>
+      <main className={`max-w-none px-4 md:px-6 py-8 pt-16 ${verified ? "md:pl-64" : ""}`}>
         <ToastOnParam param="logged" value="1" message="Signed in successfully" />
         <AdminEstimatorPanel />
         {children}

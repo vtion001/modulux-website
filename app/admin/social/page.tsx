@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { SaveForm, SubmitButton } from "@/components/admin/save-form"
 import { SelectOnFocusInput, SelectOnFocusTextarea } from "@/components/select-on-focus"
 import { SocialQuickCompose } from "@/components/admin/social-quick-compose"
+import SocialPreviewComposer from "@/components/admin/social-preview-composer"
 import { ChevronLeft, ChevronRight, Settings } from "lucide-react"
 import ListBulk from "@/components/admin/list-bulk"
 import WeekDnd from "@/components/admin/week-dnd"
@@ -330,7 +331,7 @@ export default async function AdminSocialPage({ searchParams }: { searchParams?:
   const postsRaw = await readFile(postsPath, "utf-8").catch(() => "[]")
   const list = JSON.parse(postsRaw || "[]") as any[]
   const providers = {}
-  
+
   const weekDates = getWeekDates()
   const monthParam = String(searchParams?.month || "")
   const monthBase = (() => {
@@ -427,74 +428,48 @@ export default async function AdminSocialPage({ searchParams }: { searchParams?:
   })))
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <div className="relative isolate overflow-hidden rounded-2xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground animate-in fade-in slide-in-from-top-1 duration-300 mx-6 mt-4" role="banner" aria-label="Planner header">
-            <div className="px-6 py-8">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Social Planner</h1>
-                  <p className="text-sm md:text-base/relaxed opacity-90">{currentMonth}</p>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <a href="/api/oauth/google/authorize" className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-white/10 border border-white/20 text-sm text-white transition-all duration-200 ease-out transform hover:bg-primary/25 hover:-translate-y-[1px]" aria-label="Connect">
-                    Connect
-                  </a>
-                  <a href="/admin/login" className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-white/10 border border-white/20 text-sm text-white transition-all duration-200 ease-out hover:bg-primary/25">Account</a>
-                </div>
-              </div>
-              <div className="mt-4 flex flex-col md:flex-row md:flex-wrap md:items-center md:justify-between gap-3">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2" role="tablist" aria-label="Content tabs">
-                  <a href={`/admin/social?tab=queue&view=${encodeURIComponent(selectedView)}${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center transition-colors duration-200 ${selectedTab==='queue'?'bg-white text-primary-foreground font-medium':'bg-white/10 text-white/80 hover:bg-primary/25 hover:text-white'}`}>Queue ({queuePosts.length})</a>
-                  <a href={`/admin/social?tab=drafts&view=${encodeURIComponent(selectedView)}${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center transition-colors duration-200 ${selectedTab==='drafts'?'bg-white text-primary-foreground font-medium':'bg-white/10 text-white/80 hover:bg-primary/25 hover:text-white'}`}>Drafts ({draftPosts.length})</a>
-                  <a href={`/admin/social?tab=approvals&view=${encodeURIComponent(selectedView)}${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center transition-colors duration-200 ${selectedTab==='approvals'?'bg-white text-primary-foreground font-medium':'bg-white/10 text-white/80 hover:bg-primary/25 hover:text-white'}`}>Approvals</a>
-                  <a href={`/admin/social?tab=sent&view=${encodeURIComponent(selectedView)}${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center transition-colors duration-200 ${selectedTab==='sent'?'bg-white text-primary-foreground font-medium':'bg-white/10 text-white/80 hover:bg-primary/25 hover:text-white'}`}>Sent ({sentPosts.length})</a>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <a href={`/admin/social?tab=${encodeURIComponent(selectedTab)}&view=list${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center w-24 transition-all duration-200 ease-out ${selectedView==='list'?'bg-white text-primary-foreground font-medium':'bg-white/10 border border-white/20 text-white hover:bg-primary/25 hover:text-white hover:-translate-y-[1px]'}`}>List</a>
-                  <a href={`/admin/social?tab=${encodeURIComponent(selectedTab)}&view=calendar${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center w-24 transition-all duration-200 ease-out ${selectedView==='calendar'?'bg-white text-primary-foreground font-medium':'bg-white/10 border border-white/20 text-white hover:bg-primary/25 hover:text-white hover:-translate-y-[1px]'}`}>Calendar</a>
-                  <a href={`/admin/social?tab=${encodeURIComponent(selectedTab)}&view=week${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm text-center w-24 transition-all duration-200 ease-out ${selectedView==='week'?'bg-white text-primary-foreground font-medium':'bg-white/10 border border-white/20 text-white hover:bg-primary/25 hover:text-white hover:-translate-y-[1px]'}`}>Week</a>
-                  <form method="GET" className="inline-flex items-center gap-2">
-                    <input type="hidden" name="tab" value={selectedTab} />
-                    <input type="hidden" name="view" value={selectedView} />
-                    <select name="channel" defaultValue={selectedChannel} className="px-2 py-1.5 rounded-md bg-white/10 border border-white/20 text-sm text-white transition-colors duration-200 hover:bg-primary/25">
-                      <option value="">All channels</option>
-                      {mockChannels.map((c)=> (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                    <button className="px-2 py-1.5 rounded-md bg-white/10 border border-white/20 text-sm text-white transition-all duration-200 ease-out hover:bg-primary/25 hover:-translate-y-[1px]">Apply</button>
-                  </form>
-                </div>
-              </div>
+    <div className="grid grid-cols-1 xl:grid-cols-[220px_1fr_320px] min-h-screen bg-background">
+      {/* Left Sidebar (Workspace + Channels) */}
+      <aside className="hidden xl:block border-r border-border/40 bg-white/60">
+        <div className="p-4 space-y-4">
+          <div className="text-xs text-muted-foreground">Workspace</div>
+          <nav className="space-y-1">
+            <a className="block px-3 py-2 rounded-md hover:bg-muted" href="#">Content</a>
+            <a className="block px-3 py-2 rounded-md hover:bg-muted" href="#">Campaigns</a>
+            <a className="block px-3 py-2 rounded-md hover:bg-muted" href="#">Analytics</a>
+          </nav>
+          <div className="pt-4 text-xs text-muted-foreground">Channels</div>
+          <nav className="space-y-1">
+            {mockChannels.map((c)=> (
+              <a key={c.id} className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted" href={`/admin/social?channel=${encodeURIComponent(c.id)}&view=${encodeURIComponent(selectedView)}&tab=${encodeURIComponent(selectedTab)}`}>
+                <span className={`w-2 h-2 rounded ${channelColors[c.id as keyof typeof channelColors]||'bg-gray-300'}`}></span>
+                <span className="text-sm">{c.name}</span>
+              </a>
+            ))}
+          </nav>
+        </div>
+      </aside>
+
+      {/* Center Planner */}
+      <div className="flex flex-col">
+        {/* Header matching reference (Month/Week/Today) */}
+        <div className="mx-4 mt-4 rounded-2xl border border-border/40 bg-white">
+          <div className="px-4 md:px-6 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <a href={`/admin/social?tab=${encodeURIComponent(selectedTab)}&view=month${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm ${selectedView==='month'?'bg-muted text-foreground font-medium':'hover:bg-muted'}`}>Month</a>
+              <a href={`/admin/social?tab=${encodeURIComponent(selectedTab)}&view=week${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm ${selectedView==='week'?'bg-muted text-foreground font-medium':'hover:bg-muted'}`}>Week</a>
+              <a href={`/admin/social?tab=${encodeURIComponent(selectedTab)}&view=calendar${selectedChannel?`&channel=${encodeURIComponent(selectedChannel)}`:''}`} className={`px-3 py-1.5 rounded-md text-sm ${selectedView==='calendar'?'bg-muted text-foreground font-medium':'hover:bg-muted'}`}>Today</a>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-muted-foreground">{currentMonth}</div>
+              <a href="/api/oauth/meta/authorize" className="px-3 py-1.5 rounded-md text-sm border border-border/40 hover:bg-muted">Connect Meta</a>
+            </div>
           </div>
         </div>
 
-        {/* Weekly Planner Grid */}
+        {/* Planner body */}
         <div className="flex-1 overflow-auto bg-muted">
-          <div className="px-6 py-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 mb-4" aria-label="Planner legend">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Status:</span>
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1 text-xs text-foreground"><span className="w-2 h-2 rounded-full bg-green-500"></span>Published</span>
-                  <span className="inline-flex items-center gap-1 text-xs text-foreground"><span className="w-2 h-2 rounded-full bg-orange-500"></span>Scheduled</span>
-                  <span className="inline-flex items-center gap-1 text-xs text-foreground"><span className="w-2 h-2 rounded-full bg-gray-400"></span>Draft</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Platforms:</span>
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1 text-xs text-foreground"><span className={`w-2 h-2 rounded ${platformColors.facebook}`}></span>Facebook</span>
-                  <span className="inline-flex items-center gap-1 text-xs text-foreground"><span className={`w-2 h-2 rounded ${platformColors.instagram}`}></span>Instagram</span>
-                  <span className="inline-flex items-center gap-1 text-xs text-foreground"><span className={`w-2 h-2 rounded ${platformColors.twitter}`}></span>Twitter</span>
-                  <span className="inline-flex items-center gap-1 text-xs text-foreground"><span className={`w-2 h-2 rounded ${platformColors.blog}`}></span>Blog</span>
-                  <span className="inline-flex items-center gap-1 text-xs text-foreground"><span className={`w-2 h-2 rounded ${platformColors.newsletter}`}></span>Newsletter</span>
-                </div>
-              </div>
-            </div>
+          <div className="px-4 md:px-6 py-4">
             {selectedView === 'list' ? (
               <div className="space-y-3">
                 <form method="GET" className="flex items-center gap-2">
@@ -557,12 +532,12 @@ export default async function AdminSocialPage({ searchParams }: { searchParams?:
       </div>
 
       {/* Right Panel - Quick Actions */}
-      <div className="w-80 bg-white border-l border-gray-100">
+      <aside className="bg-white border-l border-gray-100">
         <div className="p-4 border-b border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h3>
-          <SocialQuickCompose platformColors={platformColors as any} mockChannels={mockChannels} onSubmit={addPost} />
+          <h3 className="text-sm font-semibold text-gray-900 mb-3">Create Post</h3>
+          <SocialPreviewComposer mockChannels={mockChannels} onSubmit={addPost} />
         </div>
-      </div>
+      </aside>
     </div>
   )
 }
