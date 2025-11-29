@@ -1,20 +1,20 @@
 import { NextResponse } from "next/server"
-import path from "path"
-import { readFile } from "fs/promises"
+import { supabaseServer } from "@/lib/supabase-server"
 
-const filePath = path.join(process.cwd(), "data", "products.json")
+const filePath = ""
 
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url)
     const id = url.searchParams.get("id")
-    const raw = await readFile(filePath, "utf-8").catch(() => "[]")
-    const list = JSON.parse(raw || "[]")
     if (id) {
-      const item = Array.isArray(list) ? list.find((p: any) => p.id === id) : null
-      return NextResponse.json({ item })
+      const supabase = supabaseServer()
+      const { data: item } = await supabase.from("products").select("*").eq("id", id).single()
+      return NextResponse.json({ item: item || null })
     }
-    return NextResponse.json({ items: Array.isArray(list) ? list : [] })
+    const supabase = supabaseServer()
+    const { data: items } = await supabase.from("products").select("*").order("name")
+    return NextResponse.json({ items: items || [] })
   } catch (e: any) {
     return NextResponse.json({ error: e.message || "Failed" }, { status: 400 })
   }

@@ -1,7 +1,6 @@
 import { LazyImage } from "@/components/lazy-image"
 import Link from "next/link"
-import path from "path"
-import { readFile } from "fs/promises"
+import { supabaseServer } from "@/lib/supabase-server"
 
 type Post = {
   id: string
@@ -16,10 +15,8 @@ type Post = {
 }
 
 export default async function BlogPostPage({ params }: { params: { slug: string } }) {
-  const filePath = path.join(process.cwd(), "data", "blog.json")
-  const raw = await readFile(filePath, "utf-8")
-  const list = JSON.parse(raw) as Post[]
-  const post = Array.isArray(list) ? list.find((p) => p.id === params.slug) : null
+  const supabase = supabaseServer()
+  const { data: post } = await supabase.from("blog_posts").select("*").eq("id", params.slug).single()
 
   if (!post) {
     return (
@@ -48,7 +45,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
             <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
               {post.category || "Article"}
             </span>
-            <span className="text-sm text-muted-foreground">{post.readTime || ""}</span>
+            <span className="text-sm text-muted-foreground">{(post.readTime||post.read_time) || ""}</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">{post.title}</h1>
           <div className="flex items-center text-muted-foreground">

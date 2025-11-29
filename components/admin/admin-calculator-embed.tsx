@@ -96,7 +96,7 @@ export function AdminCalculatorEmbed(): JSX.Element {
   useEffect(() => {
     ;(async () => {
       try {
-        const res = await fetch("/data/calculator-pricing.json")
+        const res = await fetch("/api/pricing/get")
         const cfg = await res.json()
         if (cfg?.baseRates) setBaseRates(cfg.baseRates)
         if (cfg?.tierMultipliers) setTiers(cfg.tierMultipliers)
@@ -114,11 +114,11 @@ export function AdminCalculatorEmbed(): JSX.Element {
   useEffect(() => {
     ;(async () => {
       try {
-        const res = await fetch("/data/crm.json")
+        const res = await fetch("/api/crm/contacts")
         const db = await res.json().catch(() => ({}))
         const arrC = Array.isArray(db?.contacts) ? db.contacts : []
         const arrL = Array.isArray(db?.leads) ? db.leads : []
-        const merged = [...arrC, ...arrL.map((l:any)=>({ id: l.id, name: l.name, email: l.email, phone: l.phone, company: l.company, tags: Array.isArray(l.tags)?l.tags:["Lead"] }))]
+        const merged = [...arrC, ...arrL]
         setContactsAll(merged)
         setContacts(merged)
       } catch {}

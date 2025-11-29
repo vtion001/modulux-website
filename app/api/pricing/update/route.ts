@@ -1,9 +1,5 @@
-import path from "path"
-import { readFile, writeFile, mkdir } from "fs/promises"
 import { NextResponse } from "next/server"
-
-const filePath = path.join(process.cwd(), "data", "calculator-pricing.json")
-const versionsPath = path.join(process.cwd(), "data", "calculator-pricing.versions.json")
+import { supabaseServer } from "@/lib/supabase-server"
 
 export async function POST(req: Request) {
   try {
@@ -18,12 +14,9 @@ export async function POST(req: Request) {
       },
       cabinetTypeMultipliers: body.cabinetTypeMultipliers || { luxury: 1, premium: 0.9, basic: 0.8 },
     }
-    await mkdir(path.join(process.cwd(), "data"), { recursive: true })
-    await writeFile(filePath, JSON.stringify(next, null, 2))
-    const existing = await readFile(versionsPath, "utf-8").catch(() => "[]")
-    const arr = JSON.parse(existing || "[]")
-    arr.push({ ts: Date.now(), data: next })
-    await writeFile(versionsPath, JSON.stringify(arr, null, 2))
+    const supabase = supabaseServer()
+    await supabase.from("calculator_pricing").upsert({ id: "current", data: next, updated_at: new Date().toISOString() }, { onConflict: "id" })
+    await supabase.from("calculator_pricing_versions").insert({ ts: Date.now(), data: next })
     return NextResponse.json({ ok: true, data: next })
   } catch (e) {
     return NextResponse.json({ ok: false, error: "Invalid payload" }, { status: 400 })

@@ -1,15 +1,11 @@
-import path from "path"
-import { readFile } from "fs/promises"
+import { supabaseServer } from "@/lib/supabase-server"
 import Link from "next/link"
 import ProductsGrid from "@/components/products/products-grid"
 import { Button } from "@/components/ui/button"
  
-
-const filePath = path.join(process.cwd(), "data", "products.json")
-
 export default async function ProductsPage() {
-  const raw = await readFile(filePath, "utf-8").catch(() => "[]")
-  const items = JSON.parse(raw) as Array<{ id: string; name: string; category?: string; image?: string }>
+  const supabase = supabaseServer()
+  const { data: items } = await supabase.from("products").select("id,name,category,image").order("name")
   const fallback = [
     { id: "kitchen-cabinets", name: "Kitchen Cabinets", category: "Kitchen", image: "/modern-luxury-kitchen-with-emerald-green-modular-c.png" },
     { id: "wardrobes", name: "Wardrobes", category: "Wardrobes", image: "/luxury-bedroom-with-emerald-green-modular-wardrobe.png" },
@@ -17,7 +13,7 @@ export default async function ProductsPage() {
     { id: "walk-in-closets", name: "Walk-in Closets", category: "Closets", image: "/luxury-home-office-with-emerald-green-modular-cabi.png" },
     { id: "bespoke-furniture", name: "Bespoke Furniture", category: "Furniture", image: "/elegant-living-room-with-built-in-emerald-green-mo.png" },
   ]
-  const products = items.length ? items : fallback
+  const products = (items && items.length) ? items : fallback
 
  
 
