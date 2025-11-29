@@ -1,12 +1,14 @@
-import path from "path"
-import { readFile } from "fs/promises"
+import { supabaseServer } from "@/lib/supabase-server"
 import { InquiriesFilter } from "@/components/admin/inquiries-filter"
 
-const filePath = path.join(process.cwd(), "data", "inquiries.json")
 
 export default async function AdminInquiriesPage() {
-  const raw = await readFile(filePath, "utf-8").catch(() => "[]")
-  const list = JSON.parse(raw) as Array<{ id: string; name: string; email: string; phone: string; message: string; attachments: any[]; date: string }>
+  const supabase = supabaseServer()
+  const { data: listRaw } = await supabase
+    .from("inquiries")
+    .select("id,name,email,phone,message,attachments,date")
+    .order("date", { ascending: false })
+  const list = (listRaw || []) as Array<{ id: string; name: string; email: string; phone: string; message: string; attachments: any[]; date: string }>
   return (
     <div className="max-w-6xl mx-auto px-4 space-y-8">
       <div className="relative isolate overflow-hidden rounded-2xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground animate-in fade-in slide-in-from-top-1 duration-300">

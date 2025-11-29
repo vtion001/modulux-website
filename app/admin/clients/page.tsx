@@ -1,10 +1,7 @@
-import path from "path"
-import { readFile, writeFile, mkdir } from "fs/promises"
 import { revalidatePath } from "next/cache"
 import { SaveForm, SubmitButton } from "@/components/admin/save-form"
 import { SelectOnFocusInput } from "@/components/select-on-focus"
-
-const clientsPath = path.join(process.cwd(), "data", "clients.json")
+import { supabaseServer } from "@/lib/supabase-server"
 
 async function addClient(prev: any, formData: FormData) {
   "use server"
@@ -17,13 +14,8 @@ async function addClient(prev: any, formData: FormData) {
   const status = String(formData.get("status") || "New").trim()
   const score = Number(formData.get("score") || 1.0)
   const amount = Number(formData.get("amount") || 0)
-  await mkdir(path.join(process.cwd(), "data"), { recursive: true })
-  const raw = await readFile(clientsPath, "utf-8").catch(() => "{}")
-  const db = JSON.parse(raw || "{}") as any
-  const list = db.list || []
-  const id = `client_${Date.now()}`
-  list.unshift({ id, name, caseNo, carrier, dfa, source, service, status, score, amount })
-  await writeFile(clientsPath, JSON.stringify({ list }, null, 2))
+  const supabase = supabaseServer()
+  await supabase.from("clients").insert({ name, case_no: caseNo, carrier, dfa: dfa || null, source, service, status, score, amount })
   revalidatePath("/admin/clients")
   return { ok: true }
 }
@@ -32,18 +24,16 @@ async function updateClientStatus(prev: any, formData: FormData) {
   "use server"
   const id = String(formData.get("id") || "")
   const status = String(formData.get("status") || "New")
-  const raw = await readFile(clientsPath, "utf-8").catch(() => "{}")
-  const db = JSON.parse(raw || "{}") as any
-  const list = (db.list || []).map((c: any) => (c.id === id ? { ...c, status } : c))
-  await writeFile(clientsPath, JSON.stringify({ list }, null, 2))
+  const supabase = supabaseServer()
+  await supabase.from("clients").update({ status }).eq("id", id)
   revalidatePath("/admin/clients")
   return { ok: true }
 }
 
 export default async function AdminClientsPage() {
-  const raw = await readFile(clientsPath, "utf-8").catch(() => "{}")
-  const db = JSON.parse(raw || "{}") as any
-  const list = (db.list || []) as any[]
+  const supabase = supabaseServer()
+  const { data: listRaw } = await supabase.from("clients").select("*").order("created_at", { ascending: false })
+  const list = listRaw || []
   const tabs = ["All Clients", "New", "Ongoing", "Payment Back", "Closed"]
   const counts: Record<string, number> = {
     "All Clients": list.length,

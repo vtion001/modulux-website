@@ -1,13 +1,14 @@
 import path from "path"
-import { readFile, writeFile, mkdir } from "fs/promises"
+import { writeFile, mkdir } from "fs/promises"
 import { revalidatePath } from "next/cache"
 import { SaveForm, SubmitButton } from "@/components/admin/save-form"
 import { BlogAiTools } from "@/components/admin/blog-ai-tools"
 import { SelectOnFocusInput, SelectOnFocusTextarea } from "@/components/select-on-focus"
 import Link from "next/link"
 import { ToastOnParam } from "@/components/admin/toast-on-param"
+import { supabaseServer } from "@/lib/supabase-server"
 
-const filePath = path.join(process.cwd(), "data", "projects.json")
+const uploadsDir = path.join(process.cwd(), "public", "uploads")
 
 async function updateProject(prevState: any, formData: FormData) {
   "use server"
@@ -24,13 +25,11 @@ async function updateProject(prevState: any, formData: FormData) {
     .filter(Boolean) as string[]
   const services = String(formData.get("services") || "").split(",").map((s) => s.trim()).filter(Boolean)
   if (!id || !title) return
-  const raw = await readFile(filePath, "utf-8")
-  const list = JSON.parse(raw)
-  const idx = list.findIndex((p: any) => p.id === id)
-  if (idx === -1) return
+  const supabase = supabaseServer()
+  const { data: curr } = await supabase.from("projects").select("*").eq("id", id).single()
+  if (!curr) return
   const file = formData.get("imageFile") as File | null
   if (file && typeof file === "object" && file.size > 0) {
-    const uploadsDir = path.join(process.cwd(), "public", "uploads")
     await mkdir(uploadsDir, { recursive: true })
     const ext = file.name.includes(".") ? file.name.substring(file.name.lastIndexOf(".")) : ""
     const name = `${id}-${Date.now()}${ext}`
@@ -41,8 +40,7 @@ async function updateProject(prevState: any, formData: FormData) {
     images.unshift(image)
   }
   if (!image && images.length) image = images[0]
-  list[idx] = { id, title, location, year, type, description, image, images, services }
-  await writeFile(filePath, JSON.stringify(list, null, 2))
+  await supabase.from("projects").update({ title, location, year, type, description, image, images, services }).eq("id", id)
   revalidatePath("/admin/projects")
   revalidatePath("/projects")
   revalidatePath("/")
@@ -50,9 +48,8 @@ async function updateProject(prevState: any, formData: FormData) {
 }
 
 export default async function AdminProjectEditPage({ params }: { params: { id: string } }) {
-  const raw = await readFile(filePath, "utf-8")
-  const list = JSON.parse(raw) as any[]
-  const project = list.find((p) => p.id === params.id)
+  const supabase = supabaseServer()
+  const { data: project } = await supabase.from("projects").select("*").eq("id", params.id).single()
   return (
     <div className="max-w-3xl">
       

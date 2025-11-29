@@ -1,14 +1,12 @@
-import path from "path"
 import { revalidatePath } from "next/cache"
-import { readFile, writeFile } from "fs/promises"
 import { Calendar, Pencil, Trash2, Search, Plus, Wand2, Image as ImageIcon } from "lucide-react"
 import Link from "next/link"
 import { BlogAiTools } from "@/components/admin/blog-ai-tools"
 import { SaveForm } from "@/components/admin/save-form"
 import { SelectOnFocusInput, SelectOnFocusTextarea } from "@/components/select-on-focus"
 import { AddModal } from "@/components/admin/add-modal"
+import { supabaseServer } from "@/lib/supabase-server"
 
-const filePath = path.join(process.cwd(), "data", "blog.json")
 
 async function addPost(formData: FormData) {
   "use server"
@@ -22,10 +20,8 @@ async function addPost(formData: FormData) {
   const readTime = String(formData.get("readTime") || "").trim()
   const category = String(formData.get("category") || "").trim()
   if (!id || !title) return
-  const raw = await readFile(filePath, "utf-8")
-  const list = JSON.parse(raw)
-  if (list.find((p: any) => p.id === id)) return
-  list.unshift({
+  const supabase = supabaseServer()
+  await supabase.from("blog_posts").upsert({
     id,
     title,
     excerpt,
@@ -33,10 +29,9 @@ async function addPost(formData: FormData) {
     image,
     author,
     date: date || new Date().toISOString(),
-    readTime,
+    read_time: readTime,
     category,
-  })
-  await writeFile(filePath, JSON.stringify(list, null, 2))
+  }, { onConflict: "id" })
   revalidatePath("/admin/blog")
   revalidatePath("/blog")
 }
@@ -45,17 +40,16 @@ async function deletePost(formData: FormData) {
   "use server"
   const id = String(formData.get("id") || "").trim()
   if (!id) return
-  const raw = await readFile(filePath, "utf-8")
-  const list = JSON.parse(raw)
-  const next = list.filter((p: any) => p.id !== id)
-  await writeFile(filePath, JSON.stringify(next, null, 2))
+  const supabase = supabaseServer()
+  await supabase.from("blog_posts").delete().eq("id", id)
   revalidatePath("/admin/blog")
   revalidatePath("/blog")
 }
 
 export default async function AdminBlogPage() {
-  const raw = await readFile(filePath, "utf-8")
-  const posts = JSON.parse(raw) as any[]
+  const supabase = supabaseServer()
+  const { data: postsRaw } = await supabase.from("blog_posts").select("*").order("date", { ascending: false })
+  const posts = postsRaw || []
   return (
     <div className="max-w-4xl mx-auto px-4">
         <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">

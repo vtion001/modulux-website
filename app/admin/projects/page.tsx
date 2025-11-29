@@ -1,14 +1,15 @@
 import path from "path"
 import { revalidatePath } from "next/cache"
-import { readFile, writeFile, mkdir } from "fs/promises"
+import { writeFile, mkdir } from "fs/promises"
 import { MapPin, Calendar, Plus, Search, Trash2, Pencil } from "lucide-react"
 import Link from "next/link"
 import { SelectOnFocusInput, SelectOnFocusTextarea } from "@/components/select-on-focus"
 import { BlogAiTools } from "@/components/admin/blog-ai-tools"
 import { AddModal } from "@/components/admin/add-modal"
 import { SaveForm } from "@/components/admin/save-form"
+import { supabaseServer } from "@/lib/supabase-server"
 
-const filePath = path.join(process.cwd(), "data", "projects.json")
+const uploadsDir = path.join(process.cwd(), "public", "uploads")
 
 async function addProject(formData: FormData) {
   "use server"
@@ -48,12 +49,11 @@ async function addProject(formData: FormData) {
     .filter(Boolean) as string[]
   const services = String(formData.get("services") || "").split(",").map((s) => s.trim()).filter(Boolean)
   if (!id || !title) return
-  const raw = await readFile(filePath, "utf-8")
-  const list = JSON.parse(raw)
-  if (list.find((p: any) => p.id === id)) return
+  const supabase = supabaseServer()
+  const { data: exists } = await supabase.from("projects").select("id").eq("id", id)
+  if ((exists || []).length) return
   const file = formData.get("imageFile") as File | null
   if (file && typeof file === "object" && file.size > 0) {
-    const uploadsDir = path.join(process.cwd(), "public", "uploads")
     await mkdir(uploadsDir, { recursive: true })
     const ext = file.name.includes(".") ? file.name.substring(file.name.lastIndexOf(".")) : ""
     const name = `${id}-${Date.now()}${ext}`
@@ -64,8 +64,7 @@ async function addProject(formData: FormData) {
     images.unshift(image)
   }
   image = sanitize(image) || (images.length ? images[0] : "")
-  list.unshift({ id, title, location, year, type, description, image, images, services })
-  await writeFile(filePath, JSON.stringify(list, null, 2))
+  await supabase.from("projects").insert({ id, title, location, year, type, description, image, images, services })
   revalidatePath("/admin/projects")
   revalidatePath("/projects")
   revalidatePath("/")
@@ -75,18 +74,17 @@ async function deleteProject(formData: FormData) {
   "use server"
   const id = String(formData.get("id") || "").trim()
   if (!id) return
-  const raw = await readFile(filePath, "utf-8")
-  const list = JSON.parse(raw)
-  const next = list.filter((p: any) => p.id !== id)
-  await writeFile(filePath, JSON.stringify(next, null, 2))
+  const supabase = supabaseServer()
+  await supabase.from("projects").delete().eq("id", id)
   revalidatePath("/admin/projects")
   revalidatePath("/projects")
   revalidatePath("/")
 }
 
 export default async function AdminProjectsPage() {
-  const raw = await readFile(filePath, "utf-8")
-  const projects = JSON.parse(raw) as any[]
+  const supabase = supabaseServer()
+  const { data: projectsRaw } = await supabase.from("projects").select("*").order("year", { ascending: false })
+  const projects = projectsRaw || []
   return (
     <div className="max-w-4xl mx-auto px-4">
         <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">

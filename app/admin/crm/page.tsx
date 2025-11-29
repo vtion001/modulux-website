@@ -1,10 +1,8 @@
-import path from "path"
-import { readFile, writeFile, mkdir } from "fs/promises"
 import { revalidatePath } from "next/cache"
 import { SaveForm, SubmitButton } from "@/components/admin/save-form"
 import { SelectOnFocusInput, SelectOnFocusTextarea } from "@/components/select-on-focus"
+import { supabaseServer } from "@/lib/supabase-server"
 
-const crmPath = path.join(process.cwd(), "data", "crm.json")
 
 async function addLead(prev: any, formData: FormData) {
   "use server"
@@ -16,14 +14,8 @@ async function addLead(prev: any, formData: FormData) {
   const source = String(formData.get("source") || "Inbound").trim()
   const notes = String(formData.get("notes") || "").trim()
   if (!name && !email) return { ok: false, error: "Name or email required" }
-  await mkdir(path.join(process.cwd(), "data"), { recursive: true })
-  const raw = await readFile(crmPath, "utf-8").catch(() => "{}")
-  const db = JSON.parse(raw || "{}") as any
-  const leads = db.leads || []
-  const id = `lead_${Date.now()}`
-  leads.unshift({ id, name, email, phone, company, source, status: "New", notes, created_at: Date.now() })
-  const next = { ...db, leads }
-  await writeFile(crmPath, JSON.stringify(next, null, 2))
+  const supabase = supabaseServer()
+  await supabase.from("leads").insert({ name, email, phone, company, source, status: "New", notes })
   revalidatePath("/admin/crm")
   return { ok: true }
 }
@@ -38,14 +30,8 @@ async function addDeal(prev: any, formData: FormData) {
   const dueDate = String(formData.get("due_date") || "").trim()
   if (!title || !contactId) return { ok: false, error: "Title and contact ID required" }
   const safeValue = Number.isFinite(value) && value >= 0 ? value : 0
-  await mkdir(path.join(process.cwd(), "data"), { recursive: true })
-  const raw = await readFile(crmPath, "utf-8").catch(() => "{}")
-  const db = JSON.parse(raw || "{}") as any
-  const deals = db.deals || []
-  const id = `deal_${Date.now()}`
-  deals.unshift({ id, title, contactId, value: safeValue, stage: "New", nextActivity, dueDate, created_at: Date.now() })
-  const next = { ...db, deals }
-  await writeFile(crmPath, JSON.stringify(next, null, 2))
+  const supabase = supabaseServer()
+  await supabase.from("deals").insert({ title, contact_id: contactId || null, value: safeValue, stage: "New", next_activity: nextActivity || null, due_date: dueDate || null })
   revalidatePath("/admin/crm")
   return { ok: true }
 }
@@ -60,14 +46,8 @@ async function addContact(prev: any, formData: FormData) {
   const tagsStr = String(formData.get("c_tags") || "").trim()
   const tags = tagsStr ? tagsStr.split(",").map((t) => t.trim()).filter(Boolean) : []
   if (!name && !email) return { ok: false, error: "Name or email required" }
-  await mkdir(path.join(process.cwd(), "data"), { recursive: true })
-  const raw = await readFile(crmPath, "utf-8").catch(() => "{}")
-  const db = JSON.parse(raw || "{}") as any
-  const contacts = db.contacts || []
-  const id = `contact_${Date.now()}`
-  contacts.unshift({ id, name, email, phone, company, tags, created_at: Date.now() })
-  const next = { ...db, contacts }
-  await writeFile(crmPath, JSON.stringify(next, null, 2))
+  const supabase = supabaseServer()
+  await supabase.from("contacts").insert({ name, email, phone, company, tags })
   revalidatePath("/admin/crm")
   return { ok: true }
 }
@@ -77,10 +57,8 @@ async function updateLeadStatus(prev: any, formData: FormData) {
   if (!formData || typeof (formData as any).get !== "function") return { ok: false }
   const id = String(formData.get("id") || "")
   const status = String(formData.get("status") || "New")
-  const raw = await readFile(crmPath, "utf-8").catch(() => "{}")
-  const db = JSON.parse(raw || "{}") as any
-  const leads = (db.leads || []).map((l: any) => (l.id === id ? { ...l, status } : l))
-  await writeFile(crmPath, JSON.stringify({ ...db, leads }, null, 2))
+  const supabase = supabaseServer()
+  await supabase.from("leads").update({ status }).eq("id", id)
   revalidatePath("/admin/crm")
   return { ok: true }
 }
@@ -90,20 +68,20 @@ async function updateDealStage(prev: any, formData: FormData) {
   if (!formData || typeof (formData as any).get !== "function") return { ok: false }
   const id = String(formData.get("id") || "")
   const stage = String(formData.get("stage") || "New")
-  const raw = await readFile(crmPath, "utf-8").catch(() => "{}")
-  const db = JSON.parse(raw || "{}") as any
-  const deals = (db.deals || []).map((d: any) => (d.id === id ? { ...d, stage } : d))
-  await writeFile(crmPath, JSON.stringify({ ...db, deals }, null, 2))
+  const supabase = supabaseServer()
+  await supabase.from("deals").update({ stage }).eq("id", id)
   revalidatePath("/admin/crm")
   return { ok: true }
 }
 
 export default async function AdminCRMPage() {
-  const raw = await readFile(crmPath, "utf-8").catch(() => "{}")
-  const db = JSON.parse(raw || "{}") as any
-  const leads = (db.leads || []) as any[]
-  const deals = (db.deals || []) as any[]
-  const contacts = (db.contacts || []) as any[]
+  const supabase = supabaseServer()
+  const { data: leadsRaw } = await supabase.from("leads").select("*").order("created_at", { ascending: false })
+  const { data: dealsRaw } = await supabase.from("deals").select("*").order("created_at", { ascending: false })
+  const { data: contactsRaw } = await supabase.from("contacts").select("*").order("created_at", { ascending: false })
+  const leads = leadsRaw || []
+  const deals = dealsRaw || []
+  const contacts = contactsRaw || []
   const stages = ["New", "Qualified", "Proposal", "Won", "Lost"]
   return (
     <div className="flex min-h-screen bg-gradient-to-b from-white to-gray-50">

@@ -1,13 +1,10 @@
-import path from "path"
 import { revalidatePath } from "next/cache"
-import { readFile, writeFile } from "fs/promises"
 import { Pencil, Trash2, Search, Plus, Sparkles } from "lucide-react"
 import { SelectOnFocusInput } from "@/components/select-on-focus"
 import Link from "next/link"
 import { AddModal } from "@/components/admin/add-modal"
 import { SaveForm } from "@/components/admin/save-form"
-
-const filePath = path.join(process.cwd(), "data", "products.json")
+import { supabaseServer } from "@/lib/supabase-server"
 
 const defaults = [
   { id: "kitchen-cabinets", name: "Kitchen Cabinets", category: "Kitchen", image: "/modern-luxury-kitchen-with-emerald-green-modular-c.png" },
@@ -19,15 +16,11 @@ const defaults = [
 
 async function seedDefaults() {
   "use server"
-  const raw = await readFile(filePath, "utf-8").catch(() => "[]")
-  let list = [] as any[]
-  try { list = JSON.parse(raw || "[]") } catch {}
-  const byId = new Map(list.map((p) => [p.id, p]))
-  const merged = [...list]
-  for (const d of defaults) {
-    if (!byId.has(d.id)) merged.push({ ...d })
-  }
-  await writeFile(filePath, JSON.stringify(merged, null, 2))
+  const supabase = supabaseServer()
+  const { data } = await supabase.from("products").select("id")
+  const set = new Set((data || []).map((x: any) => x.id))
+  const missing = defaults.filter((d) => !set.has(d.id))
+  if (missing.length) await supabase.from("products").upsert(missing, { onConflict: "id" })
   revalidatePath("/admin/products")
   revalidatePath("/products")
 }
@@ -39,11 +32,8 @@ async function addProduct(formData: FormData) {
   const category = String(formData.get("category") || "").trim()
   const image = String(formData.get("image") || "").trim()
   if (!id || !name) return
-  const raw = await readFile(filePath, "utf-8")
-  const list = JSON.parse(raw)
-  if (list.find((p: any) => p.id === id)) return
-  list.unshift({ id, name, category, image })
-  await writeFile(filePath, JSON.stringify(list, null, 2))
+  const supabase = supabaseServer()
+  await supabase.from("products").upsert({ id, name, category, image }, { onConflict: "id" })
   revalidatePath("/admin/products")
   revalidatePath("/products")
 }
@@ -52,17 +42,16 @@ async function deleteProduct(formData: FormData) {
   "use server"
   const id = String(formData.get("id") || "").trim()
   if (!id) return
-  const raw = await readFile(filePath, "utf-8")
-  const list = JSON.parse(raw)
-  const next = list.filter((p: any) => p.id !== id)
-  await writeFile(filePath, JSON.stringify(next, null, 2))
+  const supabase = supabaseServer()
+  await supabase.from("products").delete().eq("id", id)
   revalidatePath("/admin/products")
   revalidatePath("/products")
 }
 
 export default async function AdminProductsPage() {
-  const raw = await readFile(filePath, "utf-8")
-  const items = JSON.parse(raw) as any[]
+  const supabase = supabaseServer()
+  const { data: itemsRaw } = await supabase.from("products").select("*").order("name")
+  const items = itemsRaw || []
   return (
     <div className="max-w-4xl mx-auto px-4">
         <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">

@@ -1,5 +1,3 @@
-import path from "path"
-import { readFile, writeFile } from "fs/promises"
 import { revalidatePath } from "next/cache"
 import { SaveForm, SubmitButton } from "@/components/admin/save-form"
 import { SelectOnFocusInput, SelectOnFocusTextarea } from "@/components/select-on-focus"
@@ -9,8 +7,9 @@ import { ChevronLeft, ChevronRight, Settings } from "lucide-react"
 import ListBulk from "@/components/admin/list-bulk"
 import WeekDnd from "@/components/admin/week-dnd"
 import MonthDnd from "@/components/admin/month-dnd"
+import { supabaseServer } from "@/lib/supabase-server"
 
-const postsPath = path.join(process.cwd(), "data", "social.json")
+const postsPath = ""
 //
 
 // Helper function to get week dates
@@ -250,9 +249,7 @@ async function addPost(prev: any, formData: FormData) {
   const link_url = String(formData.get("link_url") || "").trim()
   
   if (!content || platforms.length === 0) return { ok: false }
-  
-  const raw = await readFile(postsPath, "utf-8").catch(() => "[]")
-  const list = JSON.parse(raw || "[]")
+  const supabase = supabaseServer()
   const post = { 
     id: `sp_${Date.now()}`, 
     content, 
@@ -260,13 +257,12 @@ async function addPost(prev: any, formData: FormData) {
     schedule, 
     channel,
     status: schedule ? "scheduled" : "draft", 
-    created_at: Date.now(),
+    created_at: new Date().toISOString(),
     time: schedule ? new Date(schedule).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : "",
     media_url,
     link_url
   }
-  list.unshift(post)
-  await writeFile(postsPath, JSON.stringify(list, null, 2))
+  await supabase.from("social_posts").insert(post)
   revalidatePath("/admin/social")
   return { ok: true }
 }
@@ -286,14 +282,9 @@ async function reschedulePost(prev: any, formData: FormData) {
   const id = String(formData.get("id") || "").trim()
   const schedule = String(formData.get("schedule") || "").trim()
   if (!id || !schedule) return { ok: false }
-  const raw = await readFile(postsPath, "utf-8").catch(() => "[]")
-  const list = JSON.parse(raw || "[]")
-  const next = list.map((p: any) => {
-    if (String(p.id) !== id) return p
-    const time = new Date(schedule).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-    return { ...p, schedule, status: "scheduled", time }
-  })
-  await writeFile(postsPath, JSON.stringify(next, null, 2))
+  const supabase = supabaseServer()
+  const time = new Date(schedule).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+  await supabase.from("social_posts").update({ schedule, status: "scheduled", time }).eq("id", id)
   revalidatePath("/admin/social")
   return { ok: true }
 }
@@ -303,14 +294,9 @@ async function bulkReschedule(prev: any, formData: FormData) {
   const schedule = String(formData.get("schedule") || "").trim()
   const ids = formData.getAll("ids").map((v)=>String(v||"")).filter(Boolean)
   if (!schedule || ids.length === 0) return { ok: false }
-  const raw = await readFile(postsPath, "utf-8").catch(() => "[]")
-  const list = JSON.parse(raw || "[]")
-  const next = list.map((p: any) => {
-    if (!ids.includes(String(p.id))) return p
-    const time = new Date(schedule).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-    return { ...p, schedule, status: "scheduled", time }
-  })
-  await writeFile(postsPath, JSON.stringify(next, null, 2))
+  const supabase = supabaseServer()
+  const time = new Date(schedule).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+  await supabase.from("social_posts").update({ schedule, status: "scheduled", time }).in("id", ids)
   revalidatePath("/admin/social")
   return { ok: true }
 }
@@ -319,17 +305,16 @@ async function deletePosts(prev: any, formData: FormData) {
   "use server"
   const ids = formData.getAll("ids").map((v)=>String(v||"")).filter(Boolean)
   if (ids.length === 0) return { ok: false }
-  const raw = await readFile(postsPath, "utf-8").catch(() => "[]")
-  const list = JSON.parse(raw || "[]")
-  const next = list.filter((p: any) => !ids.includes(String(p.id)))
-  await writeFile(postsPath, JSON.stringify(next, null, 2))
+  const supabase = supabaseServer()
+  await supabase.from("social_posts").delete().in("id", ids)
   revalidatePath("/admin/social")
   return { ok: true }
 }
 
 export default async function AdminSocialPage({ searchParams }: { searchParams?: Record<string, string> }) {
-  const postsRaw = await readFile(postsPath, "utf-8").catch(() => "[]")
-  const list = JSON.parse(postsRaw || "[]") as any[]
+  const supabase = supabaseServer()
+  const { data: listRaw } = await supabase.from("social_posts").select("*").order("created_at", { ascending: false })
+  const list = (listRaw || []) as any[]
   const providers = {}
 
   const weekDates = getWeekDates()

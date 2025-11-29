@@ -1,11 +1,8 @@
-import path from "path"
-import { readFile, writeFile } from "fs/promises"
 import { revalidatePath } from "next/cache"
 import Link from "next/link"
 import { SaveForm, SubmitButton } from "@/components/admin/save-form"
 import { SelectOnFocusInput, SelectOnFocusTextarea } from "@/components/select-on-focus"
-
-const filePath = path.join(process.cwd(), "data", "products.json")
+import { supabaseServer } from "@/lib/supabase-server"
 
 async function updateProduct(prevState: any, formData: FormData) {
   "use server"
@@ -25,12 +22,8 @@ async function updateProduct(prevState: any, formData: FormData) {
     warranty: String(formData.get("warranty") || "").trim(),
   }
   if (!id || !name) return { ok: false }
-  const raw = await readFile(filePath, "utf-8")
-  const list = JSON.parse(raw)
-  const idx = list.findIndex((p: any) => p.id === id)
-  if (idx === -1) return { ok: false }
-  list[idx] = { id, name, category, image, description, features, specs, gallery }
-  await writeFile(filePath, JSON.stringify(list, null, 2))
+  const supabase = supabaseServer()
+  await supabase.from("products").update({ name, category, image, description, features, specs, gallery }).eq("id", id)
   revalidatePath("/admin/products")
   revalidatePath("/products")
   revalidatePath(`/products/${id}`)
@@ -38,9 +31,9 @@ async function updateProduct(prevState: any, formData: FormData) {
 }
 
 export default async function AdminProductEditPage({ params }: { params: { id: string } }) {
-  const raw = await readFile(filePath, "utf-8")
-  const list = JSON.parse(raw) as any[]
-  const product = list.find((p) => p.id === params.id)
+  const supabase = supabaseServer()
+  const { data } = await supabase.from("products").select("*").eq("id", params.id).single()
+  const product = data as any
   return (
     <div className="max-w-3xl">
       <div className="mb-6 flex items-center justify-between">

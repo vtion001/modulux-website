@@ -1,9 +1,8 @@
-import path from "path"
-import { readFile, writeFile } from "fs/promises"
 import { revalidatePath } from "next/cache"
 import { SaveForm } from "@/components/admin/save-form"
+import { supabaseServer } from "@/lib/supabase-server"
 
-const filePath = path.join(process.cwd(), "data", "fabricators.json")
+const filePath = ""
 
 async function addFabricator(formData: FormData) {
   "use server"
@@ -14,12 +13,9 @@ async function addFabricator(formData: FormData) {
   const assembly = Number(formData.get("assembly") || 0)
   const install = Number(formData.get("install") || 0)
   if (!id || !name) return
-  const raw = await readFile(filePath, "utf-8").catch(() => "[]")
-  const list = JSON.parse(raw || "[]")
-  if (list.find((f: any) => f.id === id)) return
+  const supabase = supabaseServer()
   const item = { id, name, rates: { board_cut, edge_band, assembly, install }, history: [{ ts: Date.now(), rates: { board_cut, edge_band, assembly, install } }] }
-  list.unshift(item)
-  await writeFile(filePath, JSON.stringify(list, null, 2))
+  await supabase.from("fabricators").upsert(item, { onConflict: "id" })
   revalidatePath("/admin/fabricators")
 }
 
@@ -27,16 +23,15 @@ async function deleteFabricator(formData: FormData) {
   "use server"
   const id = String(formData.get("id") || "").trim()
   if (!id) return
-  const raw = await readFile(filePath, "utf-8").catch(() => "[]")
-  const list = JSON.parse(raw || "[]")
-  const next = list.filter((f: any) => f.id !== id)
-  await writeFile(filePath, JSON.stringify(next, null, 2))
+  const supabase = supabaseServer()
+  await supabase.from("fabricators").delete().eq("id", id)
   revalidatePath("/admin/fabricators")
 }
 
 export default async function AdminFabricatorsPage() {
-  const raw = await readFile(filePath, "utf-8").catch(() => "[]")
-  const list = JSON.parse(raw || "[]") as any[]
+  const supabase = supabaseServer()
+  const { data: listRaw } = await supabase.from("fabricators").select("*").order("name")
+  const list = listRaw || []
   return (
     <div className="max-w-6xl mx-auto px-4 space-y-8">
       <div className="relative isolate overflow-hidden rounded-2xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground animate-in fade-in slide-in-from-top-1 duration-300">

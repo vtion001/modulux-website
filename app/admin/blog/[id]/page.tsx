@@ -1,12 +1,10 @@
-import path from "path"
-import { readFile, writeFile } from "fs/promises"
 import { revalidatePath } from "next/cache"
 import Link from "next/link"
 import { SaveForm, SubmitButton } from "@/components/admin/save-form"
 import { BlogAiTools } from "@/components/admin/blog-ai-tools"
 import { SelectOnFocusInput, SelectOnFocusTextarea } from "@/components/select-on-focus"
+import { supabaseServer } from "@/lib/supabase-server"
 
-const filePath = path.join(process.cwd(), "data", "blog.json")
 
 async function updatePost(prevState: any, formData: FormData) {
   "use server"
@@ -20,21 +18,16 @@ async function updatePost(prevState: any, formData: FormData) {
   const readTime = String(formData.get("readTime") || "").trim()
   const category = String(formData.get("category") || "").trim()
   if (!id || !title) return { ok: false }
-  const raw = await readFile(filePath, "utf-8")
-  const list = JSON.parse(raw)
-  const idx = list.findIndex((p: any) => p.id === id)
-  if (idx === -1) return { ok: false }
-  list[idx] = { id, title, excerpt, description, image, author, date, readTime, category }
-  await writeFile(filePath, JSON.stringify(list, null, 2))
+  const supabase = supabaseServer()
+  await supabase.from("blog_posts").update({ title, excerpt, description, image, author, date, read_time: readTime, category }).eq("id", id)
   revalidatePath("/admin/blog")
   revalidatePath("/blog")
   return { ok: true, message: "Post updated" }
 }
 
 export default async function AdminBlogEditPage({ params }: { params: { id: string } }) {
-  const raw = await readFile(filePath, "utf-8")
-  const list = JSON.parse(raw) as any[]
-  const post = list.find((p) => p.id === params.id)
+  const supabase = supabaseServer()
+  const { data: post } = await supabase.from("blog_posts").select("*").eq("id", params.id).single()
   return (
     <div className="max-w-3xl">
       <div className="mb-6 flex items-center justify-between">

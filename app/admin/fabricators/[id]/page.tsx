@@ -1,9 +1,7 @@
-import path from "path"
-import { readFile, writeFile } from "fs/promises"
 import { revalidatePath } from "next/cache"
 import { SaveForm } from "@/components/admin/save-form"
+import { supabaseServer } from "@/lib/supabase-server"
 
-const filePath = path.join(process.cwd(), "data", "fabricators.json")
 
 async function saveFabricator(formData: FormData) {
   "use server"
@@ -13,21 +11,18 @@ async function saveFabricator(formData: FormData) {
   const edge_band = Number(formData.get("edge_band") || 0)
   const assembly = Number(formData.get("assembly") || 0)
   const install = Number(formData.get("install") || 0)
-  const raw = await readFile(filePath, "utf-8").catch(() => "[]")
-  const list = JSON.parse(raw || "[]")
-  const idx = list.findIndex((f: any) => f.id === id)
-  if (idx === -1) return
-  const prev = list[idx]
-  list[idx] = { id, name, rates: { board_cut, edge_band, assembly, install }, history: Array.isArray(prev.history) ? [...prev.history, { ts: Date.now(), rates: { board_cut, edge_band, assembly, install } }] : [{ ts: Date.now(), rates: { board_cut, edge_band, assembly, install } }] }
-  await writeFile(filePath, JSON.stringify(list, null, 2))
+  const supabase = supabaseServer()
+  const { data: prev } = await supabase.from("fabricators").select("*").eq("id", id).single()
+  if (!prev) return
+  const history = Array.isArray(prev.history) ? [...prev.history, { ts: Date.now(), rates: { board_cut, edge_band, assembly, install } }] : [{ ts: Date.now(), rates: { board_cut, edge_band, assembly, install } }]
+  await supabase.from("fabricators").update({ name, rates: { board_cut, edge_band, assembly, install }, history }).eq("id", id)
   revalidatePath(`/admin/fabricators/${id}`)
   revalidatePath(`/admin/fabricators`)
 }
 
 export default async function AdminFabricatorEditPage({ params }: { params: { id: string } }) {
-  const raw = await readFile(filePath, "utf-8").catch(() => "[]")
-  const list = JSON.parse(raw || "[]")
-  const item = list.find((f: any) => f.id === params.id)
+  const supabase = supabaseServer()
+  const { data: item } = await supabase.from("fabricators").select("*").eq("id", params.id).single()
   if (!item) return <div className="text-muted-foreground">Fabricator not found</div>
   const r = item.rates || {}
   return (
