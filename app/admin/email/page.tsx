@@ -1,11 +1,11 @@
-import path from "path"
-import { readFile, writeFile } from "fs/promises"
+import { readFile } from "fs/promises"
 import { Settings, Mail, Clock } from "lucide-react"
 import { revalidatePath } from "next/cache"
 import { SaveForm, SubmitButton } from "@/components/admin/save-form"
 import { SelectOnFocusInput, SelectOnFocusTextarea } from "@/components/select-on-focus"
+import { supabaseServer } from "@/lib/supabase-server"
 
-const filePath = path.join(process.cwd(), "data", "email.json")
+const filePath = ""
 const gmailStorePath = ""
 
 type InboxItem = {
@@ -23,24 +23,20 @@ async function saveEmailConfig(prev: any, formData: FormData) {
   const reply_to = String(formData.get("reply_to") || "").trim()
   const bcc = String(formData.get("bcc") || "").trim()
   const signature_text = String(formData.get("signature_text") || "").replace(/\r/g, "")
-  const raw = await readFile(filePath, "utf-8").catch(() => "{}")
-  const prevCfg = JSON.parse(raw || "{}")
-  const next = { ...prevCfg, from_name, from_email, reply_to, bcc, signature_text }
-  await writeFile(filePath, JSON.stringify(next, null, 2))
+  const supabase = supabaseServer()
+  const next = { id: "default", from_name, from_email, reply_to, bcc, signature_text }
+  await supabase.from("email_config").upsert(next, { onConflict: "id" })
   revalidatePath("/admin/email")
   return { ok: true, message: "Email configuration saved" }
 }
 
 export default async function AdminEmailPage() {
-  const raw = await readFile(filePath, "utf-8").catch(() => "{}")
-  const cfg = JSON.parse(raw || "{}")
+  const supabase = supabaseServer()
+  const { data: cfgRaw } = await supabase.from("email_config").select("*").eq("id", "default").single()
+  const cfg = cfgRaw || {}
   async function getToken() { return null }
 
   async function readInbox(): Promise<InboxItem[]> {
-    const rawInbox = await readFile(filePath, "utf-8").catch(() => "{}")
-    const store = JSON.parse(rawInbox || "{}")
-    const arr = Array.isArray((store as any).inbox) ? (store as any).inbox : []
-    if (arr.length > 0) return arr
     return [
       {
         id: `sample_${Date.now()}`,
@@ -98,7 +94,7 @@ export default async function AdminEmailPage() {
                       <SelectOnFocusTextarea id="email-signature" name="signature_text" defaultValue={cfg.signature_text || ""} className="w-full p-2 border border-border/40 rounded min-h-32 bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20" />
                     </div>
                     <div className="mt-3">
-                      <SubmitButton className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm transition-all duration-200 ease-out transform hover:bg-primary/90 hover:-translate-y-[1px]" aria-label="Save email settings">
+                      <SubmitButton confirm="Save email settings?" className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm transition-all duration-200 ease-out transform hover:bg-primary/90 hover:-translate-y-[1px]" aria-label="Save email settings">
                         Save Settings
                       </SubmitButton>
                     </div>

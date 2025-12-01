@@ -1,6 +1,9 @@
 import { revalidatePath } from "next/cache"
+export const dynamic = "force-dynamic"
 import { AdminCalculatorEmbed } from "@/components/admin/admin-calculator-embed"
 import { supabaseServer } from "@/lib/supabase-server"
+import { promises as fs } from "fs"
+import path from "path"
 
 const filePath = ""
 const versionsPath = ""
@@ -59,32 +62,64 @@ export default async function AdminCalculatorPricingPage() {
     .select("ts")
     .order("ts", { ascending: false })
 
-  async function restorePricing(formData: FormData) {
-    "use server"
-    const ts = Number(formData.get("ts") || 0)
-    if (!ts) return
-    const supabase = supabaseServer()
-    const { data } = await supabase.from("calculator_pricing_versions").select("data,ts").eq("ts", ts).single()
-    if (!data) return
-    await supabase.from("calculator_pricing").upsert({ id: "current", data: data.data, updated_at: new Date().toISOString() }, { onConflict: "id" })
-    revalidatePath("/calculator")
-    revalidatePath("/admin/calculator-pricing")
-  }
+  const { data: currentRow } = await supabase
+    .from("calculator_pricing")
+    .select("data,updated_at")
+    .eq("id", "current")
+    .single()
+
+  let localVersions: any[] = []
+  try {
+    const versionsPath = path.join(process.cwd(), "data", "calculator-pricing.versions.json")
+    const txt = await fs.readFile(versionsPath, "utf-8")
+    const parsed = JSON.parse(txt || "[]")
+    localVersions = Array.isArray(parsed) ? parsed.map((v: any) => ({ ts: v.ts })) : []
+  } catch {}
+
+  const mergedVersions = [...(versions || []), ...localVersions]
+    .filter((v, i, arr) => arr.findIndex((x: any) => x.ts === v.ts) === i)
+    .sort((a: any, b: any) => Number(b.ts) - Number(a.ts))
+
+  async function restorePricing() {}
 
   return (
     <div className="max-w-6xl mx-auto px-4 space-y-6">
-      <AdminCalculatorEmbed />
+      <AdminCalculatorEmbed versionKey={(mergedVersions[0]?.ts as number) || 0} />
+      <div className="bg-card border border-border/40 rounded-xl p-4">
+        <div className="text-sm font-semibold mb-3">Active Pricing</div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <div className="border rounded p-2">
+            <div className="font-medium mb-1">Base Rates</div>
+            <div>Base: {String(currentRow?.data?.baseRates?.base ?? "—")}</div>
+            <div>Hanging: {String(currentRow?.data?.baseRates?.hanging ?? "—")}</div>
+            <div>Tall: {String(currentRow?.data?.baseRates?.tall ?? "—")}</div>
+          </div>
+          <div className="border rounded p-2">
+            <div className="font-medium mb-1">Tier Multipliers</div>
+            <div>Luxury: {String(currentRow?.data?.tierMultipliers?.luxury ?? "—")}</div>
+            <div>Premium: {String(currentRow?.data?.tierMultipliers?.premium ?? "—")}</div>
+            <div>Standard: {String(currentRow?.data?.tierMultipliers?.standard ?? "—")}</div>
+          </div>
+          <div className="border rounded p-2">
+            <div className="font-medium mb-1">Type Multipliers</div>
+            <div>Luxury: {String(currentRow?.data?.cabinetTypeMultipliers?.luxury ?? "—")}</div>
+            <div>Premium: {String(currentRow?.data?.cabinetTypeMultipliers?.premium ?? "—")}</div>
+            <div>Basic: {String(currentRow?.data?.cabinetTypeMultipliers?.basic ?? "—")}</div>
+          </div>
+        </div>
+        <div className="mt-2 text-xs text-muted-foreground">Updated: {currentRow?.updated_at ? new Date(currentRow.updated_at).toLocaleString() : "—"}</div>
+      </div>
       <div className="bg-card border border-border/40 rounded-xl p-4">
         <div className="text-sm font-semibold mb-3">Pricing Versions</div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-          {(versions||[]).map((v: any) => (
-            <form key={v.ts} action={restorePricing} className="flex items-center justify-between gap-2 border rounded p-2">
+          {mergedVersions.map((v: any) => (
+            <form key={v.ts} action="/api/pricing/restore" method="GET" className="flex items-center justify-between gap-2 border rounded p-2">
               <input type="hidden" name="ts" value={String(v.ts)} />
               <div className="text-xs text-muted-foreground">{new Date(v.ts).toLocaleString()}</div>
-              <button className="px-3 py-1 rounded-md border text-xs">Restore</button>
+              <button type="submit" className="px-3 py-1 rounded-md border text-xs">Restore</button>
             </form>
           ))}
-          {(versions||[]).length === 0 && (
+          {mergedVersions.length === 0 && (
             <div className="text-xs text-muted-foreground">No versions yet</div>
           )}
         </div>

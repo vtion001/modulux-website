@@ -1,10 +1,12 @@
 import { revalidatePath } from "next/cache"
 import { SaveForm, SubmitButton } from "@/components/admin/save-form"
 import { SelectOnFocusInput, SelectOnFocusTextarea } from "@/components/select-on-focus"
+import { ToastOnParam } from "@/components/admin/toast-on-param"
+import { redirect } from "next/navigation"
 import { supabaseServer } from "@/lib/supabase-server"
 
 
-async function addLead(prev: any, formData: FormData) {
+async function addLead(formData: FormData) {
   "use server"
   if (!formData || typeof (formData as any).get !== "function") return { ok: false }
   const name = String(formData.get("name") || "").trim()
@@ -17,10 +19,10 @@ async function addLead(prev: any, formData: FormData) {
   const supabase = supabaseServer()
   await supabase.from("leads").insert({ name, email, phone, company, source, status: "New", notes })
   revalidatePath("/admin/crm")
-  return { ok: true }
+  redirect("/admin/crm?ok=lead-added")
 }
 
-async function addDeal(prev: any, formData: FormData) {
+async function addDeal(formData: FormData) {
   "use server"
   if (!formData || typeof (formData as any).get !== "function") return { ok: false }
   const title = String(formData.get("title") || "").trim()
@@ -33,10 +35,10 @@ async function addDeal(prev: any, formData: FormData) {
   const supabase = supabaseServer()
   await supabase.from("deals").insert({ title, contact_id: contactId || null, value: safeValue, stage: "New", next_activity: nextActivity || null, due_date: dueDate || null })
   revalidatePath("/admin/crm")
-  return { ok: true }
+  redirect("/admin/crm?ok=deal-added")
 }
 
-async function addContact(prev: any, formData: FormData) {
+async function addContact(formData: FormData) {
   "use server"
   if (!formData || typeof (formData as any).get !== "function") return { ok: false }
   const name = String(formData.get("c_name") || "").trim()
@@ -49,10 +51,10 @@ async function addContact(prev: any, formData: FormData) {
   const supabase = supabaseServer()
   await supabase.from("contacts").insert({ name, email, phone, company, tags })
   revalidatePath("/admin/crm")
-  return { ok: true }
+  redirect("/admin/crm?ok=contact-added")
 }
 
-async function updateLeadStatus(prev: any, formData: FormData) {
+async function updateLeadStatus(formData: FormData) {
   "use server"
   if (!formData || typeof (formData as any).get !== "function") return { ok: false }
   const id = String(formData.get("id") || "")
@@ -60,10 +62,10 @@ async function updateLeadStatus(prev: any, formData: FormData) {
   const supabase = supabaseServer()
   await supabase.from("leads").update({ status }).eq("id", id)
   revalidatePath("/admin/crm")
-  return { ok: true }
+  redirect("/admin/crm?ok=lead-updated")
 }
 
-async function updateDealStage(prev: any, formData: FormData) {
+async function updateDealStage(formData: FormData) {
   "use server"
   if (!formData || typeof (formData as any).get !== "function") return { ok: false }
   const id = String(formData.get("id") || "")
@@ -71,7 +73,34 @@ async function updateDealStage(prev: any, formData: FormData) {
   const supabase = supabaseServer()
   await supabase.from("deals").update({ stage }).eq("id", id)
   revalidatePath("/admin/crm")
-  return { ok: true }
+  redirect("/admin/crm?ok=deal-updated")
+}
+
+async function updateContact(formData: FormData) {
+  "use server"
+  if (!formData || typeof (formData as any).get !== "function") return { ok: false }
+  const id = String(formData.get("id") || "")
+  const name = String(formData.get("name") || "").trim()
+  const email = String(formData.get("email") || "").trim()
+  const phone = String(formData.get("phone") || "").trim()
+  const company = String(formData.get("company") || "").trim()
+  const tagsStr = String(formData.get("tags") || "").trim()
+  const tags = tagsStr ? tagsStr.split(",").map((t) => t.trim()).filter(Boolean) : []
+  if (!id) return { ok: false }
+  const supabase = supabaseServer()
+  await supabase.from("contacts").update({ name, email, phone, company, tags }).eq("id", id)
+  revalidatePath("/admin/crm")
+  redirect("/admin/crm?ok=contact-updated")
+}
+
+async function deleteContact(formData: FormData) {
+  "use server"
+  const id = String(formData.get("id") || "")
+  if (!id) return { ok: false }
+  const supabase = supabaseServer()
+  await supabase.from("contacts").delete().eq("id", id)
+  revalidatePath("/admin/crm")
+  redirect("/admin/crm?ok=contact-deleted")
 }
 
 export default async function AdminCRMPage() {
@@ -86,6 +115,13 @@ export default async function AdminCRMPage() {
   return (
     <div className="flex min-h-screen bg-gradient-to-b from-white to-gray-50">
       <div className="flex-1 flex flex-col">
+        <ToastOnParam param="ok" value="lead-added" message="Lead added" />
+        <ToastOnParam param="ok" value="deal-added" message="Deal added" />
+        <ToastOnParam param="ok" value="contact-added" message="Contact added" />
+        <ToastOnParam param="ok" value="lead-updated" message="Lead updated" />
+        <ToastOnParam param="ok" value="deal-updated" message="Deal updated" />
+        <ToastOnParam param="ok" value="contact-updated" message="Contact updated" />
+        <ToastOnParam param="ok" value="contact-deleted" message="Contact deleted" />
         <div className="relative isolate overflow-hidden rounded-b-2xl bg-gradient-to-r from-primary to-primary/80 text-white animate-in fade-in slide-in-from-top-1 duration-300">
           <div className="px-6 py-8">
             <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -165,7 +201,7 @@ export default async function AdminCRMPage() {
                               <option>Qualified</option>
                               <option>Unqualified</option>
                             </select>
-                            <SubmitButton className="text-xs px-2 py-1 border rounded hover:bg-gray-50">Update</SubmitButton>
+                            <SubmitButton confirm="Update status?" className="text-xs px-2 py-1 border rounded hover:bg-gray-50">Update</SubmitButton>
                           </SaveForm>
                         </td>
                       </tr>
@@ -193,7 +229,7 @@ export default async function AdminCRMPage() {
                                 <option key={x}>{x}</option>
                               ))}
                             </select>
-                            <SubmitButton className="text-xs px-2 py-1 border rounded hover:bg-gray-50">Move</SubmitButton>
+                            <SubmitButton confirm="Move deal stage?" className="text-xs px-2 py-1 border rounded hover:bg-gray-50">Move</SubmitButton>
                           </SaveForm>
                         </div>
                       ))}
@@ -214,6 +250,7 @@ export default async function AdminCRMPage() {
                       <th className="text-left p-2">Phone</th>
                       <th className="text-left p-2">Company</th>
                       <th className="text-left p-2">Tags</th>
+                      <th className="text-left p-2">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
@@ -224,6 +261,28 @@ export default async function AdminCRMPage() {
                         <td className="p-2">{c.phone}</td>
                         <td className="p-2">{c.company}</td>
                         <td className="p-2">{(c.tags||[]).join(", ")}</td>
+                        <td className="p-2">
+                          <div className="flex items-center gap-2">
+                            <details className="relative">
+                              <summary className="list-none inline-flex items-center justify-center w-24 h-8 rounded-md border text-xs cursor-pointer hover:bg-gray-50">Edit</summary>
+                              <div className="absolute z-10 mt-2 w-[560px] max-w-[90vw] bg-white text-foreground rounded-lg border border-border/40 shadow-lg p-3">
+                                <SaveForm action={updateContact} className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                  <input type="hidden" name="id" defaultValue={c.id} />
+                                  <input name="name" defaultValue={c.name||""} placeholder="Name" className="text-xs border rounded p-2" />
+                                  <input name="email" defaultValue={c.email||""} placeholder="Email" className="text-xs border rounded p-2" />
+                                  <input name="phone" defaultValue={c.phone||""} placeholder="Phone" className="text-xs border rounded p-2" />
+                                  <input name="company" defaultValue={c.company||""} placeholder="Company" className="text-xs border rounded p-2" />
+                                  <input name="tags" defaultValue={(c.tags||[]).join(", ")} placeholder="tags" className="text-xs border rounded p-2" />
+                <SubmitButton confirm="Save contact changes?" className="text-xs px-2 py-1 border rounded hover:bg-gray-50">Save</SubmitButton>
+                                </SaveForm>
+                              </div>
+                            </details>
+                            <SaveForm action={deleteContact} className="flex items-center gap-2">
+                              <input type="hidden" name="id" defaultValue={c.id} />
+                              <SubmitButton className="text-xs inline-flex items-center justify-center w-24 h-8 border rounded hover:bg-gray-50">Delete</SubmitButton>
+                            </SaveForm>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -242,7 +301,7 @@ export default async function AdminCRMPage() {
                 <SelectOnFocusInput name="company" placeholder="Company" className="p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-primary/20" />
                 <SelectOnFocusInput name="source" placeholder="Source" className="p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-primary/20" />
                 <SelectOnFocusTextarea name="notes" placeholder="Notes" className="p-2 border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-primary/20" />
-                <SubmitButton className="px-3 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90">Add Lead</SubmitButton>
+                <SubmitButton confirm="Add lead?" className="px-3 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90">Add Lead</SubmitButton>
               </SaveForm>
             </div>
 
@@ -254,7 +313,7 @@ export default async function AdminCRMPage() {
                 <SelectOnFocusInput name="contact_id" placeholder="Lead ID" className="p-2 border border-gray-200 rounded" />
                 <SelectOnFocusInput name="due_date" placeholder="Due Date" className="p-2 border border-gray-200 rounded" />
                 <SelectOnFocusInput name="next_activity" placeholder="Next Activity" className="p-2 border border-gray-200 rounded" />
-                <SubmitButton className="px-3 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90">Add Deal</SubmitButton>
+                <SubmitButton confirm="Add deal?" className="px-3 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90">Add Deal</SubmitButton>
               </SaveForm>
             </div>
 
@@ -266,7 +325,7 @@ export default async function AdminCRMPage() {
                 <SelectOnFocusInput name="c_phone" placeholder="Phone" className="p-2 border border-gray-200 rounded" />
                 <SelectOnFocusInput name="c_company" placeholder="Company" className="p-2 border border-gray-200 rounded" />
                 <SelectOnFocusInput name="c_tags" placeholder="Tags (comma-separated)" className="p-2 border border-gray-200 rounded" />
-                <SubmitButton className="px-3 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90">Add Contact</SubmitButton>
+                <SubmitButton confirm="Add contact?" className="px-3 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90">Add Contact</SubmitButton>
               </SaveForm>
             </div>
           </div>

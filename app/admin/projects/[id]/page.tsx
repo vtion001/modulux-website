@@ -28,6 +28,7 @@ async function updateProject(prevState: any, formData: FormData) {
   const supabase = supabaseServer()
   const { data: curr } = await supabase.from("projects").select("*").eq("id", id).single()
   if (!curr) return
+  await supabase.from("project_versions").insert({ id, ts: Date.now(), data: curr })
   const file = formData.get("imageFile") as File | null
   if (file && typeof file === "object" && file.size > 0) {
     await mkdir(uploadsDir, { recursive: true })
@@ -50,6 +51,19 @@ async function updateProject(prevState: any, formData: FormData) {
 export default async function AdminProjectEditPage({ params }: { params: { id: string } }) {
   const supabase = supabaseServer()
   const { data: project } = await supabase.from("projects").select("*").eq("id", params.id).single()
+  const { data: versions } = await supabase.from("project_versions").select("ts").eq("id", params.id).order("ts", { ascending: false })
+  async function restoreProject(formData: FormData) {
+    "use server"
+    const ts = Number(formData.get("ts") || 0)
+    if (!ts) return
+    const supabase = supabaseServer()
+    const { data } = await supabase.from("project_versions").select("data,ts").eq("id", params.id).eq("ts", ts).single()
+    if (!data) return
+    await supabase.from("projects").update(data.data).eq("id", params.id)
+    revalidatePath("/admin/projects")
+    revalidatePath(`/admin/projects/${params.id}`)
+    revalidatePath("/projects")
+  }
   return (
     <div className="max-w-3xl">
       
@@ -59,6 +73,7 @@ export default async function AdminProjectEditPage({ params }: { params: { id: s
       </div>
       
       {project ? (
+        <div>
         <SaveForm action={updateProject}>
           <input type="hidden" name="id" defaultValue={project.id} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -109,8 +124,24 @@ export default async function AdminProjectEditPage({ params }: { params: { id: s
             <label className="text-xs text-muted-foreground block mb-1">Services</label>
             <SelectOnFocusInput name="services" defaultValue={Array.isArray(project.services) ? project.services.join(", ") : ""} className="w-full p-2 border border-border/40 rounded" />
           </div>
-          <SubmitButton>Save Changes</SubmitButton>
+          <SubmitButton confirm="Save project?">Save Changes</SubmitButton>
         </SaveForm>
+        <div className="mt-6">
+          <div className="text-sm font-semibold mb-2">Versions</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {(versions||[]).map((v:any)=> (
+              <form key={v.ts} action={restoreProject} className="flex items-center justify-between gap-2 border rounded p-2">
+                <input type="hidden" name="ts" value={String(v.ts)} />
+                <div className="text-xs text-muted-foreground">{new Date(v.ts).toLocaleString()}</div>
+                <button className="px-3 py-1 rounded-md border text-xs">Restore</button>
+              </form>
+            ))}
+            {(versions||[]).length===0 && (
+              <div className="text-xs text-muted-foreground">No versions yet</div>
+            )}
+          </div>
+        </div>
+        </div>
       ) : (
         <div className="text-muted-foreground">Project not found</div>
       )}

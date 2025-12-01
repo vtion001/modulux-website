@@ -4,6 +4,7 @@ import { AnalyticsDashboard } from "@/components/admin/analytics-dashboard"
 import { StatCard } from "@/components/admin/stat-card"
 import { FolderOpen, FileText, Package, MessageSquare } from "lucide-react"
 import { RecentInquiries } from "@/components/admin/recent-inquiries"
+import { revalidatePath } from "next/cache"
 
 export default async function AdminDashboardPage() {
   const supabase = supabaseServer()
@@ -13,6 +14,14 @@ export default async function AdminDashboardPage() {
     supabase.from("products").select("*").order("name"),
     supabase.from("inquiries").select("*").order("date", { ascending: false }),
   ])
+
+  async function seedInitial() {
+    "use server"
+    await fetch("/api/seed/initial-content", { method: "POST" })
+    revalidatePath("/admin")
+    revalidatePath("/projects")
+    revalidatePath("/blog")
+  }
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -35,6 +44,11 @@ export default async function AdminDashboardPage() {
           <AnalyticsDashboard projects={projects||[]} blog={blog||[]} products={products||[]} inquiries={inquiries||[]} />
         </div>
         <RecentInquiries inquiries={inquiries||[]} />
+      </div>
+      <div className="mt-6">
+        <form action={seedInitial}>
+          <button className="px-3 py-2 rounded-md border text-sm">Seed Initial Content</button>
+        </form>
       </div>
     </div>
   )

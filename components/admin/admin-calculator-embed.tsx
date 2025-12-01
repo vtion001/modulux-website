@@ -18,7 +18,7 @@ interface CalculatorState {
   kitchenScope: string
 }
 
-export function AdminCalculatorEmbed(): JSX.Element {
+export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }): JSX.Element {
   const [formData, setFormData] = useState<CalculatorState>({
     projectType: "kitchen",
     roomSize: "",
@@ -92,6 +92,8 @@ export function AdminCalculatorEmbed(): JSX.Element {
   const [selectedClient, setSelectedClient] = useState<any | null>(null)
   const [isClientPickerOpen, setIsClientPickerOpen] = useState(false)
   const [clientQuery, setClientQuery] = useState("")
+  const [loadingContacts, setLoadingContacts] = useState(false)
+  const [shouldAutoCalc, setShouldAutoCalc] = useState(false)
 
   useEffect(() => {
     ;(async () => {
@@ -107,23 +109,97 @@ export function AdminCalculatorEmbed(): JSX.Element {
           tall: { withoutFees: 65182.2, withFees: 82286.1 },
         })
         if (cfg?.cabinetTypeMultipliers) setCtMultipliers(cfg.cabinetTypeMultipliers)
+        if (cfg?.prefill) {
+          const p = cfg.prefill as any
+          if (p?.formData) setFormData(p.formData)
+          if (Array.isArray(p?.units)) setUnits(p.units)
+          if (typeof p?.applyTax === "boolean") setApplyTax(p.applyTax)
+          if (typeof p?.taxRate === "number") setTaxRate(p.taxRate)
+          if (typeof p?.discount === "number") setDiscount(p.discount)
+          if (typeof p?.cabinetCategory === "string") setCabinetCategory(p.cabinetCategory)
+          if (typeof p?.tier === "string") setTier(p.tier)
+          if (typeof p?.includeFees === "boolean") setIncludeFees(p.includeFees)
+          if (typeof p?.importSurcharge === "boolean") setImportSurcharge(p.importSurcharge)
+          if (typeof p?.downgradeMFC === "boolean") setDowngradeMFC(p.downgradeMFC)
+          setShouldAutoCalc(true)
+        } else {
+          try {
+            const resV = await fetch("/api/pricing/versions")
+            const vjson = await resV.json().catch(() => ({}))
+            const latest = Array.isArray(vjson?.versions) && vjson.versions.length > 0 ? vjson.versions[0] : null
+            const prefill = latest?.data?.prefill
+            if (prefill) {
+              const p = prefill as any
+              if (p?.formData) setFormData(p.formData)
+              if (Array.isArray(p?.units)) setUnits(p.units)
+              if (typeof p?.applyTax === "boolean") setApplyTax(p.applyTax)
+              if (typeof p?.taxRate === "number") setTaxRate(p.taxRate)
+              if (typeof p?.discount === "number") setDiscount(p.discount)
+              if (typeof p?.cabinetCategory === "string") setCabinetCategory(p.cabinetCategory)
+              if (typeof p?.tier === "string") setTier(p.tier)
+              if (typeof p?.includeFees === "boolean") setIncludeFees(p.includeFees)
+              if (typeof p?.importSurcharge === "boolean") setImportSurcharge(p.importSurcharge)
+              if (typeof p?.downgradeMFC === "boolean") setDowngradeMFC(p.downgradeMFC)
+              setShouldAutoCalc(true)
+            }
+          } catch {}
+        }
       } catch {}
     })()
-  }, [])
+  }, [versionKey])
 
   useEffect(() => {
-    ;(async () => {
-      try {
-        const res = await fetch("/api/crm/contacts")
+    if (!shouldAutoCalc) return
+    const hasProject = Boolean(formData.projectType && formData.cabinetType)
+    const legacyLm = parseFloat(formData.linearMeter)
+    const unitsReady = units.some((u) => u.enabled && Number(u.meters) > 0)
+    const ready = hasProject && (unitsReady || (!isNaN(legacyLm) && legacyLm > 0))
+    if (ready) {
+      calculateEstimate()
+      setShouldAutoCalc(false)
+    }
+  }, [shouldAutoCalc, formData, units, baseRates, tiers, ctMultipliers, sheetRates])
+
+  const loadContacts = async () => {
+    setLoadingContacts(true)
+    try {
+      let merged: any[] = []
+      const res = await fetch("/api/crm/contacts", { cache: "no-store" })
+      if (res.ok) {
         const db = await res.json().catch(() => ({}))
         const arrC = Array.isArray(db?.contacts) ? db.contacts : []
-        const arrL = Array.isArray(db?.leads) ? db.leads : []
-        const merged = [...arrC, ...arrL]
-        setContactsAll(merged)
-        setContacts(merged)
-      } catch {}
-    })()
-  }, [])
+        const leadsRaw = Array.isArray(db?.leads) ? db.leads : []
+        const clientsRaw = Array.isArray(db?.clients) ? db.clients : []
+        const arrL = leadsRaw.map((l: any) => ({ id: l.id, name: l.name, email: l.email, phone: l.phone, company: l.company, tags: Array.isArray(l.tags) ? l.tags : ["Lead"], created_at: l.created_at }))
+        const arrCli = clientsRaw.map((c: any) => ({ id: c.id, name: c.name, email: c.email || "", phone: c.phone || "", company: c.company || "", tags: ["Client", c.status || ""].filter(Boolean), created_at: c.created_at }))
+        merged = [...arrC, ...arrL, ...arrCli]
+      } else {
+        throw new Error("api_failed")
+      }
+      if (!merged.length) throw new Error("empty")
+      setContactsAll(merged)
+      setContacts(merged)
+      toast.success(`Loaded ${merged.length} contacts`)
+    } catch {
+      try {
+        const res2 = await fetch("/data/crm.json", { cache: "no-store" })
+        const db2 = await res2.json().catch(() => ({}))
+        const arrC2 = Array.isArray(db2?.contacts) ? db2.contacts : []
+        const leadsRaw2 = Array.isArray(db2?.leads) ? db2.leads : []
+        const arrL2 = leadsRaw2.map((l: any) => ({ id: l.id, name: l.name, email: l.email, phone: l.phone, company: l.company, tags: ["Lead", l.status || ""].filter(Boolean), created_at: l.created_at }))
+        const merged2 = [...arrC2, ...arrL2]
+        setContactsAll(merged2)
+        setContacts(merged2)
+        toast.success(`Loaded ${merged2.length} contacts (local)`) 
+      } catch {
+        toast.error("Failed to load contacts. Please check CRM configuration.")
+      }
+    } finally {
+      setLoadingContacts(false)
+    }
+  }
+  useEffect(() => { loadContacts() }, [])
+  useEffect(() => { if (isClientPickerOpen) loadContacts() }, [isClientPickerOpen])
 
   useEffect(() => {
     setFormData((prev) => ({
@@ -397,7 +473,7 @@ export function AdminCalculatorEmbed(): JSX.Element {
                         </button>
                       </Popover.Trigger>
                       <Popover.Content sideOffset={8} className="w-[320px] md:w-[420px] bg-white border border-border/40 rounded-md shadow-lg p-3">
-                        <div className="mb-2">
+                        <div className="mb-2 flex items-center gap-2">
                           <input
                             autoFocus
                             value={clientQuery}
@@ -409,6 +485,7 @@ export function AdminCalculatorEmbed(): JSX.Element {
                                 const tags = Array.isArray(c.tags)?c.tags:[]
                                 return String(c.name||"").toLowerCase().includes(q)
                                   || String(c.email||"").toLowerCase().includes(q)
+                                  || String(c.phone||"").toLowerCase().includes(q)
                                   || String(c.company||"").toLowerCase().includes(q)
                                   || tags.some((t:string)=>String(t||"").toLowerCase().includes(q))
                               })
@@ -418,6 +495,9 @@ export function AdminCalculatorEmbed(): JSX.Element {
                             className="w-full p-2 border rounded-md text-sm"
                             aria-label="Search contacts"
                           />
+                          <button type="button" onClick={()=>loadContacts()} disabled={loadingContacts} aria-busy={loadingContacts?"true":"false"} className="px-2 py-1 rounded-md border text-xs">
+                            {loadingContacts ? "Refreshing…" : "Refresh"}
+                          </button>
                         </div>
                         <div role="listbox" aria-label="Contacts list" className="max-h-64 overflow-auto">
                           {contacts.length > 0 ? (
@@ -431,7 +511,7 @@ export function AdminCalculatorEmbed(): JSX.Element {
                                 className={`w-full text-left px-3 py-2 rounded-md border mb-2 text-sm ${selectedClient?.id===c.id?"bg-primary text-white border-primary":"hover:bg-muted/50"}`}
                               >
                                 <div className="font-medium truncate">{c.name}</div>
-                                <div className="text-xs opacity-80 truncate">{c.email}</div>
+                                <div className="text-xs opacity-80 truncate">{c.email}{c.phone?` • ${c.phone}`:""}{c.company?` • ${c.company}`:""}</div>
                               </button>
                             ))
                           ) : (
@@ -485,6 +565,24 @@ export function AdminCalculatorEmbed(): JSX.Element {
                         taxRate: applyTax ? taxRate*100 : 0,
                         discount: Math.round((discount||0)* (calc?.breakdown?.subtotal||0)),
                         notes: "Auto-generated from calculator (Admin)",
+                        pricingSnapshot: {
+                          baseRates: baseRates || undefined,
+                          tierMultipliers: tiers || undefined,
+                          sheetRates: sheetRates || undefined,
+                          cabinetTypeMultipliers: ctMultipliers || undefined,
+                        },
+                        calculatorSnapshot: {
+                          formData,
+                          units,
+                          applyTax,
+                          taxRate,
+                          discount,
+                          cabinetCategory,
+                          tier,
+                          includeFees,
+                          importSurcharge,
+                          downgradeMFC,
+                        },
                       }
                       try {
                         const res = await fetch("/api/proposals/create", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })

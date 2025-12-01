@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
 import path from "path"
-import { mkdir, readFile, writeFile } from "fs/promises"
+import { mkdir, writeFile } from "fs/promises"
+import { supabaseServer } from "@/lib/supabase-server"
 
 const dataDir = path.join(process.cwd(), "data")
-const filePath = path.join(dataDir, "inquiries.json")
 
 export async function POST(req: Request) {
   try {
@@ -29,16 +29,10 @@ export async function POST(req: Request) {
       await writeFile(dest, buffer)
       saved.push({ url: `/uploads/${fileName}`, name: f.name, type, size: f.size })
     }
-    await mkdir(dataDir, { recursive: true })
-    let list: any[] = []
-    try {
-      const raw = await readFile(filePath, "utf-8")
-      list = JSON.parse(raw)
-    } catch {}
     const id = `inq_${ts}_${Math.random().toString(36).slice(2)}`
     const rec = { id, name, email, phone, message, attachments: saved, date: new Date(ts).toISOString(), status: "new", tags: [] }
-    list.unshift(rec)
-    await writeFile(filePath, JSON.stringify(list, null, 2))
+    const supabase = supabaseServer()
+    await supabase.from("inquiries").insert(rec)
     return NextResponse.json({ ok: true, id })
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e.message || "Failed to submit" }, { status: 400 })

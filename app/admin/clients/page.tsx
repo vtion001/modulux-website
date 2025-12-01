@@ -65,7 +65,7 @@ export default async function AdminClientsPage() {
                 <SelectOnFocusInput name="status" placeholder="Status" className="p-2 border rounded text-sm" />
                 <SelectOnFocusInput name="score" placeholder="Score" className="p-2 border rounded text-sm" />
                 <SelectOnFocusInput name="amount" placeholder="Amount (₱)" className="p-2 border rounded text-sm" />
-                <SubmitButton className="px-3 py-2 rounded-md bg-purple-600 text-white text-sm">Add Client</SubmitButton>
+                <SubmitButton confirm="Add client?" className="px-3 py-2 rounded-md bg-purple-600 text-white text-sm">Add Client</SubmitButton>
               </SaveForm>
             </div>
           </div>
@@ -122,7 +122,7 @@ export default async function AdminClientsPage() {
                           <option>Payment Back</option>
                           <option>Closed</option>
                         </select>
-                        <SubmitButton className="text-xs px-2 py-1 border rounded">Update</SubmitButton>
+                        <SubmitButton confirm="Update status?" className="text-xs px-2 py-1 border rounded">Update</SubmitButton>
                       </SaveForm>
                     </td>
                     <td className="p-2"><span className="px-2 py-1 rounded bg-purple-100 text-purple-700">{Number(c.score||0).toFixed(1)}</span></td>

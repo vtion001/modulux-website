@@ -23,6 +23,8 @@ async function updateProduct(prevState: any, formData: FormData) {
   }
   if (!id || !name) return { ok: false }
   const supabase = supabaseServer()
+  const { data: prev } = await supabase.from("products").select("*").eq("id", id).single()
+  if (prev) await supabase.from("product_versions").insert({ id, ts: Date.now(), data: prev })
   await supabase.from("products").update({ name, category, image, description, features, specs, gallery }).eq("id", id)
   revalidatePath("/admin/products")
   revalidatePath("/products")
@@ -34,6 +36,19 @@ export default async function AdminProductEditPage({ params }: { params: { id: s
   const supabase = supabaseServer()
   const { data } = await supabase.from("products").select("*").eq("id", params.id).single()
   const product = data as any
+  const { data: versions } = await supabase.from("product_versions").select("ts").eq("id", params.id).order("ts", { ascending: false })
+  async function restoreProduct(formData: FormData) {
+    "use server"
+    const ts = Number(formData.get("ts") || 0)
+    if (!ts) return
+    const supabase = supabaseServer()
+    const { data } = await supabase.from("product_versions").select("data,ts").eq("id", params.id).eq("ts", ts).single()
+    if (!data) return
+    await supabase.from("products").update(data.data).eq("id", params.id)
+    revalidatePath("/admin/products")
+    revalidatePath(`/admin/products/${params.id}`)
+    revalidatePath(`/products/${params.id}`)
+  }
   return (
     <div className="max-w-3xl">
       <div className="mb-6 flex items-center justify-between">
@@ -41,6 +56,7 @@ export default async function AdminProductEditPage({ params }: { params: { id: s
         <Link href="/admin/products" className="text-sm text-primary">Back to Products</Link>
       </div>
       {product ? (
+        <div>
         <SaveForm action={updateProduct}>
           <input type="hidden" name="id" defaultValue={product.id} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -99,8 +115,24 @@ export default async function AdminProductEditPage({ params }: { params: { id: s
               ))}
             </div>
           </div>
-          <SubmitButton>Save Changes</SubmitButton>
+          <SubmitButton confirm="Save product?">Save Changes</SubmitButton>
         </SaveForm>
+        <div className="mt-6">
+          <div className="text-sm font-semibold mb-2">Versions</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {(versions||[]).map((v:any)=> (
+              <form key={v.ts} action={restoreProduct} className="flex items-center justify-between gap-2 border rounded p-2">
+                <input type="hidden" name="ts" value={String(v.ts)} />
+                <div className="text-xs text-muted-foreground">{new Date(v.ts).toLocaleString()}</div>
+                <button className="px-3 py-1 rounded-md border text-xs">Restore</button>
+              </form>
+            ))}
+            {(versions||[]).length===0 && (
+              <div className="text-xs text-muted-foreground">No versions yet</div>
+            )}
+          </div>
+        </div>
+        </div>
       ) : (
         <div className="text-muted-foreground">Product not found</div>
       )}

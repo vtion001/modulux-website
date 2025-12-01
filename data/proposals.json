@@ -1,0 +1,522 @@
+[
+  {
+    "id": "proposal_1764551596343",
+    "client": {
+      "name": "vj ruado",
+      "email": "vjrodriguez1994@gmail.com",
+      "company": ""
+    },
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "description": "base cabinets (basic)",
+        "quantity": 3,
+        "unitPrice": 40878
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "Auto-generated from calculator (Admin)",
+    "created_at": 1764551596819,
+    "pricingSnapshot": {
+      "baseRates": {
+        "base": 2,
+        "tall": 2.2,
+        "hanging": 1.6
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      }
+    },
+    "pricingSnapshotTs": "2025-12-01T01:13:16.345Z",
+    "calculatorSnapshot": {
+      "formData": {
+        "finish": "",
+        "hardware": "",
+        "material": "",
+        "roomSize": "",
+        "cabinetType": "basic",
+        "linearMeter": "",
+        "projectType": "kitchen",
+        "installation": false,
+        "kitchenScope": ""
+      },
+      "units": [
+        {
+          "tier": "",
+          "finish": "",
+          "meters": 3,
+          "enabled": true,
+          "category": "base",
+          "hardware": "basic",
+          "material": ""
+        },
+        {
+          "tier": "",
+          "finish": "",
+          "meters": 0,
+          "enabled": false,
+          "category": "hanging",
+          "hardware": "",
+          "material": ""
+        },
+        {
+          "tier": "",
+          "finish": "",
+          "meters": 0,
+          "enabled": false,
+          "category": "tall",
+          "hardware": "",
+          "material": ""
+        }
+      ],
+      "applyTax": true,
+      "taxRate": 0.12,
+      "discount": 0,
+      "cabinetCategory": "base",
+      "tier": "standard",
+      "includeFees": true,
+      "importSurcharge": false,
+      "downgradeMFC": false
+    }
+  },
+  {
+    "id": "proposal_1764551264314",
+    "client": {
+      "name": "vj ruado",
+      "email": "vjrodriguez1994@gmail.com",
+      "company": ""
+    },
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "description": "base cabinets (basic)",
+        "quantity": 3,
+        "unitPrice": 40878
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "Auto-generated from calculator (Admin)",
+    "created_at": 1764551264521,
+    "pricingSnapshot": {
+      "baseRates": {
+        "base": 2,
+        "tall": 2.2,
+        "hanging": 1.6
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      }
+    },
+    "pricingSnapshotTs": "2025-12-01T01:07:44.314Z",
+    "calculatorSnapshot": {
+      "formData": {
+        "projectType": "kitchen",
+        "roomSize": "",
+        "cabinetType": "basic",
+        "material": "",
+        "finish": "",
+        "hardware": "",
+        "installation": false,
+        "linearMeter": "",
+        "kitchenScope": ""
+      },
+      "units": [
+        {
+          "enabled": true,
+          "category": "base",
+          "meters": 3,
+          "material": "",
+          "finish": "",
+          "hardware": "basic",
+          "tier": ""
+        },
+        {
+          "enabled": false,
+          "category": "hanging",
+          "meters": 0,
+          "material": "",
+          "finish": "",
+          "hardware": "",
+          "tier": ""
+        },
+        {
+          "enabled": false,
+          "category": "tall",
+          "meters": 0,
+          "material": "",
+          "finish": "",
+          "hardware": "",
+          "tier": ""
+        }
+      ],
+      "applyTax": true,
+      "taxRate": 0.12,
+      "discount": 0,
+      "cabinetCategory": "base",
+      "tier": "standard",
+      "includeFees": true,
+      "importSurcharge": false,
+      "downgradeMFC": false
+    }
+  },
+  {
+    "id": "proposal_1764550782956",
+    "client": {
+      "name": "vj ruado",
+      "email": "vjrodriguez1994@gmail.com",
+      "company": ""
+    },
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "description": "base cabinets (basic)",
+        "quantity": 3,
+        "unitPrice": 40878
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "Auto-generated from calculator (Admin)",
+    "created_at": 1764550783168,
+    "pricingSnapshot": {
+      "baseRates": {
+        "base": 2,
+        "tall": 2.2,
+        "hanging": 1.6
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      }
+    },
+    "pricingSnapshotTs": "2025-12-01T00:59:42.957Z"
+  },
+  {
+    "id": "proposal_1764550015182",
+    "client": {
+      "name": "vj ruado",
+      "email": "vjrodriguez1994@gmail.com",
+      "company": ""
+    },
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "description": "base cabinets (luxury)",
+        "quantity": 6,
+        "unitPrice": 51097
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "Auto-generated from calculator (Admin)",
+    "created_at": 1764550015388,
+    "pricingSnapshot": {
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      }
+    },
+    "pricingSnapshotTs": "2025-12-01T00:46:55.182Z"
+  },
+  {
+    "id": "proposal_1764547795391",
+    "client": {
+      "name": "vj ruado",
+      "email": "vjrodriguez1994@gmail.com",
+      "company": ""
+    },
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "description": "base cabinets (luxury)",
+        "quantity": 6,
+        "unitPrice": 51097
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "Auto-generated from calculator (Admin)",
+    "created_at": 1764547795591,
+    "pricingSnapshot": {
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      }
+    },
+    "pricingSnapshotTs": "2025-12-01T00:09:55.392Z"
+  },
+  {
+    "id": "proposal_1764533547300",
+    "client": {
+      "name": "Check",
+      "email": "check@example.com"
+    },
+    "title": "Check",
+    "items": [],
+    "taxRate": 0,
+    "discount": 0,
+    "notes": "",
+    "created_at": 1764533548905,
+    "pricingSnapshot": {
+      "baseRates": {
+        "base": 2,
+        "hanging": 1.6,
+        "tall": 2.2
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      },
+      "cabinetTypeMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "basic": 0.8
+      }
+    },
+    "pricingSnapshotTs": "2025-11-30T20:12:28.717Z"
+  },
+  {
+    "id": "proposal_1764533453958",
+    "client": {
+      "name": "vj ruado",
+      "email": "vjrodriguez1994@gmail.com",
+      "company": ""
+    },
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "description": "base cabinets (basic)",
+        "quantity": 3,
+        "unitPrice": 40878
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "Auto-generated from calculator (Admin)",
+    "created_at": 1764533454148,
+    "pricingSnapshot": {
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      }
+    },
+    "pricingSnapshotTs": "2025-11-30T20:10:53.958Z"
+  },
+  {
+    "id": "proposal_1764533365439",
+    "client": {
+      "name": "vj ruado",
+      "email": "vjrodriguez1994@gmail.com",
+      "company": ""
+    },
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "description": "base cabinets (basic)",
+        "quantity": 3,
+        "unitPrice": 40878
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "Auto-generated from calculator (Admin)",
+    "created_at": 1764533365629,
+    "pricingSnapshot": {
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      }
+    },
+    "pricingSnapshotTs": "2025-11-30T20:09:25.439Z"
+  },
+  {
+    "id": "proposal_1764533237908",
+    "client": {
+      "name": "Test2",
+      "email": "t2@example.com"
+    },
+    "title": "Test2",
+    "items": [],
+    "taxRate": 0,
+    "discount": 0,
+    "notes": "",
+    "created_at": 1764533238440,
+    "pricingSnapshot": {
+      "baseRates": {
+        "base": 1,
+        "hanging": 2,
+        "tall": 3
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withoutFees": 10,
+          "withFees": 20
+        },
+        "hanging": {
+          "withoutFees": 30,
+          "withFees": 40
+        },
+        "tall": {
+          "withoutFees": 50,
+          "withFees": 60
+        }
+      },
+      "cabinetTypeMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "basic": 0.8
+      }
+    },
+    "pricingSnapshotTs": "2025-11-30T20:07:17.909Z"
+  },
+  {
+    "id": "proposal_1764533209806",
+    "client": {
+      "name": "Test",
+      "email": "test@example.com"
+    },
+    "title": "Test Proposal",
+    "items": [
+      {
+        "description": "Base",
+        "quantity": 2,
+        "unitPrice": 1000
+      }
+    ],
+    "taxRate": 12,
+    "discount": 500,
+    "notes": "Test",
+    "created_at": 1764533210086,
+    "pricingSnapshot": null,
+    "pricingSnapshotTs": "2025-11-30T20:06:50.086Z"
+  },
+  {
+    "id": "proposal_1764533058466",
+    "client": {
+      "name": "vj ruado",
+      "email": "vjrodriguez1994@gmail.com",
+      "company": ""
+    },
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "description": "base cabinets (luxury)",
+        "quantity": 6,
+        "unitPrice": 51097
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "Auto-generated from calculator (Admin)",
+    "created_at": 1764533058466
+  }
+]

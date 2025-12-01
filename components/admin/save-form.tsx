@@ -7,15 +7,18 @@ export const SaveForm: any = ({ action, children, className }: any) => {
   )
 }
 
-export const SubmitButton: any = ({ children, className }: any) => {
+export const SubmitButton: any = ({ children, className, confirm }: any) => {
+  const onClick = (e: any) => {
+    if (confirm && typeof window !== "undefined") {
+      const ok = window.confirm(String(confirm))
+      if (!ok) {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    }
+  }
   return (
-    <button
-      type="submit"
-      className={className}
-      disabled={false}
-      aria-busy={false}
-      data-pending={"false"}
-    >
+    <button type="submit" className={className} onClick={onClick}>
       {children}
     </button>
   )

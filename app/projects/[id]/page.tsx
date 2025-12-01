@@ -55,7 +55,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
       }
       return ""
     }
-    fetch("/api/projects")
+    fetch(`/api/projects`)
       .then((r) => r.json())
       .then((list: Project[]) => {
         if (cancelled) return

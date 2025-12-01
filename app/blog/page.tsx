@@ -25,7 +25,7 @@ export default function BlogPage() {
     fetch("/api/blog")
       .then((r) => r.json())
       .then((data) => {
-        if (!cancelled && Array.isArray(data)) setPosts(data)
+        if (!cancelled && Array.isArray(data)) setPosts(data.map((p:any)=>({ ...p, readTime: p.readTime || p.read_time })))
       })
       .catch(() => {})
     return () => {
