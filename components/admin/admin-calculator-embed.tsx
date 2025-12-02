@@ -75,10 +75,12 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
   const [ctMultipliers, setCtMultipliers] = useState<{ luxury: number; premium: number; basic: number } | null>(null)
 
   const [units, setUnits] = useState([
-    { enabled: true, category: "base", meters: 0, material: "", finish: "", hardware: "", tier: "" },
-    { enabled: false, category: "hanging", meters: 0, material: "", finish: "", hardware: "", tier: "" },
-    { enabled: false, category: "tall", meters: 0, material: "", finish: "", hardware: "", tier: "" },
+    { enabled: true, category: "base", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType: "kitchen", customRoomName: "", setId: 0 },
+    { enabled: false, category: "hanging", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType: "kitchen", customRoomName: "", setId: 0 },
+    { enabled: false, category: "tall", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType: "kitchen", customRoomName: "", setId: 0 },
   ])
+  const [roomTypeSelection, setRoomTypeSelection] = useState<string>("kitchen")
+  const [customRoomName, setCustomRoomName] = useState<string>("")
   const [applyTax, setApplyTax] = useState(true)
   const [taxRate, setTaxRate] = useState(0.12)
   const [discount, setDiscount] = useState(0)
@@ -202,6 +204,13 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
   useEffect(() => { if (isClientPickerOpen) loadContacts() }, [isClientPickerOpen])
 
   useEffect(() => {
+    const rt = units[0]?.roomType
+    const cn = units[0]?.customRoomName
+    if (typeof rt === "string") setRoomTypeSelection(rt)
+    if (typeof cn === "string") setCustomRoomName(cn)
+  }, [units])
+
+  useEffect(() => {
     setFormData((prev) => ({
       ...prev,
       cabinetType: tier === "standard" ? "basic" : tier,
@@ -319,10 +328,12 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                     kitchenScope: "",
                   })
                   setUnits([
-                    { enabled: true, category: "base", meters: 0, material: "", finish: "", hardware: "", tier: "" },
-                    { enabled: false, category: "hanging", meters: 0, material: "", finish: "", hardware: "", tier: "" },
-                    { enabled: false, category: "tall", meters: 0, material: "", finish: "", hardware: "", tier: "" },
+                    { enabled: true, category: "base", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType: "kitchen", customRoomName: "", setId: 0 },
+                    { enabled: false, category: "hanging", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType: "kitchen", customRoomName: "", setId: 0 },
+                    { enabled: false, category: "tall", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType: "kitchen", customRoomName: "", setId: 0 },
                   ])
+                  setRoomTypeSelection("kitchen")
+                  setCustomRoomName("")
                   setCabinetCategory("base")
                   setTier("luxury")
                   setApplyTax(true)
@@ -387,12 +398,10 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                 <div className="mb-3">
                   <label className="block text-xs font-medium text-muted-foreground mb-1">Room Type</label>
                   <select
-                    value={units[0]?.roomType || "kitchen"}
+                    value={roomTypeSelection}
                     onChange={(e) => {
                       const newRoom = e.target.value
-                      setUnits(prev =>
-                        prev.map(u => ({ ...u, roomType: newRoom }))
-                      )
+                      setRoomTypeSelection(newRoom)
                     }}
                     className="w-full p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                   >
@@ -404,58 +413,224 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                   </select>
                 </div>
                 {/* Custom room name field, shown only when "custom" is selected */}
-                {units[0]?.roomType === "custom" && (
+                {roomTypeSelection === "custom" && (
                   <div className="mb-3">
                     <label className="block text-xs font-medium text-muted-foreground mb-1">Room Name</label>
                     <input
                       type="text"
                       placeholder="e.g. Pantry, Laundry, Walk-in Closet"
-                      value={units[0]?.customRoomName || ""}
+                      value={customRoomName}
                       onChange={(e) => {
                         const name = e.target.value
-                        setUnits(prev =>
-                          prev.map(u => ({ ...u, customRoomName: name }))
-                        )
+                        setCustomRoomName(name)
                       }}
                       className="w-full p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                 )}
-                <div className="space-y-3">
-                  {units.map((u,i)=> (
-                    <div key={`${u.category}-${i}`} className="border border-border/40 rounded-md p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="font-medium text-foreground capitalize">{u.category} units</div>
-                        <div className="flex items-center gap-2">
-                          <label className="flex items-center gap-2 text-sm text-foreground"><input type="checkbox" className="w-4 h-4" checked={u.enabled} onChange={(e)=>setUnits(prev=>prev.map((x,idx)=>idx===i?{...x,enabled:e.target.checked}:x))}/>Enable</label>
-                          <button
-                            type="button"
-                            onClick={() => setUnits(prev => prev.filter((_, idx) => idx !== i))}
-                            className="px-2 py-1 rounded-md border text-xs text-foreground hover:bg-destructive hover:text-white transition-colors"
-                            aria-label={`Delete ${u.category} unit`}
-                          >
-                            Delete
-                          </button>
+                <div className="space-y-4">
+                  {Array.from(new Set(units.map(u => typeof (u as any).setId === "number" ? (u as any).setId : 0))).map((sid) => {
+                    const group = units.filter(x => (typeof (x as any).setId === "number" ? (x as any).setId : 0) === sid)
+                    const first: any = group[0] || {}
+                    const rt = first.roomType || "kitchen"
+                    const cn = first.customRoomName || ""
+                    return (
+                      <div key={`set-${sid}`} className="border border-border/40 rounded-md p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="font-medium text-foreground">Unit Set #{sid}</div>
+                          <div className="flex items-center gap-2">
+                            <label className="block text-xs font-medium text-muted-foreground">Room Type</label>
+                            <select
+                              value={rt}
+                              onChange={(e)=>{
+                                const newRoom = e.target.value
+                                const currentName = cn
+                                setUnits(prev => prev.map(u => ((typeof (u as any).setId === 'number' ? (u as any).setId : 0) === sid) ? { ...u, roomType: newRoom, customRoomName: newRoom === 'custom' ? currentName : '' } : u))
+                              }}
+                              className="p-1.5 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            >
+                              <option value="kitchen">Kitchen</option>
+                              <option value="bathroom">Bathroom</option>
+                              <option value="bedroom">Bedroom</option>
+                              <option value="office">Office</option>
+                              <option value="custom">Custom / Other</option>
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => setUnits(prev => prev.filter(x => (typeof (x as any).setId === 'number' ? (x as any).setId : 0) !== sid))}
+                              className="px-2 py-1 rounded-md border text-xs text-foreground hover:bg-destructive hover:text-white transition-colors"
+                            >
+                              Delete Set
+                            </button>
+                          </div>
+                        </div>
+                        {rt === 'custom' && (
+                          <div className="mb-2">
+                            <label className="block text-xs font-medium text-muted-foreground mb-1">Room Name</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Pantry, Laundry, Walk-in Closet"
+                              value={cn}
+                              onChange={(e)=>{
+                                const name = e.target.value
+                                setUnits(prev => prev.map(u => ((typeof (u as any).setId === 'number' ? (u as any).setId : 0) === sid) ? { ...u, customRoomName: name } : u))
+                              }}
+                              className="w-full p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                          </div>
+                        )}
+                        <div className="space-y-3">
+                          {group.map((u:any,i:number)=> (
+                            <div key={`${u.category}-${sid}-${i}`} className="border border-border/40 rounded-md p-3">
+                              <div className="flex items-center justify-between">
+                                <div className="font-medium text-foreground capitalize">{u.category} units</div>
+                                <div className="flex items-center gap-2">
+                                  <label className="flex items-center gap-2 text-sm text-foreground">
+                                    <input
+                                      type="checkbox"
+                                      className="w-4 h-4"
+                                      checked={Boolean(u.enabled)}
+                                      onChange={(e)=>setUnits(prev=>{
+                                        let count = -1
+                                        return prev.map(x => {
+                                          const sidX = typeof (x as any).setId === 'number' ? (x as any).setId : 0
+                                          if (sidX === sid) {
+                                            count++
+                                            if (count === i) return { ...x, enabled: e.target.checked }
+                                          }
+                                          return x
+                                        })
+                                      })}
+                                    />
+                                    Enable
+                                  </label>
+                                  <button
+                                    type="button"
+                                    onClick={() => setUnits(prev => {
+                                      let count = -1
+                                      const result: any[] = []
+                                      prev.forEach((x) => {
+                                        const sidX = typeof (x as any).setId === 'number' ? (x as any).setId : 0
+                                        if (sidX === sid) {
+                                          count++
+                                          if (count === i) return
+                                        }
+                                        result.push(x)
+                                      })
+                                      return result
+                                    })}
+                                    className="px-2 py-1 rounded-md border text-xs text-foreground hover:bg-destructive hover:text-white transition-colors"
+                                    aria-label={`Delete ${u.category} unit`}
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="mt-3 grid grid-cols-1 md:grid-cols-4 gap-2">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.1"
+                                  placeholder="Meters"
+                                  value={u.meters}
+                                  onChange={(e)=>setUnits(prev=>{
+                                    let count = -1
+                                    const val = parseFloat(e.target.value)||0
+                                    return prev.map(x => {
+                                      const sidX = typeof (x as any).setId === 'number' ? (x as any).setId : 0
+                                      if (sidX === sid) {
+                                        count++
+                                        if (count === i) return { ...x, meters: val }
+                                      }
+                                      return x
+                                    })
+                                  })}
+                                  className="p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                />
+                                <select
+                                  value={u.material}
+                                  onChange={(e)=>setUnits(prev=>{
+                                    let count = -1
+                                    const val = e.target.value
+                                    return prev.map(x => {
+                                      const sidX = typeof (x as any).setId === 'number' ? (x as any).setId : 0
+                                      if (sidX === sid) {
+                                        count++
+                                        if (count === i) return { ...x, material: val }
+                                      }
+                                      return x
+                                    })
+                                  })}
+                                  className="p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                >
+                                  <option value="">Material</option>
+                                  <option value="melamine">Melamine</option>
+                                  <option value="laminate">Laminate</option>
+                                  <option value="wood">Solid Wood</option>
+                                  <option value="premium">Premium Wood</option>
+                                </select>
+                                <select
+                                  value={u.finish}
+                                  onChange={(e)=>setUnits(prev=>{
+                                    let count = -1
+                                    const val = e.target.value
+                                    return prev.map(x => {
+                                      const sidX = typeof (x as any).setId === 'number' ? (x as any).setId : 0
+                                      if (sidX === sid) {
+                                        count++
+                                        if (count === i) return { ...x, finish: val }
+                                      }
+                                      return x
+                                    })
+                                  })}
+                                  className="p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                >
+                                  <option value="">Finish</option>
+                                  <option value="standard">Standard</option>
+                                  <option value="painted">Painted</option>
+                                  <option value="stained">Stained</option>
+                                  <option value="lacquer">Lacquer</option>
+                                </select>
+                                <select
+                                  value={u.hardware}
+                                  onChange={(e)=>setUnits(prev=>{
+                                    let count = -1
+                                    const val = e.target.value
+                                    return prev.map(x => {
+                                      const sidX = typeof (x as any).setId === 'number' ? (x as any).setId : 0
+                                      if (sidX === sid) {
+                                        count++
+                                        if (count === i) return { ...x, hardware: val }
+                                      }
+                                      return x
+                                    })
+                                  })}
+                                  className="p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                >
+                                  <option value="">Hardware</option>
+                                  <option value="basic">Basic</option>
+                                  <option value="soft_close">Soft-close</option>
+                                  <option value="premium">Premium</option>
+                                </select>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                      <div className="mt-3 grid grid-cols-1 md:grid-cols-4 gap-2">
-                        <input type="number" min="0" step="0.1" placeholder="Meters" value={u.meters} onChange={(e)=>setUnits(prev=>prev.map((x,idx)=>idx===i?{...x,meters:parseFloat(e.target.value)||0}:x))} className="p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20" />
-                        <select value={u.material} onChange={(e)=>setUnits(prev=>prev.map((x,idx)=>idx===i?{...x,material:e.target.value}:x))} className="p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"><option value="">Material</option><option value="melamine">Melamine</option><option value="laminate">Laminate</option><option value="wood">Solid Wood</option><option value="premium">Premium Wood</option></select>
-                        <select value={u.finish} onChange={(e)=>setUnits(prev=>prev.map((x,idx)=>idx===i?{...x,finish:e.target.value}:x))} className="p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"><option value="">Finish</option><option value="standard">Standard</option><option value="painted">Painted</option><option value="stained">Stained</option><option value="lacquer">Lacquer</option></select>
-                        <select value={u.hardware} onChange={(e)=>setUnits(prev=>prev.map((x,idx)=>idx===i?{...x,hardware:e.target.value}:x))} className="p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"><option value="">Hardware</option><option value="basic">Basic</option><option value="soft_close">Soft-close</option><option value="premium">Premium</option></select>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
                 <button
                   onClick={() => {
-                    const roomType = units[0]?.roomType || "kitchen"
-                    const customRoomName = units[0]?.customRoomName || ""
+                    const roomType = roomTypeSelection || "kitchen"
+                    const customRoomNameLocal = customRoomName || ""
+                    const maxSid = Math.max(-1, ...units.map((u:any) => typeof u.setId === 'number' ? u.setId : -1))
+                    const nextSid = maxSid + 1
                     setUnits(prev => [
                       ...prev,
-                      { enabled: true, category: "base", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType, customRoomName },
-                      { enabled: false, category: "hanging", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType, customRoomName },
-                      { enabled: false, category: "tall", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType, customRoomName },
+                      { enabled: true, category: "base", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType, customRoomName: customRoomNameLocal, setId: nextSid },
+                      { enabled: false, category: "hanging", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType, customRoomName: customRoomNameLocal, setId: nextSid },
+                      { enabled: false, category: "tall", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType, customRoomName: customRoomNameLocal, setId: nextSid },
                     ])
                   }}
                   className="mt-3 px-4 py-2 rounded-md border text-sm text-foreground hover:bg-muted/30"
@@ -475,7 +650,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
               </div>
               <div className="mt-4 flex gap-2">
                 <button onClick={()=>{localStorage.setItem("calculator_config", JSON.stringify({ formData, units, applyTax, taxRate, discount, cabinetCategory, tier, includeFees, importSurcharge, downgradeMFC })); toast.success("Configuration saved")}} className="px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Save Config</button>
-                <button onClick={()=>{try{const raw=localStorage.getItem("calculator_config"); if(!raw){toast.error("No saved config");return} const cfg=JSON.parse(raw); setFormData(cfg.formData); setUnits(cfg.units); setApplyTax(cfg.applyTax); setTaxRate(cfg.taxRate); setDiscount(cfg.discount); setCabinetCategory(cfg.cabinetCategory); setTier(cfg.tier); setIncludeFees(Boolean(cfg.includeFees)); setImportSurcharge(Boolean(cfg.importSurcharge)); setDowngradeMFC(Boolean(cfg.downgradeMFC)); toast.success("Configuration loaded")}catch{toast.error("Failed to load config")}}} className="px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Load Config</button>
+                <button onClick={()=>{try{const raw=localStorage.getItem("calculator_config"); if(!raw){toast.error("No saved config");return} const cfg=JSON.parse(raw); setFormData(cfg.formData); const loadedUnits = Array.isArray(cfg.units)? cfg.units : []; const normalized = loadedUnits.map((u:any, idx:number)=> ({ ...u, setId: typeof u.setId === 'number' ? u.setId : 0 })); setUnits(normalized); setApplyTax(cfg.applyTax); setTaxRate(cfg.taxRate); setDiscount(cfg.discount); setCabinetCategory(cfg.cabinetCategory); setTier(cfg.tier); setIncludeFees(Boolean(cfg.includeFees)); setImportSurcharge(Boolean(cfg.importSurcharge)); setDowngradeMFC(Boolean(cfg.downgradeMFC)); const firstUnit = normalized.length ? normalized[0] : {}; setRoomTypeSelection(String((firstUnit as any).roomType || "kitchen")); setCustomRoomName(String((firstUnit as any).customRoomName || "")); toast.success("Configuration loaded")}catch{toast.error("Failed to load config")}}} className="px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Load Config</button>
                 <button onClick={()=>window.print()} className="px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Print / PDF</button>
                  <button onClick={()=>setConfigOpen(true)} className="ml-auto px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Pricing Configuration</button>
               </div>
@@ -505,6 +680,8 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                         <thead className="bg-gray-50">
                           <tr>
                             <th className="text-left p-2">Category</th>
+                            <th className="text-left p-2">Set</th>
+                            <th className="text-left p-2">Room</th>
                             <th className="text-left p-2">Meters</th>
                             <th className="text-left p-2">Rate</th>
                             <th className="text-left p-2">Tier</th>
@@ -516,19 +693,30 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                           </tr>
                         </thead>
                         <tbody>
-                          {lines.map((row, idx) => (
-                            <tr key={idx} className="border-t">
-                              <td className="p-2 capitalize">{row.category}</td>
-                              <td className="p-2">{row.meters}</td>
-                              <td className="p-2">₱{Number(row.baseRate||0).toLocaleString()}/m</td>
-                              <td className="p-2">×{row.tierFactor}</td>
-                              <td className="p-2">×{row.materialFactor}</td>
-                              <td className="p-2">×{row.finishFactor}</td>
-                              <td className="p-2">×{row.hardwareFactor}</td>
-                              <td className="p-2">₱{Number(row.installationAdd||0).toLocaleString()}</td>
-                              <td className="p-2 text-right">₱{Number(row.lineTotal||0).toLocaleString()}</td>
-                            </tr>
-                          ))}
+                          {lines.map((row, idx) => {
+                            const metaList = units.filter((u:any) => u.enabled && Number(u.meters) > 0)
+                            const meta = metaList[idx] || {}
+                            const sid = typeof (meta as any).setId === 'number' ? (meta as any).setId : undefined
+                            const rt = (meta as any).roomType as string | undefined
+                            const cn = (meta as any).customRoomName as string | undefined
+                            const roomLabel = rt === 'custom' ? (cn || 'Custom') : (rt ? rt[0].toUpperCase()+rt.slice(1) : '')
+                            const setLabel = typeof sid === 'number' ? String(sid + 1) : ''
+                            return (
+                              <tr key={idx} className="border-t">
+                                <td className="p-2 capitalize">{row.category}</td>
+                                <td className="p-2">{setLabel}</td>
+                                <td className="p-2">{roomLabel}</td>
+                                <td className="p-2">{row.meters}</td>
+                                <td className="p-2">₱{Number(row.baseRate||0).toLocaleString()}/m</td>
+                                <td className="p-2">×{row.tierFactor}</td>
+                                <td className="p-2">×{row.materialFactor}</td>
+                                <td className="p-2">×{row.finishFactor}</td>
+                                <td className="p-2">×{row.hardwareFactor}</td>
+                                <td className="p-2">₱{Number(row.installationAdd||0).toLocaleString()}</td>
+                                <td className="p-2 text-right">₱{Number(row.lineTotal||0).toLocaleString()}</td>
+                              </tr>
+                            )
+                          })}
                         </tbody>
                       </table>
                     </div>
