@@ -376,7 +376,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                 <button onClick={()=>{localStorage.setItem("calculator_config", JSON.stringify({ formData, units, applyTax, taxRate, discount, cabinetCategory, tier, includeFees, importSurcharge, downgradeMFC })); toast.success("Configuration saved")}} className="px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Save Config</button>
                 <button onClick={()=>{try{const raw=localStorage.getItem("calculator_config"); if(!raw){toast.error("No saved config");return} const cfg=JSON.parse(raw); setFormData(cfg.formData); setUnits(cfg.units); setApplyTax(cfg.applyTax); setTaxRate(cfg.taxRate); setDiscount(cfg.discount); setCabinetCategory(cfg.cabinetCategory); setTier(cfg.tier); setIncludeFees(Boolean(cfg.includeFees)); setImportSurcharge(Boolean(cfg.importSurcharge)); setDowngradeMFC(Boolean(cfg.downgradeMFC)); toast.success("Configuration loaded")}catch{toast.error("Failed to load config")}}} className="px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Load Config</button>
                 <button onClick={()=>window.print()} className="px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Print / PDF</button>
-                <button onClick={()=>setConfigOpen(true)} className="ml-auto px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Pricing Configuration</button>
+                 <button onClick={()=>setConfigOpen(true)} className="ml-auto px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Pricing Configuration</button>
               </div>
             </div>
           </div>

@@ -4,10 +4,8 @@ import { AdminCalculatorEmbed } from "@/components/admin/admin-calculator-embed"
 import { supabaseServer } from "@/lib/supabase-server"
 import { promises as fs } from "fs"
 import path from "path"
-
 const filePath = ""
 const versionsPath = ""
-
 async function savePricing(formData: FormData) {
   "use server"
   const base_base = Number(formData.get("base_base") || 0)
@@ -41,7 +39,6 @@ async function savePricing(formData: FormData) {
   revalidatePath("/calculator")
   revalidatePath("/admin/calculator-pricing")
 }
-
 async function importPricing(formData: FormData) {
   "use server"
   const file = formData.get("import_file") as File | null
@@ -54,20 +51,28 @@ async function importPricing(formData: FormData) {
   revalidatePath("/calculator")
   revalidatePath("/admin/calculator-pricing")
 }
-
+async function deleteVersion(formData: FormData) {
+  "use server"
+  const ts = Number(formData.get("ts"))
+  if (!ts) return
+  const supabase = supabaseServer()
+  await supabase.from("calculator_pricing_versions").delete().eq("ts", ts)
+  revalidatePath("/admin/calculator-pricing")
+}
 export default async function AdminCalculatorPricingPage() {
   const supabase = supabaseServer()
   const { data: versions } = await supabase
     .from("calculator_pricing_versions")
     .select("ts")
     .order("ts", { ascending: false })
-
   const { data: currentRow } = await supabase
     .from("calculator_pricing")
     .select("data,updated_at")
     .eq("id", "current")
     .single()
-
+  // Auto-delete versions older than 30 days
+  const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000
+  await supabase.from("calculator_pricing_versions").delete().lt("ts", thirtyDaysAgo)
   let localVersions: any[] = []
   try {
     const versionsPath = path.join(process.cwd(), "data", "calculator-pricing.versions.json")
@@ -75,13 +80,10 @@ export default async function AdminCalculatorPricingPage() {
     const parsed = JSON.parse(txt || "[]")
     localVersions = Array.isArray(parsed) ? parsed.map((v: any) => ({ ts: v.ts })) : []
   } catch {}
-
   const mergedVersions = [...(versions || []), ...localVersions]
     .filter((v, i, arr) => arr.findIndex((x: any) => x.ts === v.ts) === i)
     .sort((a: any, b: any) => Number(b.ts) - Number(a.ts))
-
   async function restorePricing() {}
-
   return (
     <div className="max-w-6xl mx-auto px-4 space-y-6">
       <AdminCalculatorEmbed versionKey={(mergedVersions[0]?.ts as number) || 0} />
@@ -113,15 +115,20 @@ export default async function AdminCalculatorPricingPage() {
         <div className="text-sm font-semibold mb-3">Pricing Versions</div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           {mergedVersions.map((v: any) => (
-            <form key={v.ts} action="/api/pricing/restore" method="GET" className="flex items-center justify-between gap-2 border rounded p-2">
-              <input type="hidden" name="ts" value={String(v.ts)} />
+            <div key={v.ts} className="flex items-center justify-between gap-2 border rounded p-2">
               <div className="text-xs text-muted-foreground">{new Date(v.ts).toLocaleString()}</div>
-              <button type="submit" className="px-3 py-1 rounded-md border text-xs">Restore</button>
-            </form>
+              <div className="flex gap-2">
+                <form action="/api/pricing/restore" method="GET">
+                  <input type="hidden" name="ts" value={String(v.ts)} />
+                  <button type="submit" className="px-3 py-1 rounded-md border text-xs">Restore</button>
+                </form>
+                <form action={deleteVersion}>
+                  <input type="hidden" name="ts" value={String(v.ts)} />
+                  <button type="submit" className="px-3 py-1 rounded-md border text-xs text-red-600 hover:bg-red-50">Delete</button>
+                </form>
+              </div>
+            </div>
           ))}
-          {mergedVersions.length === 0 && (
-            <div className="text-xs text-muted-foreground">No versions yet</div>
-          )}
         </div>
       </div>
     </div>

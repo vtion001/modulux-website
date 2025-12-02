@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation"
 import { useState, useEffect, useRef, Fragment } from "react"
 import type React from "react"
 import { cn } from "@/lib/utils"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { LayoutDashboard, BarChart3, Users, FolderOpen, Package, ShoppingCart, User, CreditCard, FileText, Wallet, Settings, HelpCircle, Mail, Menu, X, ChevronRight, Search, Bell, Sun, ChevronDown, MessageSquare, CalendarDays, Calculator, Wrench } from "lucide-react"
 import "./side-panel-navigation.css"
@@ -133,14 +132,15 @@ export function SidePanelNavigationEnhanced({ navigation, utility, brandName, br
     update()
     const onScroll = () => update()
     el.addEventListener("scroll", onScroll, { passive: true })
-    let ro: ResizeObserver | null = null
+    let cleanupRo: (() => void) | undefined
     if (typeof window !== "undefined" && (window as any).ResizeObserver) {
-      ro = new (window as any).ResizeObserver(() => update())
+      const ro = new (window as any).ResizeObserver(() => update())
       ro.observe(el)
+      cleanupRo = () => ro.disconnect()
     }
     return () => {
       el.removeEventListener("scroll", onScroll)
-      if (ro) ro.disconnect()
+      cleanupRo?.()
     }
   }, [])
 
@@ -240,19 +240,17 @@ export function SidePanelNavigationEnhanced({ navigation, utility, brandName, br
           </div>
         </div>
         <div className="side-panel-scroll-wrapper">
-          <ScrollArea className="side-panel-scroll-area" viewportRef={viewportRef}>
-            <div>
-              {navData.map((section) => (
-                <NavSectionComponent key={section.title} section={section} />
+          <div ref={viewportRef} className="side-panel-scroll-area">
+            {navData.map((section) => (
+              <NavSectionComponent key={section.title} section={section} />
+            ))}
+            <Separator className="my-4" />
+            <div className="side-panel-utility">
+              {utilData.map((item) => (
+                <NavItemComponent key={item.href} item={item} />
               ))}
-              <Separator className="my-4" />
-              <div className="side-panel-utility">
-                {utilData.map((item) => (
-                  <NavItemComponent key={item.href} item={item} />
-                ))}
-              </div>
             </div>
-          </ScrollArea>
+          </div>
           {indicatorsOn && (
             <>
               <div className={cn("side-panel-scroll-indicator top", canScroll && !atTop && "visible")} />
