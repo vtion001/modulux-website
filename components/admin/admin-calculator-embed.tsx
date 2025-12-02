@@ -303,7 +303,45 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="bg-card rounded-lg shadow-sm border border-border/40 p-6">
-            <h2 className="text-xl font-semibold text-foreground mb-4">Project Details</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-foreground">Project Details</h2>
+              <button
+                onClick={() => {
+                  setFormData({
+                    projectType: "kitchen",
+                    roomSize: "",
+                    cabinetType: "luxury",
+                    material: "",
+                    finish: "",
+                    hardware: "",
+                    installation: false,
+                    linearMeter: "",
+                    kitchenScope: "",
+                  })
+                  setUnits([
+                    { enabled: true, category: "base", meters: 0, material: "", finish: "", hardware: "", tier: "" },
+                    { enabled: false, category: "hanging", meters: 0, material: "", finish: "", hardware: "", tier: "" },
+                    { enabled: false, category: "tall", meters: 0, material: "", finish: "", hardware: "", tier: "" },
+                  ])
+                  setCabinetCategory("base")
+                  setTier("luxury")
+                  setApplyTax(true)
+                  setTaxRate(0.12)
+                  setDiscount(0)
+                  setIncludeFees(true)
+                  setImportSurcharge(false)
+                  setDowngradeMFC(false)
+                  setEstimate(null)
+                  setSubtotal(null)
+                  setTax(null)
+                  setLines([])
+                  toast.success("Calculator cleared")
+                }}
+                className="px-3 py-1.5 rounded-md border text-sm text-foreground hover:bg-muted/30"
+              >
+                Clear
+              </button>
+            </div>
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-3">Project Type</label>
