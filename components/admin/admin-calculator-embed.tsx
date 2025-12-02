@@ -383,6 +383,44 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-3">Cabinet Units</label>
+                {/* Room type selector for the whole set */}
+                <div className="mb-3">
+                  <label className="block text-xs font-medium text-muted-foreground mb-1">Room Type</label>
+                  <select
+                    value={units[0]?.roomType || "kitchen"}
+                    onChange={(e) => {
+                      const newRoom = e.target.value
+                      setUnits(prev =>
+                        prev.map(u => ({ ...u, roomType: newRoom }))
+                      )
+                    }}
+                    className="w-full p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  >
+                    <option value="kitchen">Kitchen</option>
+                    <option value="bathroom">Bathroom</option>
+                    <option value="bedroom">Bedroom</option>
+                    <option value="office">Office</option>
+                    <option value="custom">Custom / Other</option>
+                  </select>
+                </div>
+                {/* Custom room name field, shown only when "custom" is selected */}
+                {units[0]?.roomType === "custom" && (
+                  <div className="mb-3">
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">Room Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Pantry, Laundry, Walk-in Closet"
+                      value={units[0]?.customRoomName || ""}
+                      onChange={(e) => {
+                        const name = e.target.value
+                        setUnits(prev =>
+                          prev.map(u => ({ ...u, customRoomName: name }))
+                        )
+                      }}
+                      className="w-full p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    />
+                  </div>
+                )}
                 <div className="space-y-3">
                   {units.map((u,i)=> (
                     <div key={`${u.category}-${i}`} className="border border-border/40 rounded-md p-3">
@@ -411,16 +449,18 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                 </div>
                 <button
                   onClick={() => {
+                    const roomType = units[0]?.roomType || "kitchen"
+                    const customRoomName = units[0]?.customRoomName || ""
                     setUnits(prev => [
                       ...prev,
-                      { enabled: true, category: "base", meters: 0, material: "", finish: "", hardware: "", tier: "" },
-                      { enabled: false, category: "hanging", meters: 0, material: "", finish: "", hardware: "", tier: "" },
-                      { enabled: false, category: "tall", meters: 0, material: "", finish: "", hardware: "", tier: "" },
+                      { enabled: true, category: "base", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType, customRoomName },
+                      { enabled: false, category: "hanging", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType, customRoomName },
+                      { enabled: false, category: "tall", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType, customRoomName },
                     ])
                   }}
                   className="mt-3 px-4 py-2 rounded-md border text-sm text-foreground hover:bg-muted/30"
                 >
-                  Add Unit
+                  Add Unit Set
                 </button>
               </div>
 
