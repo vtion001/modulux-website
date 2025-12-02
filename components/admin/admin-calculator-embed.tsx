@@ -385,10 +385,20 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                 <label className="block text-sm font-medium text-foreground mb-3">Cabinet Units</label>
                 <div className="space-y-3">
                   {units.map((u,i)=> (
-                    <div key={u.category} className="border border-border/40 rounded-md p-3">
+                    <div key={`${u.category}-${i}`} className="border border-border/40 rounded-md p-3">
                       <div className="flex items-center justify-between">
                         <div className="font-medium text-foreground capitalize">{u.category} units</div>
-                        <label className="flex items-center gap-2 text-sm text-foreground"><input type="checkbox" className="w-4 h-4" checked={u.enabled} onChange={(e)=>setUnits(prev=>prev.map((x,idx)=>idx===i?{...x,enabled:e.target.checked}:x))}/>Enable</label>
+                        <div className="flex items-center gap-2">
+                          <label className="flex items-center gap-2 text-sm text-foreground"><input type="checkbox" className="w-4 h-4" checked={u.enabled} onChange={(e)=>setUnits(prev=>prev.map((x,idx)=>idx===i?{...x,enabled:e.target.checked}:x))}/>Enable</label>
+                          <button
+                            type="button"
+                            onClick={() => setUnits(prev => prev.filter((_, idx) => idx !== i))}
+                            className="px-2 py-1 rounded-md border text-xs text-foreground hover:bg-destructive hover:text-white transition-colors"
+                            aria-label={`Delete ${u.category} unit`}
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
                       <div className="mt-3 grid grid-cols-1 md:grid-cols-4 gap-2">
                         <input type="number" min="0" step="0.1" placeholder="Meters" value={u.meters} onChange={(e)=>setUnits(prev=>prev.map((x,idx)=>idx===i?{...x,meters:parseFloat(e.target.value)||0}:x))} className="p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20" />
@@ -399,6 +409,19 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                     </div>
                   ))}
                 </div>
+                <button
+                  onClick={() => {
+                    setUnits(prev => [
+                      ...prev,
+                      { enabled: true, category: "base", meters: 0, material: "", finish: "", hardware: "", tier: "" },
+                      { enabled: false, category: "hanging", meters: 0, material: "", finish: "", hardware: "", tier: "" },
+                      { enabled: false, category: "tall", meters: 0, material: "", finish: "", hardware: "", tier: "" },
+                    ])
+                  }}
+                  className="mt-3 px-4 py-2 rounded-md border text-sm text-foreground hover:bg-muted/30"
+                >
+                  Add Unit
+                </button>
               </div>
 
               <div className="flex items-center"><input type="checkbox" id="installation" checked={formData.installation} onChange={(e)=>handleInputChange("installation", e.target.checked)} className="w-4 h-4"/><label htmlFor="installation" className="ml-2 text-sm font-medium text-foreground">Include Professional Installation</label></div>
