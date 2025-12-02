@@ -223,7 +223,10 @@ export function SidePanelNavigationEnhanced({ navigation, utility, brandName, br
       <nav id="side-panel-navigation" className={cn("side-panel-nav md:translate-x-0", isOpen ? "translate-x-0" : "-translate-x-full")} role="navigation" aria-label="Main navigation">
         <div className="side-panel-header">
           <Link href="/" className="side-panel-logo">
-            <div className="side-panel-logo-icon"><span>{brandInitialText}</span></div>
+            <div className="side-panel-logo-icon">
+              {/* Replace src with your logo URL */}
+              <img src="https://res.cloudinary.com/dbviya1rj/image/upload/v1757004631/nlir90vrzv0qywleruvv.png" alt="Logo" className="h-full w-full object-contain" />
+            </div>
             <span>{brandText}</span>
           </Link>
           <button onClick={handleToggleMenu} className="md:hidden p-1 text-gray-500 hover:text-gray-700" aria-label="Close navigation menu">
@@ -272,7 +275,7 @@ export function SidePanelNavigationEnhanced({ navigation, utility, brandName, br
         <div className="side-panel-header-content">
           <div className="side-panel-breadcrumb">
             <button onClick={handleToggleMenu} className="md:hidden p-2 text-gray-500 hover:text-gray-700" aria-label="Toggle navigation menu"><Menu className="h-4 w-4" /></button>
-            {crumbs.length > 0 && <span className="side-panel-breadcrumb-item">{crumbs[0]}</span>}
+            {crumbs.length > 0 && <span className="side-panel-breadcrumb-item ml-2">{crumbs[0]}</span>}
             {crumbs.slice(1).map((c, i) => (
               <Fragment key={`crumb-${i}`}>
                 <span className="side-panel-breadcrumb-separator">/</span>

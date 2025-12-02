@@ -54,9 +54,9 @@
 }
 
 .side-panel-logo-icon {
-  width: 2rem;
-  height: 2rem;
-  background-color: var(--nav-active-border);
+  width: 20rem;
+  height: 6rem;
+  background-color: transparent;
   border-radius: 0.5rem;
   display: flex;
   align-items: center;
