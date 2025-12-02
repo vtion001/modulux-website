@@ -1,5 +1,597 @@
 [
   {
+    "id": "proposal_1764629834632",
+    "client": {
+      "name": "vj ruado",
+      "email": "vjrodriguez1994@gmail.com",
+      "company": ""
+    },
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "description": "base cabinets (basic)",
+        "quantity": 3,
+        "unitPrice": 40878
+      },
+      {
+        "description": "hanging cabinets (basic)",
+        "quantity": 3,
+        "unitPrice": 38834
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "kitchen • base • Standard\nUnits: base:3, hanging:3\nMaterial:— • Finish:— • Hardware:—\nIncluded: Carcass: 18mm MR MFC Melamine Board; Door: 18mm MR MFC Melamine Board; Hinges: Zinc Plated 3D Hinges Soft Closing; Drawers: Regular Wooden Drawing Box ( Soft Closing ); Countertop: Granite Countertop\nExclusive: Special Mechanism; Lighting; Appliances\nFees:Included • Import:No • Downgrade MFC:No",
+    "created_at": 1764629834853,
+    "pricingSnapshot": {
+      "baseRates": {
+        "base": 2,
+        "tall": 2.2,
+        "hanging": 1.6
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      }
+    },
+    "pricingSnapshotTs": "2025-12-01T22:57:14.632Z",
+    "calculatorSnapshot": {
+      "formData": {
+        "finish": "",
+        "hardware": "",
+        "material": "",
+        "roomSize": "",
+        "cabinetType": "basic",
+        "linearMeter": "",
+        "projectType": "kitchen",
+        "installation": false,
+        "kitchenScope": ""
+      },
+      "units": [
+        {
+          "tier": "",
+          "finish": "standard",
+          "meters": 3,
+          "enabled": true,
+          "category": "base",
+          "hardware": "basic",
+          "material": "melamine"
+        },
+        {
+          "tier": "",
+          "finish": "standard",
+          "meters": 3,
+          "enabled": true,
+          "category": "hanging",
+          "hardware": "basic",
+          "material": "melamine"
+        },
+        {
+          "tier": "",
+          "finish": "",
+          "meters": 0,
+          "enabled": false,
+          "category": "tall",
+          "hardware": "",
+          "material": ""
+        }
+      ],
+      "applyTax": true,
+      "taxRate": 0.12,
+      "discount": 0,
+      "cabinetCategory": "base",
+      "tier": "standard",
+      "includeFees": true,
+      "importSurcharge": false,
+      "downgradeMFC": false
+    }
+  },
+  {
+    "id": "proposal_1764629794838",
+    "client": {
+      "name": "vj ruado",
+      "email": "vjrodriguez1994@gmail.com",
+      "company": ""
+    },
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "description": "base cabinets (basic)",
+        "quantity": 3,
+        "unitPrice": 40878
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "kitchen • base • Standard\nUnits: base:3\nMaterial:— • Finish:— • Hardware:—\nIncluded: Carcass: 18mm MR MFC Melamine Board; Door: 18mm MR MFC Melamine Board; Hinges: Zinc Plated 3D Hinges Soft Closing; Drawers: Regular Wooden Drawing Box ( Soft Closing ); Countertop: Granite Countertop\nExclusive: Special Mechanism; Lighting; Appliances\nFees:Included • Import:No • Downgrade MFC:No",
+    "created_at": 1764629795087,
+    "pricingSnapshot": {
+      "baseRates": {
+        "base": 2,
+        "tall": 2.2,
+        "hanging": 1.6
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      }
+    },
+    "pricingSnapshotTs": "2025-12-01T22:56:34.838Z",
+    "calculatorSnapshot": {
+      "formData": {
+        "finish": "",
+        "hardware": "",
+        "material": "",
+        "roomSize": "",
+        "cabinetType": "basic",
+        "linearMeter": "",
+        "projectType": "kitchen",
+        "installation": false,
+        "kitchenScope": ""
+      },
+      "units": [
+        {
+          "tier": "",
+          "finish": "",
+          "meters": 3,
+          "enabled": true,
+          "category": "base",
+          "hardware": "basic",
+          "material": ""
+        },
+        {
+          "tier": "",
+          "finish": "",
+          "meters": 0,
+          "enabled": false,
+          "category": "hanging",
+          "hardware": "",
+          "material": ""
+        },
+        {
+          "tier": "",
+          "finish": "",
+          "meters": 0,
+          "enabled": false,
+          "category": "tall",
+          "hardware": "",
+          "material": ""
+        }
+      ],
+      "applyTax": true,
+      "taxRate": 0.12,
+      "discount": 0,
+      "cabinetCategory": "base",
+      "tier": "standard",
+      "includeFees": true,
+      "importSurcharge": false,
+      "downgradeMFC": false
+    }
+  },
+  {
+    "id": "proposal_1764628970980",
+    "client": {
+      "name": "vj ruado",
+      "email": "vjrodriguez1994@gmail.com",
+      "company": ""
+    },
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "description": "base cabinets (basic)",
+        "quantity": 3,
+        "unitPrice": 40878
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "kitchen • base • Standard\nUnits: base:3\nMaterial:— • Finish:— • Hardware:—\nIncluded: Carcass: 18mm MR MFC Melamine Board; Door: 18mm MR MFC Melamine Board; Hinges: Zinc Plated 3D Hinges Soft Closing; Drawers: Regular Wooden Drawing Box ( Soft Closing ); Countertop: Granite Countertop\nExclusive: Special Mechanism; Lighting; Appliances\nFees:Included • Import:No • Downgrade MFC:No",
+    "created_at": 1764628971171,
+    "pricingSnapshot": {
+      "baseRates": {
+        "base": 2,
+        "tall": 2.2,
+        "hanging": 1.6
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      }
+    },
+    "pricingSnapshotTs": "2025-12-01T22:42:50.980Z",
+    "calculatorSnapshot": {
+      "formData": {
+        "finish": "",
+        "hardware": "",
+        "material": "",
+        "roomSize": "",
+        "cabinetType": "basic",
+        "linearMeter": "",
+        "projectType": "kitchen",
+        "installation": false,
+        "kitchenScope": ""
+      },
+      "units": [
+        {
+          "tier": "",
+          "finish": "",
+          "meters": 3,
+          "enabled": true,
+          "category": "base",
+          "hardware": "basic",
+          "material": ""
+        },
+        {
+          "tier": "",
+          "finish": "",
+          "meters": 0,
+          "enabled": false,
+          "category": "hanging",
+          "hardware": "",
+          "material": ""
+        },
+        {
+          "tier": "",
+          "finish": "",
+          "meters": 0,
+          "enabled": false,
+          "category": "tall",
+          "hardware": "",
+          "material": ""
+        }
+      ],
+      "applyTax": true,
+      "taxRate": 0.12,
+      "discount": 0,
+      "cabinetCategory": "base",
+      "tier": "standard",
+      "includeFees": true,
+      "importSurcharge": false,
+      "downgradeMFC": false
+    }
+  },
+  {
+    "id": "proposal_1764628415724",
+    "client": {
+      "name": "vj ruado",
+      "email": "vjrodriguez1994@gmail.com",
+      "company": ""
+    },
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "description": "base cabinets (luxury)",
+        "quantity": 3,
+        "unitPrice": 51097
+      },
+      {
+        "description": "hanging cabinets (luxury)",
+        "quantity": 3,
+        "unitPrice": 48543
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "kitchen • base • Luxury\nUnits: base:3, hanging:3\nMaterial:— • Finish:— • Hardware:—\nIncluded: Carcass: 18mm Celuka PVC Boards; Door: 18mm MDF PETG/Acrylic Boards; Hinges: Blum Hinges ( Soft Closing ); Drawers: Blum Tandem Box Drawers ( Soft Closing ); Countertop: Synthetic Quartz Countertop\nExclusive: Special Mechanism; Lighting; Appliances\nFees:Included • Import:No • Downgrade MFC:No",
+    "created_at": 1764628416034,
+    "pricingSnapshot": {
+      "baseRates": {
+        "base": 2,
+        "tall": 2.2,
+        "hanging": 1.6
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      }
+    },
+    "pricingSnapshotTs": "2025-12-01T22:33:35.724Z",
+    "calculatorSnapshot": {
+      "formData": {
+        "finish": "",
+        "hardware": "",
+        "material": "",
+        "roomSize": "",
+        "cabinetType": "luxury",
+        "linearMeter": "",
+        "projectType": "kitchen",
+        "installation": false,
+        "kitchenScope": ""
+      },
+      "units": [
+        {
+          "tier": "",
+          "finish": "",
+          "meters": 3,
+          "enabled": true,
+          "category": "base",
+          "hardware": "basic",
+          "material": ""
+        },
+        {
+          "tier": "",
+          "finish": "",
+          "meters": 3,
+          "enabled": true,
+          "category": "hanging",
+          "hardware": "",
+          "material": ""
+        },
+        {
+          "tier": "",
+          "finish": "",
+          "meters": 0,
+          "enabled": false,
+          "category": "tall",
+          "hardware": "",
+          "material": ""
+        }
+      ],
+      "applyTax": true,
+      "taxRate": 0.12,
+      "discount": 0,
+      "cabinetCategory": "base",
+      "tier": "luxury",
+      "includeFees": true,
+      "importSurcharge": false,
+      "downgradeMFC": false
+    }
+  },
+  {
+    "id": "proposal_1764552717416",
+    "client": {
+      "name": "vj ruado",
+      "email": "vjrodriguez1994@gmail.com",
+      "company": ""
+    },
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "description": "base cabinets (basic)",
+        "quantity": 3,
+        "unitPrice": 40878
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "Auto-generated from calculator (Admin)",
+    "created_at": 1764552717606,
+    "pricingSnapshot": {
+      "baseRates": {
+        "base": 2,
+        "tall": 2.2,
+        "hanging": 1.6
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      }
+    },
+    "pricingSnapshotTs": "2025-12-01T01:31:57.416Z",
+    "calculatorSnapshot": {
+      "formData": {
+        "finish": "",
+        "hardware": "",
+        "material": "",
+        "roomSize": "",
+        "cabinetType": "basic",
+        "linearMeter": "",
+        "projectType": "kitchen",
+        "installation": false,
+        "kitchenScope": ""
+      },
+      "units": [
+        {
+          "tier": "",
+          "finish": "",
+          "meters": 3,
+          "enabled": true,
+          "category": "base",
+          "hardware": "basic",
+          "material": ""
+        },
+        {
+          "tier": "",
+          "finish": "",
+          "meters": 0,
+          "enabled": false,
+          "category": "hanging",
+          "hardware": "",
+          "material": ""
+        },
+        {
+          "tier": "",
+          "finish": "",
+          "meters": 0,
+          "enabled": false,
+          "category": "tall",
+          "hardware": "",
+          "material": ""
+        }
+      ],
+      "applyTax": true,
+      "taxRate": 0.12,
+      "discount": 0,
+      "cabinetCategory": "base",
+      "tier": "standard",
+      "includeFees": true,
+      "importSurcharge": false,
+      "downgradeMFC": false
+    }
+  },
+  {
+    "id": "proposal_1764552685191",
+    "client": {
+      "name": "vj ruado",
+      "email": "vjrodriguez1994@gmail.com",
+      "company": ""
+    },
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "description": "base cabinets (basic)",
+        "quantity": 3,
+        "unitPrice": 40878
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "Auto-generated from calculator (Admin)",
+    "created_at": 1764552685735,
+    "pricingSnapshot": {
+      "baseRates": {
+        "base": 2,
+        "tall": 2.2,
+        "hanging": 1.6
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      }
+    },
+    "pricingSnapshotTs": "2025-12-01T01:31:25.191Z",
+    "calculatorSnapshot": {
+      "formData": {
+        "finish": "",
+        "hardware": "",
+        "material": "",
+        "roomSize": "",
+        "cabinetType": "basic",
+        "linearMeter": "",
+        "projectType": "kitchen",
+        "installation": false,
+        "kitchenScope": ""
+      },
+      "units": [
+        {
+          "tier": "",
+          "finish": "",
+          "meters": 3,
+          "enabled": true,
+          "category": "base",
+          "hardware": "basic",
+          "material": ""
+        },
+        {
+          "tier": "",
+          "finish": "",
+          "meters": 0,
+          "enabled": false,
+          "category": "hanging",
+          "hardware": "",
+          "material": ""
+        },
+        {
+          "tier": "",
+          "finish": "",
+          "meters": 0,
+          "enabled": false,
+          "category": "tall",
+          "hardware": "",
+          "material": ""
+        }
+      ],
+      "applyTax": true,
+      "taxRate": 0.12,
+      "discount": 0,
+      "cabinetCategory": "base",
+      "tier": "standard",
+      "includeFees": true,
+      "importSurcharge": false,
+      "downgradeMFC": false
+    }
+  },
+  {
     "id": "proposal_1764551596343",
     "client": {
       "name": "vj ruado",
