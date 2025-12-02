@@ -31,6 +31,8 @@
   border-right: 1px solid var(--nav-border);
   box-shadow: var(--nav-shadow);
   transition: var(--nav-transition);
+  display: flex;
+  flex-direction: column;
 }
 
 /* Header section */
@@ -485,45 +487,28 @@
 /* Scroll area styling */
 .side-panel-scroll-area {
   flex: 1;
+  height: 100%;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--nav-text-muted) transparent;
+  min-height: 0;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
-.side-panel-scroll-area::-webkit-scrollbar {
-  width: 6px;
-}
+.side-panel-scroll-area::-webkit-scrollbar { width: 6px; }
+.side-panel-scroll-area::-webkit-scrollbar-track { background: transparent; }
+.side-panel-scroll-area::-webkit-scrollbar-thumb { background-color: var(--nav-text-muted); border-radius: 3px; }
+.side-panel-scroll-area::-webkit-scrollbar-thumb:hover { background-color: var(--nav-text-secondary); }
 
-.side-panel-scroll-area::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.side-panel-scroll-area::-webkit-scrollbar-thumb {
-  background-color: var(--nav-text-muted);
-  border-radius: 3px;
-}
-
-.side-panel-scroll-area::-webkit-scrollbar-thumb:hover {
-  background-color: var(--nav-text-secondary);
-}
-
-/* Animation keyframes */
 @keyframes slideInLeft {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(0);
-  }
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
 }
 
 @keyframes slideOutLeft {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-100%);
-  }
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
 }
 
 @keyframes fadeIn {
@@ -600,3 +585,37 @@
     padding: 0 !important;
   }
 }
+/* Scroll indicators */
+.side-panel-scroll-wrapper {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.side-panel-scroll-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 12px;
+  pointer-events: none;
+  opacity: 0;
+  transition: var(--nav-transition);
+  z-index: 10;
+}
+
+.side-panel-scroll-indicator.top {
+  top: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.08), rgba(0,0,0,0));
+}
+
+.side-panel-scroll-indicator.bottom {
+  bottom: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.08), rgba(0,0,0,0));
+}
+
+.side-panel-scroll-indicator.visible {
+  opacity: 1;
+}
+
+.side-panel-radix-scrollbar { width: 8px; user-select: none; touch-action: none; }
+.side-panel-radix-thumb { background-color: var(--nav-text-muted); border-radius: 4px; }

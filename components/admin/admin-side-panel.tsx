@@ -64,6 +64,7 @@ export function AdminSidePanel(): JSX.Element {
       breadcrumbItems={["Dashboard", "Admin"]}
       navigation={navigation}
       utility={utility}
+      showScrollIndicators={true}
     />
   )
 }
