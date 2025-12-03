@@ -1,5 +1,209 @@
 [
   {
+    "id": "proposal_1764762128539",
+    "client": {
+      "name": "vincent john rodriguez",
+      "email": "vjrodriguez1994@gmail.com",
+      "company": ""
+    },
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "description": "base cabinets (basic)",
+        "quantity": 3,
+        "unitPrice": 40878
+      },
+      {
+        "description": "hanging cabinets (basic)",
+        "quantity": 3,
+        "unitPrice": 38834
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "Auto-generated from calculator (Admin)",
+    "created_at": 1764762128930,
+    "pricingSnapshot": {
+      "baseRates": {
+        "base": 2,
+        "tall": 2.2,
+        "hanging": 1.6
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withFees": 51097.4,
+          "withoutFees": 40476.4
+        },
+        "tall": {
+          "withFees": 82286.1,
+          "withoutFees": 65182.2
+        },
+        "hanging": {
+          "withFees": 48542.53,
+          "withoutFees": 38452.58
+        }
+      }
+    },
+    "pricingSnapshotTs": "2025-12-03T11:42:08.539Z",
+    "calculatorSnapshot": {
+      "formData": {
+        "finish": "",
+        "hardware": "",
+        "material": "",
+        "roomSize": "",
+        "cabinetType": "basic",
+        "linearMeter": "",
+        "projectType": "kitchen",
+        "installation": false,
+        "kitchenScope": ""
+      },
+      "units": [
+        {
+          "tier": "",
+          "finish": "standard",
+          "meters": 3,
+          "enabled": true,
+          "category": "base",
+          "hardware": "basic",
+          "material": "melamine"
+        },
+        {
+          "tier": "",
+          "finish": "standard",
+          "meters": 3,
+          "enabled": true,
+          "category": "hanging",
+          "hardware": "basic",
+          "material": "melamine"
+        },
+        {
+          "tier": "",
+          "finish": "",
+          "meters": 0,
+          "enabled": false,
+          "category": "tall",
+          "hardware": "",
+          "material": ""
+        }
+      ],
+      "applyTax": true,
+      "taxRate": 0.12,
+      "discount": 0,
+      "cabinetCategory": "base",
+      "tier": "standard",
+      "includeFees": true,
+      "importSurcharge": false,
+      "downgradeMFC": false
+    }
+  },
+  {
+    "id": "proposal_1764762119857",
+    "client": {
+      "name": "vincent john rodriguez",
+      "email": "vjrodriguez1994@gmail.com",
+      "company": ""
+    },
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "description": "base cabinets (basic)",
+        "quantity": 3,
+        "unitPrice": 40878
+      },
+      {
+        "description": "hanging cabinets (basic)",
+        "quantity": 3,
+        "unitPrice": 38834
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "Auto-generated from calculator (Admin)",
+    "created_at": 1764762120279,
+    "pricingSnapshot": {
+      "baseRates": {
+        "base": 2,
+        "tall": 2.2,
+        "hanging": 1.6
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withFees": 51097.4,
+          "withoutFees": 40476.4
+        },
+        "tall": {
+          "withFees": 82286.1,
+          "withoutFees": 65182.2
+        },
+        "hanging": {
+          "withFees": 48542.53,
+          "withoutFees": 38452.58
+        }
+      }
+    },
+    "pricingSnapshotTs": "2025-12-03T11:41:59.857Z",
+    "calculatorSnapshot": {
+      "formData": {
+        "finish": "",
+        "hardware": "",
+        "material": "",
+        "roomSize": "",
+        "cabinetType": "basic",
+        "linearMeter": "",
+        "projectType": "kitchen",
+        "installation": false,
+        "kitchenScope": ""
+      },
+      "units": [
+        {
+          "tier": "",
+          "finish": "standard",
+          "meters": 3,
+          "enabled": true,
+          "category": "base",
+          "hardware": "basic",
+          "material": "melamine"
+        },
+        {
+          "tier": "",
+          "finish": "standard",
+          "meters": 3,
+          "enabled": true,
+          "category": "hanging",
+          "hardware": "basic",
+          "material": "melamine"
+        },
+        {
+          "tier": "",
+          "finish": "",
+          "meters": 0,
+          "enabled": false,
+          "category": "tall",
+          "hardware": "",
+          "material": ""
+        }
+      ],
+      "applyTax": true,
+      "taxRate": 0.12,
+      "discount": 0,
+      "cabinetCategory": "base",
+      "tier": "standard",
+      "includeFees": true,
+      "importSurcharge": false,
+      "downgradeMFC": false
+    }
+  },
+  {
     "id": "proposal_1764701127588",
     "client": {
       "name": "vincent john rodriguez",

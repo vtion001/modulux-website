@@ -1,5 +1,163 @@
 [
   {
+    "ts": 1764762128929,
+    "data": {
+      "baseRates": {
+        "base": 2,
+        "tall": 2.2,
+        "hanging": 1.6
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withFees": 51097.4,
+          "withoutFees": 40476.4
+        },
+        "tall": {
+          "withFees": 82286.1,
+          "withoutFees": 65182.2
+        },
+        "hanging": {
+          "withFees": 48542.53,
+          "withoutFees": 38452.58
+        }
+      },
+      "prefill": {
+        "formData": {
+          "finish": "",
+          "hardware": "",
+          "material": "",
+          "roomSize": "",
+          "cabinetType": "basic",
+          "linearMeter": "",
+          "projectType": "kitchen",
+          "installation": false,
+          "kitchenScope": ""
+        },
+        "units": [
+          {
+            "tier": "",
+            "finish": "standard",
+            "meters": 3,
+            "enabled": true,
+            "category": "base",
+            "hardware": "basic",
+            "material": "melamine"
+          },
+          {
+            "tier": "",
+            "finish": "standard",
+            "meters": 3,
+            "enabled": true,
+            "category": "hanging",
+            "hardware": "basic",
+            "material": "melamine"
+          },
+          {
+            "tier": "",
+            "finish": "",
+            "meters": 0,
+            "enabled": false,
+            "category": "tall",
+            "hardware": "",
+            "material": ""
+          }
+        ],
+        "applyTax": true,
+        "taxRate": 0.12,
+        "discount": 0,
+        "cabinetCategory": "base",
+        "tier": "standard",
+        "includeFees": true,
+        "importSurcharge": false,
+        "downgradeMFC": false
+      }
+    }
+  },
+  {
+    "ts": 1764762120275,
+    "data": {
+      "baseRates": {
+        "base": 2,
+        "tall": 2.2,
+        "hanging": 1.6
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withFees": 51097.4,
+          "withoutFees": 40476.4
+        },
+        "tall": {
+          "withFees": 82286.1,
+          "withoutFees": 65182.2
+        },
+        "hanging": {
+          "withFees": 48542.53,
+          "withoutFees": 38452.58
+        }
+      },
+      "prefill": {
+        "formData": {
+          "finish": "",
+          "hardware": "",
+          "material": "",
+          "roomSize": "",
+          "cabinetType": "basic",
+          "linearMeter": "",
+          "projectType": "kitchen",
+          "installation": false,
+          "kitchenScope": ""
+        },
+        "units": [
+          {
+            "tier": "",
+            "finish": "standard",
+            "meters": 3,
+            "enabled": true,
+            "category": "base",
+            "hardware": "basic",
+            "material": "melamine"
+          },
+          {
+            "tier": "",
+            "finish": "standard",
+            "meters": 3,
+            "enabled": true,
+            "category": "hanging",
+            "hardware": "basic",
+            "material": "melamine"
+          },
+          {
+            "tier": "",
+            "finish": "",
+            "meters": 0,
+            "enabled": false,
+            "category": "tall",
+            "hardware": "",
+            "material": ""
+          }
+        ],
+        "applyTax": true,
+        "taxRate": 0.12,
+        "discount": 0,
+        "cabinetCategory": "base",
+        "tier": "standard",
+        "includeFees": true,
+        "importSurcharge": false,
+        "downgradeMFC": false
+      }
+    }
+  },
+  {
     "ts": 1764701127775,
     "data": {
       "baseRates": {

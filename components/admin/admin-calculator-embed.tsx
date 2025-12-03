@@ -842,11 +842,35 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                         applyImportSurcharge: importSurcharge,
                         downgradeToMFC: downgradeMFC,
                       })
-                      const items = (calc?.breakdown?.units||[]).map((u:any)=>({
-                        description: `${u.category} cabinets (${formData.cabinetType})`,
-                        quantity: Number(u.meters||0),
-                        unitPrice: Math.round(Number(u.lineTotal||0)/Math.max(1, Number(u.meters||1)))
-                      }))
+                      const metaList = units.filter((uu:any)=>uu.enabled && Number(uu.meters)>0)
+                      const items = (calc?.breakdown?.units||[]).map((u:any, idx:number)=>{
+                        const meta:any = metaList[idx] || {}
+                        const sid = typeof meta.setId === 'number' ? meta.setId : undefined
+                        const setLabel = typeof sid === 'number' ? `Set ${sid+1}` : ''
+                        const rt = String(meta.roomType || '')
+                        const roomLabel = rt === 'custom' ? String(meta.customRoomName||'Custom') : (rt ? rt[0].toUpperCase()+rt.slice(1) : '')
+                        const materialTxt = String(meta.material||'').replace(/_/g,' ')
+                        const finishTxt = String(meta.finish||'').replace(/_/g,' ')
+                        const hardwareTxt = String(meta.hardware||'').replace(/_/g,' ')
+                        const details = [
+                          setLabel ? setLabel : null,
+                          roomLabel ? `Room: ${roomLabel}` : null,
+                          `Tier: ${String(u.tier||tier)}`,
+                          materialTxt ? `Material: ${materialTxt}` : null,
+                          finishTxt ? `Finish: ${finishTxt}` : null,
+                          hardwareTxt ? `Hardware: ${hardwareTxt}` : null,
+                          `Meters: ${Number(u.meters||0)}`,
+                          `Rate: ₱${Number(u.baseRate||0).toLocaleString()}/m`,
+                          `Factors: ×${Number(u.tierFactor||1)} ×${Number(u.materialFactor||1)} ×${Number(u.finishFactor||1)} ×${Number(u.hardwareFactor||1)}`,
+                          Number(u.installationAdd||0) ? `Install add: ₱${Number(u.installationAdd||0).toLocaleString()}` : null,
+                        ].filter(Boolean).join(' • ')
+                        return {
+                          description: `${u.category} cabinets (${formData.cabinetType})`,
+                          quantity: Number(u.meters||0),
+                          unitPrice: Math.round(Number(u.lineTotal||0)/Math.max(1, Number(u.meters||1))),
+                          details,
+                        }
+                      })
                       const payload = {
                         client: { name: selectedClient.name||"", email: selectedClient.email||"", company: selectedClient.company||"" },
                         title: `${formData.projectType||"Project"} Proposal`,

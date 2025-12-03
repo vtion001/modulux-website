@@ -277,10 +277,16 @@ export default async function AdminCRMPage() {
                                 </SaveForm>
                               </div>
                             </details>
-                            <SaveForm action={deleteContact} className="flex items-center gap-2">
-                              <input type="hidden" name="id" defaultValue={c.id} />
-                              <SubmitButton className="text-xs inline-flex items-center justify-center w-24 h-8 border rounded hover:bg-gray-50">Delete</SubmitButton>
-                            </SaveForm>
+                            <details className="relative">
+                              <summary className="list-none inline-flex items-center justify-center w-24 h-8 rounded-md border text-xs cursor-pointer hover:bg-gray-50">Delete</summary>
+                              <div className="absolute z-10 mt-2 w-64 bg-white text-foreground rounded-lg border border-border/40 shadow-lg p-3">
+                                <p className="text-sm mb-2">Are you sure you want to delete this contact?</p>
+                                <SaveForm action={deleteContact} className="flex items-center gap-2">
+                                  <input type="hidden" name="id" defaultValue={c.id} />
+                                  <SubmitButton className="text-xs px-2 py-1 border rounded hover:bg-gray-50">Confirm</SubmitButton>
+                                </SaveForm>
+                              </div>
+                            </details>
                           </div>
                         </td>
                       </tr>

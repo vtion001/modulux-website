@@ -10,6 +10,7 @@ type ProposalItem = {
   description: string
   quantity: number
   unitPrice: number
+  details?: string
 }
 
 export default function AdminProposalsPage() {
@@ -25,7 +26,7 @@ export default function AdminProposalsPage() {
   const [notes, setNotes] = useState("")
 
   const [items, setItems] = useState<ProposalItem[]>([
-    { id: crypto.randomUUID(), description: "Base cabinets (luxury)", quantity: 6, unitPrice: 18500 },
+    { id: crypto.randomUUID(), description: "Base cabinets (luxury)", quantity: 6, unitPrice: 18500, details: "" },
   ])
   const [taxRate, setTaxRate] = useState(12)
   const [discount, setDiscount] = useState(0)
@@ -43,7 +44,7 @@ export default function AdminProposalsPage() {
             setClientEmail(found?.client?.email || "")
             setClientCompany(found?.client?.company || "")
             setTitle(found?.title || "Proposal")
-            setItems((Array.isArray(found?.items) ? found.items : []).map((x: any) => ({ id: crypto.randomUUID(), description: String(x?.description || ""), quantity: Number(x?.quantity || 0), unitPrice: Number(x?.unitPrice || 0) })))
+            setItems((Array.isArray(found?.items) ? found.items : []).map((x: any) => ({ id: crypto.randomUUID(), description: String(x?.description || ""), quantity: Number(x?.quantity || 0), unitPrice: Number(x?.unitPrice || 0), details: String(x?.details || "") })))
             setTaxRate(Number(found?.taxRate || 0))
             setDiscount(Number(found?.discount || 0))
             setNotes(String(found?.notes || ""))
@@ -56,7 +57,7 @@ export default function AdminProposalsPage() {
   const addItem = () => {
     setItems((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), description: "", quantity: 1, unitPrice: 0 },
+      { id: crypto.randomUUID(), description: "", quantity: 1, unitPrice: 0, details: "" },
     ])
   }
 
@@ -177,10 +178,16 @@ export default function AdminProposalsPage() {
               {items.map((item) => (
                 <div key={item.id} className="grid grid-cols-12 gap-2">
                   <input
-                    className="col-span-6 p-2 border border-border/40 rounded-md bg-background text-foreground"
+                    className="col-span-4 p-2 border border-border/40 rounded-md bg-background text-foreground"
                     placeholder="Description"
                     value={item.description}
                     onChange={(e) => updateItem(item.id, { description: e.target.value })}
+                  />
+                  <input
+                    className="col-span-2 p-2 border border-border/40 rounded-md bg-background text-foreground"
+                    placeholder="Details"
+                    value={item.details || ""}
+                    onChange={(e) => updateItem(item.id, { details: e.target.value })}
                   />
                   <input
                     type="number"
@@ -252,14 +259,22 @@ export default function AdminProposalsPage() {
             </div>
             <div className="p-6 space-y-6">
               <div className="flex items-start justify-between">
-                <div>
-                  <div className="text-2xl font-bold text-foreground">{title || "Untitled Proposal"}</div>
-                  <div className="text-sm text-muted-foreground">Issue date: {issueDate || "—"}</div>
-                  <div className="text-sm text-muted-foreground">Valid until: {validUntil || "—"}</div>
+                <div className="flex items-start gap-4">
+
+                  <img
+                    src="https://res.cloudinary.com/dbviya1rj/image/upload/v1757004631/nlir90vrzv0qywleruvv.png"
+                    alt="ModuLux Logo"
+                    className="w-60 h-20 rounded-md border border-border/40 object-cover"
+                  />
+                  <div>
+                    <div className="text-2xl font-bold text-foreground">{title || "Untitled Proposal"}</div>
+                    <div className="text-sm text-muted-foreground">Issue date: {issueDate || "—"}</div>
+                    <div className="text-sm text-muted-foreground">Valid until: {validUntil || "—"}</div>
+                  </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-medium text-foreground">ModuLux Company, Inc.</div>
-                  <div className="text-sm text-muted-foreground">hello@modulux.ph</div>
+                  <div className="text-sm font-medium text-foreground">ModuLux</div>
+                  <div className="text-sm text-muted-foreground">sales@modulux.ph</div>
                 </div>
               </div>
 
