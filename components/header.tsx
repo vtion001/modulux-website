@@ -18,13 +18,13 @@ export function Header() {
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "linear-gradient(135deg, rgba(16,185,129,.06), rgba(99,102,241,.04))" }} />
         </div>
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="hover:scale-105 transition-transform duration-200">
+        <div className="container mx-auto px-6 py-6 flex items-center justify-between">
+          <div className="hover:scale-150 transition-transform duration-200">
             <Link href="/" aria-label="ModuLux Home">
               <img
                 src="https://res.cloudinary.com/dbviya1rj/image/upload/v1757004631/nlir90vrzv0qywleruvv.png"
                 alt="ModuLux Logo"
-                className="h-10 w-auto"
+                className="h-16 w-auto"
               />
             </Link>
           </div>

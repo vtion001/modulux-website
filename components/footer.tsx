@@ -54,9 +54,9 @@ export function Footer() {
             <div>
               <div className="text-sm font-semibold mb-3">Contact</div>
               <ul className="space-y-2 text-sm">
-                <li className="flex items-center gap-2"><Mail className="w-4 h-4" /><a href="mailto:info@modulux.design" className="hover:text-primary transition-colors">info@modulux.design</a></li>
-                <li className="flex items-center gap-2"><Phone className="w-4 h-4" /><a href="tel:+639000000000" className="hover:text-primary transition-colors">+63 900 000 0000</a></li>
-                <li className="flex items-center gap-2"><MapPin className="w-4 h-4" /><span>Philippines</span></li>
+                <li className="flex items-center gap-2"><Mail className="w-4 h-4" /><a href="mailto:info@modulux.design" className="hover:text-primary transition-colors">sales@modulux.ph</a></li>
+                <li className="flex items-center gap-2"><Phone className="w-4 h-4" /><a href="tel:+639000000000" className="hover:text-primary transition-colors">(02) 7119-4130</a></li>
+                <li className="flex items-center gap-2"><MapPin className="w-4 h-4" /><span>161 Kamias Road, Sikatuna Village, Quezon City, Philippines</span></li>
               </ul>
               <div className="mt-4 flex items-center gap-3">
                 <a aria-label="Facebook" href="#" className="inline-flex items-center justify-center w-9 h-9 rounded-md border hover:bg-muted transition-colors"><Facebook className="w-4 h-4" /></a>

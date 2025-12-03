@@ -190,7 +190,7 @@ export default function ContactPage() {
                 <div className="mt-8 pt-8 border-t border-border text-center">
                   <p className="text-muted-foreground flex items-center justify-center gap-2">
                     <MapPin className="w-4 h-4" />
-                    We are located in Bulacan and serve all of the Philippines.
+                    We are located in Quezon City and serve all of the Philippines.
                   </p>
                 </div>
               </CardContent>
@@ -200,10 +200,10 @@ export default function ContactPage() {
               <div className="rounded-xl border border-border/50 bg-card/60 p-6">
                 <div className="text-lg font-semibold mb-3">Quick Contact</div>
                 <div className="space-y-2 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2"><Phone className="w-4 h-4" /><a href="tel:+639566549968" className="hover:text-primary">+63 956 654 9968</a></div>
-                  <div className="flex items-center gap-2"><Mail className="w-4 h-4" /><a href="mailto:admin@modulux.local" className="hover:text-primary">admin@modulux.local</a></div>
+                  <div className="flex items-center gap-2"><Phone className="w-4 h-4" /><a href="tel:+639566549968" className="hover:text-primary">02 7119-4130</a></div>
+                  <div className="flex items-center gap-2"><Mail className="w-4 h-4" /><a href="mailto:admin@modulux.local" className="hover:text-primary">sales@modulux.local</a></div>
                   <div className="flex items-center gap-2"><Clock className="w-4 h-4" />Mon–Sat, 9:00 AM – 6:00 PM</div>
-                  <div className="flex items-center gap-2"><MapPin className="w-4 h-4" />Bulacan, Philippines</div>
+                  <div className="flex items-center gap-2"><MapPin className="w-4 h-4" />161 Kamias Road, Sikatuna Village, Quezon City, Philippines</div>
                 </div>
                 <a href="/projects" className="mt-4 inline-flex items-center gap-2 text-primary text-sm">
                   View Projects <ArrowRight className="w-4 h-4" />

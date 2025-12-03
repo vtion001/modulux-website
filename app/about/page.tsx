@@ -55,7 +55,7 @@ export default function AboutPage() {
             <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }}>
               <h2 className="text-4xl font-bold text-foreground mb-6 text-balance">Our Story</h2>
               <p className="text-lg text-muted-foreground mb-6 text-pretty">
-                Founded as ModuLux has been at the forefront of premium modular cabinet manufacturing in Bulacan for over 10 years of combined experience. What started as a small workshop has grown into the region's most trusted name in custom cabinetry and furniture solutions.
+                Founded as ModuLux has been at the forefront of premium modular cabinet manufacturing in the Philippines for over 10 years of combined experience. What started as a small workshop has grown into the region's most trusted name in custom cabinetry and furniture solutions.
               </p>
               <p className="text-lg text-muted-foreground text-pretty">
                 Our commitment to exceptional craftsmanship, innovative design, and customer satisfaction has made us

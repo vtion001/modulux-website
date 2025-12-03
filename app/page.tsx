@@ -16,7 +16,7 @@ export default function HomePage() {
           />
         </video>
 
-        <div className="absolute inset-0 hero-gradient opacity-70"></div>
+        <div className="absolute inset-0 hero-gradient opacity-50"></div>
 
         <div className="relative z-10 text-center max-w-6xl mx-auto px-4">
           <div className="text-sm font-medium text-primary mb-4 tracking-wider uppercase">SLEEK & LUXURY</div>
