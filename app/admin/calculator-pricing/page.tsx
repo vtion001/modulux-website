@@ -57,6 +57,13 @@ async function deleteVersion(formData: FormData) {
   if (!ts) return
   const supabase = supabaseServer()
   await supabase.from("calculator_pricing_versions").delete().eq("ts", ts)
+  try {
+    const versionsPath = path.join(process.cwd(), "data", "calculator-pricing.versions.json")
+    const raw = await fs.readFile(versionsPath, "utf-8").catch(() => "[]")
+    const arr = JSON.parse(raw || "[]")
+    const next = Array.isArray(arr) ? arr.filter((v: any) => Number(v?.ts) !== ts) : []
+    await fs.writeFile(versionsPath, JSON.stringify(next, null, 2))
+  } catch {}
   revalidatePath("/admin/calculator-pricing")
 }
 export default async function AdminCalculatorPricingPage() {

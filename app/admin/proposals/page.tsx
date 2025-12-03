@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { FileText, Plus, Trash2 } from "lucide-react"
+import { estimateCabinetCost } from "@/lib/estimator"
 
 type ProposalItem = {
   id: string
@@ -31,6 +32,16 @@ export default function AdminProposalsPage() {
   const [taxRate, setTaxRate] = useState(12)
   const [discount, setDiscount] = useState(0)
 
+  const [aiOpen, setAiOpen] = useState(false)
+  const [versions, setVersions] = useState<any[]>([])
+  const [selectedVersionTs, setSelectedVersionTs] = useState<string>("")
+  const [aiPreviewItems, setAiPreviewItems] = useState<ProposalItem[]>([])
+  const [aiPreviewSubtotal, setAiPreviewSubtotal] = useState<number>(0)
+  const [aiPreviewTaxRate, setAiPreviewTaxRate] = useState<number>(0)
+  const [aiPreviewDiscount, setAiPreviewDiscount] = useState<number>(0)
+  const [aiPreviewTitle, setAiPreviewTitle] = useState<string>("")
+  const [aiPreviewNotes, setAiPreviewNotes] = useState<string>("")
+
   useEffect(() => {
     ;(async () => {
       if (!draftId) return
@@ -53,6 +64,99 @@ export default function AdminProposalsPage() {
       } catch {}
     })()
   }, [draftId])
+
+  useEffect(() => {
+    if (!aiOpen) return
+    ;(async () => {
+      try {
+        const res = await fetch("/api/pricing/versions", { cache: "no-store" })
+        const json = await res.json().catch(() => ({}))
+        const arr = Array.isArray(json?.versions) ? json.versions : []
+        setVersions(arr)
+      } catch {}
+    })()
+  }, [aiOpen])
+
+  const buildPreviewFromVersion = (ver: any) => {
+    try {
+      const data = ver?.data || {}
+      const pre = data?.prefill || {}
+      const form = pre?.formData || {}
+      const unitsRaw = Array.isArray(pre?.units) ? pre.units : []
+      const units = unitsRaw.map((u: any) => ({
+        category: String(u.category || "base"),
+        meters: Number(u.meters || 0),
+        material: String(u.material || ""),
+        finish: String(u.finish || ""),
+        hardware: String(u.hardware || ""),
+        tier: String(u.tier || pre?.tier || "luxury"),
+      }))
+      const legacyLm = typeof form.linearMeter === "string" ? parseFloat(form.linearMeter) : Number(form.linearMeter || 0)
+      const useLegacy = Number.isFinite(legacyLm) && legacyLm > 0 && units.every((u:any)=>!(u.meters>0))
+      const calc = estimateCabinetCost({
+        projectType: String(form.projectType || "kitchen"),
+        cabinetType: String(form.cabinetType || (pre?.tier === "standard" ? "basic" : (pre?.tier || "luxury"))),
+        linearMeter: useLegacy ? legacyLm : undefined,
+        installation: Boolean(form.installation || pre?.applyTax),
+        cabinetCategory: String(pre?.cabinetCategory || "base"),
+        tier: String(pre?.tier || "luxury"),
+        baseRates: data?.baseRates || undefined,
+        tierMultipliers: data?.tierMultipliers || undefined,
+        sheetRates: data?.sheetRates || undefined,
+        cabinetTypeMultipliers: data?.cabinetTypeMultipliers || undefined,
+        units,
+        discount: Number(pre?.discount || 0),
+        applyTax: Boolean(pre?.applyTax || false),
+        taxRate: Number(pre?.taxRate || 0),
+        includeFees: Boolean(pre?.includeFees || false),
+        applyImportSurcharge: Boolean(pre?.importSurcharge || false),
+        downgradeToMFC: Boolean(pre?.downgradeMFC || false),
+      })
+      const metaList = units.filter((u:any)=>Number(u.meters)>0)
+      const itemsMapped: ProposalItem[] = (calc?.breakdown?.units || []).map((u:any, idx:number) => {
+        const meta = metaList[idx] || {}
+        const materialTxt = String(meta.material||"").replace(/_/g," ")
+        const finishTxt = String(meta.finish||"").replace(/_/g," ")
+        const hardwareTxt = String(meta.hardware||"").replace(/_/g," ")
+        const details = [
+          `Tier: ${String(u.tier||pre?.tier||"luxury")}`,
+          materialTxt ? `Material: ${materialTxt}` : null,
+          finishTxt ? `Finish: ${finishTxt}` : null,
+          hardwareTxt ? `Hardware: ${hardwareTxt}` : null,
+          `Meters: ${Number(u.meters||0)}`,
+          `Rate: ₱${Number(u.baseRate||0).toLocaleString()}/m`,
+          `Factors: ×${Number(u.tierFactor||1)} ×${Number(u.materialFactor||1)} ×${Number(u.finishFactor||1)} ×${Number(u.hardwareFactor||1)}`,
+          Number(u.installationAdd||0) ? `Install add: ₱${Number(u.installationAdd||0).toLocaleString()}` : null,
+        ].filter(Boolean).join(" • ")
+        return {
+          id: crypto.randomUUID(),
+          description: `${u.category} cabinets (${String(form.cabinetType || (pre?.tier === "standard" ? "basic" : (pre?.tier || "luxury")))})`,
+          quantity: Number(u.meters||0),
+          unitPrice: Math.round(Number(u.lineTotal||0)/Math.max(1, Number(u.meters||1))),
+          details,
+        }
+      })
+      const subtotalCalc = Number(calc?.breakdown?.subtotal || 0)
+      const taxPct = pre?.applyTax ? Math.round(Number(pre?.taxRate || 0) * 100) : 0
+      const discountAbs = Math.round(Number(pre?.discount || 0) * subtotalCalc)
+      const titleFrom = String(form.projectType || "Project")
+      setAiPreviewItems(itemsMapped)
+      setAiPreviewSubtotal(subtotalCalc)
+      setAiPreviewTaxRate(taxPct)
+      setAiPreviewDiscount(discountAbs)
+      setAiPreviewTitle(`${titleFrom} Proposal`)
+      setAiPreviewNotes("Auto-filled from Pricing Version")
+    } catch {}
+  }
+
+  const applyAiPrefill = () => {
+    setItems(aiPreviewItems)
+    setTaxRate(aiPreviewTaxRate)
+    setDiscount(aiPreviewDiscount)
+    setTitle(aiPreviewTitle || title)
+    setNotes(aiPreviewNotes || notes)
+    setAiOpen(false)
+  }
 
   const addItem = () => {
     setItems((prev) => [
@@ -96,6 +200,7 @@ export default function AdminProposalsPage() {
             <div className="flex items-center gap-2">
               <Button variant="outline">Save Draft</Button>
               <Button>Submit</Button>
+              <Button variant="outline" onClick={() => setAiOpen(true)}>AI Fill</Button>
             </div>
           </div>
         </div>
@@ -339,6 +444,58 @@ export default function AdminProposalsPage() {
           </div>
         </div>
       </div>
+      {aiOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="w-full max-w-2xl bg-card rounded-lg shadow-lg border border-border/40 p-6">
+            <div className="text-lg font-semibold text-foreground mb-4">AI Fill from Pricing Versions</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+              <select
+                value={selectedVersionTs}
+                onChange={(e)=>{ setSelectedVersionTs(e.target.value); const ver = versions.find((v:any)=>String(v.ts)===e.target.value); if (ver) buildPreviewFromVersion(ver) }}
+                className="w-full p-2 border border-border/40 rounded-md bg-background text-foreground"
+              >
+                <option value="">Select a version</option>
+                {versions.map((v:any)=>(
+                  <option key={v.ts} value={String(v.ts)}>{new Date(v.ts).toLocaleString()}</option>
+                ))}
+              </select>
+              <div className="p-2 border rounded-md text-sm">
+                <div className="font-medium">Preview</div>
+                <div className="mt-2">Items: {aiPreviewItems.length}</div>
+                <div>Subtotal: ₱{aiPreviewSubtotal.toLocaleString()}</div>
+                <div>Tax: {aiPreviewTaxRate}%</div>
+                <div>Discount: ₱{aiPreviewDiscount.toLocaleString()}</div>
+              </div>
+            </div>
+            {aiPreviewItems.length > 0 && (
+              <div className="max-h-56 overflow-auto border rounded-md">
+                <table className="w-full text-xs">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="text-left p-2">Item</th>
+                      <th className="text-right p-2">Qty</th>
+                      <th className="text-right p-2">Unit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {aiPreviewItems.map((x)=> (
+                      <tr key={x.id} className="border-t">
+                        <td className="p-2">{x.description}</td>
+                        <td className="p-2 text-right">{x.quantity}</td>
+                        <td className="p-2 text-right">₱{x.unitPrice.toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="outline" onClick={()=>setAiOpen(false)}>Cancel</Button>
+              <Button onClick={()=>applyAiPrefill()} disabled={!selectedVersionTs}>Apply</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

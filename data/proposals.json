@@ -1,5 +1,118 @@
 [
   {
+    "id": "proposal_1764765799361",
+    "client": {
+      "name": "vincent john rodriguez",
+      "email": "vjrodriguez1994@gmail.com",
+      "company": ""
+    },
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "description": "base cabinets (basic)",
+        "quantity": 3,
+        "unitPrice": 36790,
+        "details": "Set 1 • Room: Kitchen • Tier: standard • Meters: 3 • Rate: ₱51,097.4/m • Factors: ×0.8 ×1 ×1 ×1"
+      },
+      {
+        "description": "hanging cabinets (basic)",
+        "quantity": 3,
+        "unitPrice": 34951,
+        "details": "Set 1 • Room: Kitchen • Tier: standard • Meters: 3 • Rate: ₱48,542.53/m • Factors: ×0.8 ×1 ×1 ×1"
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "Auto-generated from calculator (Admin)",
+    "created_at": 1764765801604,
+    "pricingSnapshot": {
+      "baseRates": {
+        "base": 2,
+        "tall": 2.2,
+        "hanging": 1.6
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withFees": 51097.4,
+          "withoutFees": 40476.4
+        },
+        "tall": {
+          "withFees": 82286.1,
+          "withoutFees": 65182.2
+        },
+        "hanging": {
+          "withFees": 48542.53,
+          "withoutFees": 38452.58
+        }
+      }
+    },
+    "pricingSnapshotTs": "2025-12-03T12:43:19.362Z",
+    "calculatorSnapshot": {
+      "formData": {
+        "projectType": "kitchen",
+        "roomSize": "",
+        "cabinetType": "basic",
+        "material": "",
+        "finish": "",
+        "hardware": "",
+        "installation": false,
+        "linearMeter": "",
+        "kitchenScope": ""
+      },
+      "units": [
+        {
+          "enabled": true,
+          "category": "base",
+          "meters": 3,
+          "material": "",
+          "finish": "",
+          "hardware": "",
+          "tier": "",
+          "roomType": "kitchen",
+          "customRoomName": "",
+          "setId": 0
+        },
+        {
+          "enabled": true,
+          "category": "hanging",
+          "meters": 3,
+          "material": "",
+          "finish": "",
+          "hardware": "",
+          "tier": "",
+          "roomType": "kitchen",
+          "customRoomName": "",
+          "setId": 0
+        },
+        {
+          "enabled": false,
+          "category": "tall",
+          "meters": 0,
+          "material": "",
+          "finish": "",
+          "hardware": "",
+          "tier": "",
+          "roomType": "kitchen",
+          "customRoomName": "",
+          "setId": 0
+        }
+      ],
+      "applyTax": true,
+      "taxRate": 0.12,
+      "discount": 0,
+      "cabinetCategory": "base",
+      "tier": "standard",
+      "includeFees": true,
+      "importSurcharge": false,
+      "downgradeMFC": true
+    }
+  },
+  {
     "id": "proposal_1764762128539",
     "client": {
       "name": "vincent john rodriguez",
