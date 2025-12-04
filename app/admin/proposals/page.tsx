@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { FileText, Plus, Trash2 } from "lucide-react"
 import { estimateCabinetCost } from "@/lib/estimator"
@@ -48,6 +48,7 @@ type ProposalItem = {
 
 export default function AdminProposalsPage() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const draftId = searchParams.get("id")
   const [clientName, setClientName] = useState("")
   const [clientEmail, setClientEmail] = useState("")
@@ -75,6 +76,13 @@ export default function AdminProposalsPage() {
   const [aiPreviewNotes, setAiPreviewNotes] = useState<string>("")
   const [drafts, setDrafts] = useState<any[]>([])
   const [draftsLoading, setDraftsLoading] = useState<boolean>(false)
+  const [draftQuery, setDraftQuery] = useState<string>("")
+  const [debouncedDraftQuery, setDebouncedDraftQuery] = useState<string>("")
+  const [sortKey, setSortKey] = useState<string>("updated_desc")
+  const [page, setPage] = useState<number>(1)
+  const [pageSize, setPageSize] = useState<number>(10)
+  const [draftTotal, setDraftTotal] = useState<number>(0)
+  const totalPages = Math.max(1, Math.ceil(draftTotal / Math.max(1, pageSize)))
 
   useEffect(() => {
     ;(async () => {
@@ -198,19 +206,60 @@ export default function AdminProposalsPage() {
     setAiOpen(false)
   }
 
+  const loadDrafts = async () => {
+    try {
+      setDraftsLoading(true)
+      const params = new URLSearchParams()
+      if (debouncedDraftQuery.trim()) params.set("q", debouncedDraftQuery.trim())
+      params.set("sort", sortKey)
+      params.set("page", String(page))
+      params.set("pageSize", String(pageSize))
+      const res = await fetch(`/api/proposals/drafts?${params.toString()}`, { cache: "no-store" })
+      const json = await res.json().catch(() => ({}))
+      const arr = Array.isArray(json?.drafts) ? json.drafts : []
+      setDrafts(arr)
+      setDraftTotal(Number(json?.total || arr.length))
+    } finally {
+      setDraftsLoading(false)
+    }
+  }
   useEffect(() => {
-    ;(async () => {
-      try {
-        setDraftsLoading(true)
-        const res = await fetch("/api/proposals/drafts", { cache: "no-store" })
-        const json = await res.json().catch(() => ({}))
-        const arr = Array.isArray(json?.drafts) ? json.drafts : []
-        setDrafts(arr)
-      } finally {
-        setDraftsLoading(false)
-      }
-    })()
+    loadDrafts()
+  }, [debouncedDraftQuery, sortKey, page, pageSize])
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedDraftQuery(draftQuery)
+    }, 300)
+    return () => clearTimeout(t)
+  }, [draftQuery])
+
+  useEffect(() => {
+    const initialQ = searchParams.get("q")
+    const initialSort = searchParams.get("sort")
+    const initialPage = searchParams.get("page")
+    const initialPageSize = searchParams.get("pageSize")
+    if (initialQ != null) setDraftQuery(String(initialQ))
+    if (initialSort) setSortKey(String(initialSort))
+    if (initialPage) {
+      const p = Math.max(1, Number(initialPage) || 1)
+      setPage(p)
+    }
+    if (initialPageSize) {
+      const ps = Math.max(1, Number(initialPageSize) || 10)
+      setPageSize(ps)
+    }
   }, [])
+
+  useEffect(() => {
+    const params = new URLSearchParams()
+    if (draftId) params.set("id", draftId)
+    if (draftQuery.trim()) params.set("q", draftQuery.trim())
+    params.set("sort", sortKey)
+    params.set("page", String(page))
+    params.set("pageSize", String(pageSize))
+    router.replace(`/admin/proposals?${params.toString()}`)
+  }, [draftQuery, sortKey, page, pageSize, draftId])
 
   const saveDraft = async () => {
     try {
@@ -225,9 +274,7 @@ export default function AdminProposalsPage() {
       const res = await fetch("/api/proposals/drafts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
       const json = await res.json().catch(() => ({}))
       if (json?.ok) {
-        const list = await fetch("/api/proposals/drafts", { cache: "no-store" })
-        const j2 = await list.json().catch(() => ({}))
-        setDrafts(Array.isArray(j2?.drafts) ? j2.drafts : [])
+        await loadDrafts()
       }
     } catch {}
   }
@@ -297,12 +344,39 @@ export default function AdminProposalsPage() {
       </div>
       <div className="bg-card border border-border/40 rounded-xl p-4 shadow-sm">
         <div className="text-sm font-semibold text-foreground mb-3">Drafts</div>
+        <div className="mb-3 flex items-center gap-2">
+          <input
+            value={draftQuery}
+            onChange={(e) => setDraftQuery(e.target.value)}
+            placeholder="Search drafts by title or client"
+            className="p-2 border rounded-md bg-background text-foreground text-sm w-full md:w-72"
+          />
+          <select
+            value={sortKey}
+            onChange={(e) => { setSortKey(e.target.value); setPage(1) }}
+            className="p-2 border rounded-md bg-background text-foreground text-sm"
+          >
+            <option value="updated_desc">Newest</option>
+            <option value="updated_asc">Oldest</option>
+            <option value="title_asc">Title</option>
+            <option value="client_asc">Client</option>
+          </select>
+          <select
+            value={String(pageSize)}
+            onChange={(e) => { const v = Number(e.target.value)||10; setPageSize(v); setPage(1) }}
+            className="p-2 border rounded-md bg-background text-foreground text-sm"
+          >
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+          </select>
+        </div>
         {draftsLoading ? (
           <div className="text-xs text-muted-foreground">Loading…</div>
         ) : (
           <div className="space-y-2">
             {drafts.length === 0 ? (
-              <div className="text-xs text-muted-foreground">No drafts saved.</div>
+              <div className="text-xs text-muted-foreground">No drafts found.</div>
             ) : (
               drafts.map((d: any) => (
                 <div key={d.id} className="flex items-center justify-between gap-3 border rounded p-2 text-xs">
@@ -322,16 +396,38 @@ export default function AdminProposalsPage() {
                       setNotes(String(d?.notes || ""))
                     }}>Load</Button>
                     <Button variant="outline" size="sm" onClick={async () => {
+                      const name = window.prompt("Rename draft", String(d?.title || "Untitled Proposal"))
+                      if (!name) return
+                      try {
+                        await fetch("/api/proposals/drafts", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: d.id, title: name }) })
+                        await loadDrafts()
+                      } catch {}
+                    }}>Rename</Button>
+                    <Button variant="outline" size="sm" onClick={async () => {
+                      try {
+                        const payload = { client: d.client, title: String(d.title||"")+" (copy)", items: d.items, taxRate: d.taxRate, discount: d.discount, notes: d.notes }
+                        await fetch("/api/proposals/drafts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+                        await loadDrafts()
+                      } catch {}
+                    }}>Duplicate</Button>
+                    <Button variant="outline" size="sm" onClick={async () => {
                       try {
                         await fetch("/api/proposals/drafts", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: d.id }) })
-                        const list = await fetch("/api/proposals/drafts", { cache: "no-store" })
-                        const j2 = await list.json().catch(() => ({}))
-                        setDrafts(Array.isArray(j2?.drafts) ? j2.drafts : [])
+                        await loadDrafts()
                       } catch {}
                     }}>Delete</Button>
                   </div>
                 </div>
               ))
+            )}
+            {draftTotal > 0 && (
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <div className="text-xs text-muted-foreground">Page {page} of {totalPages}</div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setPage(Math.max(1, page-1))} disabled={page<=1}>Prev</Button>
+                  <Button variant="outline" size="sm" onClick={() => setPage(Math.min(totalPages, page+1))} disabled={page>=totalPages}>Next</Button>
+                </div>
+              </div>
             )}
           </div>
         )}

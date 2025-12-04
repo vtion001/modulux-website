@@ -1,5 +1,219 @@
 [
   {
+    "id": "proposal_1764828325271",
+    "client": {
+      "name": "",
+      "email": "",
+      "company": ""
+    },
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "id": "c036b389-5801-4551-9cb2-599c44896fb1",
+        "description": "base cabinets (basic)",
+        "quantity": 3,
+        "unitPrice": 40878,
+        "details": "Tier: standard\nMaterial: melamine\nFinish: standard\nHardware: basic\nMeters: 3\nRate: ₱51,097.4/m\nFactors: ×0.8 ×1 ×1 ×1\nIncluded: Carcass: 18mm MR MFC Melamine Board, Door: 18mm MR MFC Melamine Board, Hinges: Zinc Plated 3D Hinges Soft Closing, Drawers: Regular Wooden Drawing Box ( Soft Closing ), Countertop: Granite Countertop\nExclusive: Special Mechanism, Lighting, Appliances"
+      },
+      {
+        "id": "7074c154-ef9b-4440-b96a-093c513fceeb",
+        "description": "hanging cabinets (basic)",
+        "quantity": 3,
+        "unitPrice": 38834,
+        "details": "Tier: standard\nMaterial: melamine\nFinish: standard\nHardware: basic\nMeters: 3\nRate: ₱48,542.53/m\nFactors: ×0.8 ×1 ×1 ×1\nIncluded: Carcass: 18mm MR MFC Melamine Board, Door: 18mm MR MFC Melamine Board, Hinges: Zinc Plated 3D Hinges Soft Closing, Drawers: Regular Wooden Drawing Box ( Soft Closing ), Countertop: Granite Countertop\nExclusive: Special Mechanism, Lighting, Appliances"
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "Auto-filled from Pricing Version",
+    "created_at": 1764828326844,
+    "pricingSnapshot": {
+      "prefill": {
+        "tier": "standard",
+        "units": [
+          {
+            "tier": "",
+            "finish": "standard",
+            "meters": 3,
+            "enabled": true,
+            "category": "base",
+            "hardware": "basic",
+            "material": "melamine"
+          },
+          {
+            "tier": "",
+            "finish": "standard",
+            "meters": 3,
+            "enabled": true,
+            "category": "hanging",
+            "hardware": "basic",
+            "material": "melamine"
+          },
+          {
+            "tier": "",
+            "finish": "",
+            "meters": 0,
+            "enabled": false,
+            "category": "tall",
+            "hardware": "",
+            "material": ""
+          }
+        ],
+        "taxRate": 0.12,
+        "applyTax": true,
+        "discount": 0,
+        "formData": {
+          "finish": "",
+          "hardware": "",
+          "material": "",
+          "roomSize": "",
+          "cabinetType": "basic",
+          "linearMeter": "",
+          "projectType": "kitchen",
+          "installation": false,
+          "kitchenScope": ""
+        },
+        "includeFees": true,
+        "downgradeMFC": false,
+        "cabinetCategory": "base",
+        "importSurcharge": false
+      },
+      "baseRates": {
+        "base": 2,
+        "tall": 2.2,
+        "hanging": 1.6
+      },
+      "sheetRates": {
+        "base": {
+          "withFees": 51097.4,
+          "withoutFees": 40476.4
+        },
+        "tall": {
+          "withFees": 82286.1,
+          "withoutFees": 65182.2
+        },
+        "hanging": {
+          "withFees": 48542.53,
+          "withoutFees": 38452.58
+        }
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      }
+    },
+    "pricingSnapshotTs": "2025-12-02T12:52:37.896+00:00",
+    "calculatorSnapshot": null
+  },
+  {
+    "id": "proposal_1764828316186",
+    "client": {
+      "name": "",
+      "email": "",
+      "company": ""
+    },
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "id": "2ca71dc4-acff-4673-b87d-d7e3638dfa1c",
+        "description": "base cabinets (basic)",
+        "quantity": 3,
+        "unitPrice": 40878,
+        "details": "Tier: standard\nMaterial: melamine\nFinish: standard\nHardware: basic\nMeters: 3\nRate: ₱51,097.4/m\nFactors: ×0.8 ×1 ×1 ×1\nIncluded: Carcass: 18mm MR MFC Melamine Board, Door: 18mm MR MFC Melamine Board, Hinges: Zinc Plated 3D Hinges Soft Closing, Drawers: Regular Wooden Drawing Box ( Soft Closing ), Countertop: Granite Countertop\nExclusive: Special Mechanism, Lighting, Appliances"
+      },
+      {
+        "id": "d3ab6d0e-4363-45e5-a74f-af2be85931bb",
+        "description": "hanging cabinets (basic)",
+        "quantity": 3,
+        "unitPrice": 38834,
+        "details": "Tier: standard\nMaterial: melamine\nFinish: standard\nHardware: basic\nMeters: 3\nRate: ₱48,542.53/m\nFactors: ×0.8 ×1 ×1 ×1\nIncluded: Carcass: 18mm MR MFC Melamine Board, Door: 18mm MR MFC Melamine Board, Hinges: Zinc Plated 3D Hinges Soft Closing, Drawers: Regular Wooden Drawing Box ( Soft Closing ), Countertop: Granite Countertop\nExclusive: Special Mechanism, Lighting, Appliances"
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "Auto-filled from Pricing Version",
+    "created_at": 1764828318737,
+    "pricingSnapshot": {
+      "prefill": {
+        "tier": "standard",
+        "units": [
+          {
+            "tier": "",
+            "finish": "standard",
+            "meters": 3,
+            "enabled": true,
+            "category": "base",
+            "hardware": "basic",
+            "material": "melamine"
+          },
+          {
+            "tier": "",
+            "finish": "standard",
+            "meters": 3,
+            "enabled": true,
+            "category": "hanging",
+            "hardware": "basic",
+            "material": "melamine"
+          },
+          {
+            "tier": "",
+            "finish": "",
+            "meters": 0,
+            "enabled": false,
+            "category": "tall",
+            "hardware": "",
+            "material": ""
+          }
+        ],
+        "taxRate": 0.12,
+        "applyTax": true,
+        "discount": 0,
+        "formData": {
+          "finish": "",
+          "hardware": "",
+          "material": "",
+          "roomSize": "",
+          "cabinetType": "basic",
+          "linearMeter": "",
+          "projectType": "kitchen",
+          "installation": false,
+          "kitchenScope": ""
+        },
+        "includeFees": true,
+        "downgradeMFC": false,
+        "cabinetCategory": "base",
+        "importSurcharge": false
+      },
+      "baseRates": {
+        "base": 2,
+        "tall": 2.2,
+        "hanging": 1.6
+      },
+      "sheetRates": {
+        "base": {
+          "withFees": 51097.4,
+          "withoutFees": 40476.4
+        },
+        "tall": {
+          "withFees": 82286.1,
+          "withoutFees": 65182.2
+        },
+        "hanging": {
+          "withFees": 48542.53,
+          "withoutFees": 38452.58
+        }
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      }
+    },
+    "pricingSnapshotTs": "2025-12-02T12:52:37.896+00:00",
+    "calculatorSnapshot": null
+  },
+  {
     "id": "proposal_1764765799361",
     "client": {
       "name": "vincent john rodriguez",
