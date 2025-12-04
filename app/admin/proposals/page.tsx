@@ -1332,6 +1332,16 @@ export default function AdminProposalsPage() {
                   const body: any = { to: dest, subject: emailSubject, includeSignature: true }
                   if (emailFormat === 'html') body.html = emailBody
                   else body.text = emailBody
+                  try {
+                    const htmlForPdf = emailFormat === 'html' ? (emailBody || buildEmailHtml()) : buildEmailHtml()
+                    const pres = await fetch('/api/pdf/convert', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ html: htmlForPdf, format: 'A4' }) })
+                    const pjson = await pres.json().catch(() => ({}))
+                    if (pres.ok && pjson?.ok && pjson?.pdf_base64) {
+                      body.attachments = [...(body.attachments||[]), { filename: 'proposal-preview.pdf', content_base64: String(pjson.pdf_base64||''), mime: 'application/pdf' }]
+                    } else {
+                      toast.message('PDF attachment unavailable (conversion failed)')
+                    }
+                  } catch {}
                   if (attachHtml) {
                     body.attachments = [{ filename: 'proposal-preview.html', content_base64: safeBase64(buildEmailHtml()), mime: 'text/html' }]
                   }
