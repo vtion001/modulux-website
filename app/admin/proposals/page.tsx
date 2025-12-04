@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { FileText, Plus, Trash2 } from "lucide-react"
 import { estimateCabinetCost } from "@/lib/estimator"
+import { toast } from "sonner"
 const tierSpecs: Record<string, { items: string[]; exclusive: string[] }> = {
   standard: {
     items: [
@@ -83,6 +84,10 @@ export default function AdminProposalsPage() {
   const [pageSize, setPageSize] = useState<number>(10)
   const [draftTotal, setDraftTotal] = useState<number>(0)
   const totalPages = Math.max(1, Math.ceil(draftTotal / Math.max(1, pageSize)))
+  const searchInputRef = useRef<HTMLInputElement | null>(null)
+  const [savingDraft, setSavingDraft] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  useAdminDraftsShortcuts(searchInputRef, page, totalPages, (p:number)=>setPage(p))
 
   useEffect(() => {
     ;(async () => {
@@ -263,6 +268,7 @@ export default function AdminProposalsPage() {
 
   const saveDraft = async () => {
     try {
+      setSavingDraft(true)
       const payload = {
         client: { name: clientName, email: clientEmail, company: clientCompany },
         title,
@@ -273,10 +279,16 @@ export default function AdminProposalsPage() {
       }
       const res = await fetch("/api/proposals/drafts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
       const json = await res.json().catch(() => ({}))
-      if (json?.ok) {
+      if (res.ok && json?.ok) {
+        toast.success("Draft saved")
         await loadDrafts()
+      } else {
+        toast.error(String(json?.error || "Failed to save draft"))
       }
     } catch {}
+    finally {
+      setSavingDraft(false)
+    }
   }
 
   const addItem = () => {
@@ -306,6 +318,66 @@ export default function AdminProposalsPage() {
     return Math.max(0, subtotal + tax - discount)
   }, [subtotal, tax, discount])
 
+  const previewBreakdown = useMemo(() => {
+    const caps = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+    const allowed = ["base", "hanging", "tall"]
+    const roomGuess = caps(String(title || "Project").split(" ")[0].toLowerCase())
+    return items.map((x) => {
+      const desc = String(x.description || "")
+      const first = desc.split(" ")[0].toLowerCase()
+      const category = allowed.includes(first) ? first : ""
+      const details = String(x.details || "")
+      let tierMul = "×1"
+      let materialMul = "×1"
+      let finishMul = "×1"
+      let hardwareMul = "×1"
+      let installTxt = "₱0"
+      const facMatch = details.match(/Factors:\s*×([0-9\.]+)\s*×([0-9\.]+)\s*×([0-9\.]+)\s*×([0-9\.]+)/)
+      if (facMatch) {
+        tierMul = `×${facMatch[1]}`
+        materialMul = `×${facMatch[2]}`
+        finishMul = `×${facMatch[3]}`
+        hardwareMul = `×${facMatch[4]}`
+      }
+      const instMatch = details.match(/Install add:\s*₱([0-9,\.]+)/)
+      if (instMatch) installTxt = `₱${instMatch[1]}`
+      const meters = Number(x.quantity || 0)
+      const rate = Number(x.unitPrice || 0)
+      const totalLine = Math.round(meters * rate)
+      return { category, set: 1, room: roomGuess, meters, rate, details, installTxt, totalLine, id: x.id }
+    })
+  }, [items, title])
+
+  const aiPreviewBreakdown = useMemo(() => {
+    const caps = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+    const allowed = ["base", "hanging", "tall"]
+    const roomGuess = caps(String(aiPreviewTitle || title || "Project").split(" ")[0].toLowerCase())
+    return aiPreviewItems.map((x) => {
+      const desc = String(x.description || "")
+      const first = desc.split(" ")[0].toLowerCase()
+      const category = allowed.includes(first) ? first : ""
+      const details = String(x.details || "")
+      let tierMul = "×1"
+      let materialMul = "×1"
+      let finishMul = "×1"
+      let hardwareMul = "×1"
+      let installTxt = "₱0"
+      const facMatch = details.match(/Factors:\s*×([0-9\.]+)\s*×([0-9\.]+)\s*×([0-9\.]+)\s*×([0-9\.]+)/)
+      if (facMatch) {
+        tierMul = `×${facMatch[1]}`
+        materialMul = `×${facMatch[2]}`
+        finishMul = `×${facMatch[3]}`
+        hardwareMul = `×${facMatch[4]}`
+      }
+      const instMatch = details.match(/Install add:\s*₱([0-9,\.]+)/)
+      if (instMatch) installTxt = `₱${instMatch[1]}`
+      const meters = Number(x.quantity || 0)
+      const rate = Number(x.unitPrice || 0)
+      const totalLine = Math.round(meters * rate)
+      return { category, set: 1, room: roomGuess, meters, rate, details, installTxt, totalLine, id: x.id }
+    })
+  }, [aiPreviewItems, aiPreviewTitle, title])
+
   return (
     <div className="max-w-7xl mx-auto px-4 space-y-8">
       <div className="relative isolate overflow-hidden rounded-2xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
@@ -319,7 +391,7 @@ export default function AdminProposalsPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => saveDraft()}>Save Draft</Button>
+              <Button variant="outline" onClick={() => saveDraft()} disabled={savingDraft} aria-busy={savingDraft}>{savingDraft ? "Saving…" : "Save Draft"}</Button>
               <Button onClick={async () => {
                 const payload = {
                   client: { name: clientName, email: clientEmail, company: clientCompany },
@@ -330,13 +402,20 @@ export default function AdminProposalsPage() {
                   notes,
                 }
                 try {
+                  setSubmitting(true)
                   const res = await fetch("/api/proposals/create", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
                   const data = await res.json().catch(() => ({}))
-                  if (data?.id) {
+                  if (res.ok && data?.id) {
+                    toast.success("Proposal submitted")
                     window.location.href = `/admin/proposals?id=${encodeURIComponent(data.id)}`
+                  } else {
+                    toast.error(String(data?.error || "Submission failed"))
                   }
                 } catch {}
-              }}>Submit</Button>
+                finally {
+                  setSubmitting(false)
+                }
+              }} disabled={submitting} aria-busy={submitting}>{submitting ? "Submitting…" : "Submit"}</Button>
               <Button variant="outline" onClick={() => setAiOpen(true)}>AI Fill</Button>
             </div>
           </div>
@@ -348,8 +427,9 @@ export default function AdminProposalsPage() {
           <input
             value={draftQuery}
             onChange={(e) => setDraftQuery(e.target.value)}
-            placeholder="Search drafts by title or client"
+            placeholder="Search drafts by title, client, or email"
             className="p-2 border rounded-md bg-background text-foreground text-sm w-full md:w-72"
+            ref={searchInputRef}
           />
           <select
             value={sortKey}
@@ -371,6 +451,7 @@ export default function AdminProposalsPage() {
             <option value="20">20</option>
           </select>
         </div>
+        <div className="text-xs text-muted-foreground mb-2">Press / to focus search, ←/→ to paginate</div>
         {draftsLoading ? (
           <div className="text-xs text-muted-foreground">Loading…</div>
         ) : (
@@ -399,36 +480,54 @@ export default function AdminProposalsPage() {
                       const name = window.prompt("Rename draft", String(d?.title || "Untitled Proposal"))
                       if (!name) return
                       try {
-                        await fetch("/api/proposals/drafts", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: d.id, title: name }) })
-                        await loadDrafts()
+                        const res = await fetch("/api/proposals/drafts", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: d.id, title: name }) })
+                        const json = await res.json().catch(() => ({}))
+                        if (res.ok && json?.ok) {
+                          toast.success("Draft renamed")
+                          await loadDrafts()
+                        } else {
+                          toast.error(String(json?.error || "Rename failed"))
+                        }
                       } catch {}
                     }}>Rename</Button>
                     <Button variant="outline" size="sm" onClick={async () => {
                       try {
                         const payload = { client: d.client, title: String(d.title||"")+" (copy)", items: d.items, taxRate: d.taxRate, discount: d.discount, notes: d.notes }
-                        await fetch("/api/proposals/drafts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
-                        await loadDrafts()
+                        const res = await fetch("/api/proposals/drafts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+                        const json = await res.json().catch(() => ({}))
+                        if (res.ok && json?.ok) {
+                          toast.success("Draft duplicated")
+                          await loadDrafts()
+                        } else {
+                          toast.error(String(json?.error || "Duplicate failed"))
+                        }
                       } catch {}
                     }}>Duplicate</Button>
                     <Button variant="outline" size="sm" onClick={async () => {
                       try {
-                        await fetch("/api/proposals/drafts", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: d.id }) })
-                        await loadDrafts()
+                        const res = await fetch("/api/proposals/drafts", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: d.id }) })
+                        const json = await res.json().catch(() => ({}))
+                        if (res.ok && json?.ok) {
+                          toast.success("Draft deleted")
+                          await loadDrafts()
+                        } else {
+                          toast.error(String(json?.error || "Delete failed"))
+                        }
                       } catch {}
                     }}>Delete</Button>
                   </div>
                 </div>
               ))
             )}
-            {draftTotal > 0 && (
-              <div className="flex items-center justify-between gap-3 pt-2">
-                <div className="text-xs text-muted-foreground">Page {page} of {totalPages}</div>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => setPage(Math.max(1, page-1))} disabled={page<=1}>Prev</Button>
-                  <Button variant="outline" size="sm" onClick={() => setPage(Math.min(totalPages, page+1))} disabled={page>=totalPages}>Next</Button>
-                </div>
-              </div>
-            )}
+      {draftTotal > 0 && (
+        <div className="flex items-center justify-between gap-3 pt-2">
+          <div className="text-xs text-muted-foreground">Page {page} of {totalPages}</div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setPage(Math.max(1, page-1))} disabled={page<=1}>Prev</Button>
+            <Button variant="outline" size="sm" onClick={() => setPage(Math.min(totalPages, page+1))} disabled={page>=totalPages}>Next</Button>
+          </div>
+        </div>
+      )}
           </div>
         )}
       </div>
@@ -627,42 +726,48 @@ export default function AdminProposalsPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-muted-foreground">
-                      <th className="text-left font-medium pb-2">Item</th>
+                      <th className="text-left font-medium pb-2">Category</th>
+                      <th className="text-left font-medium pb-2">Set</th>
+                      <th className="text-left font-medium pb-2">Room</th>
+                      <th className="text-left font-medium pb-2">Meters</th>
+                      <th className="text-left font-medium pb-2">Rate</th>
                       <th className="text-left font-medium pb-2">Details</th>
-                      <th className="text-right font-medium pb-2">Qty</th>
-                      <th className="text-right font-medium pb-2">Unit</th>
-                      <th className="text-right font-medium pb-2">Amount</th>
+                      <th className="text-left font-medium pb-2">Install</th>
+                      <th className="text-right font-medium pb-2">Line Total</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((x) => (
-                      <tr key={x.id} className="border-t border-border/40">
-                        <td className="py-2">{x.description || "—"}</td>
-                        <td className="py-2 whitespace-pre-wrap">{x.details || "—"}</td>
-                        <td className="text-right py-2">{x.quantity}</td>
-                        <td className="text-right py-2">₱{x.unitPrice.toLocaleString()}</td>
-                        <td className="text-right py-2">₱{(x.quantity * x.unitPrice).toLocaleString()}</td>
+                    {previewBreakdown.map((r) => (
+                      <tr key={r.id} className="border-t border-border/40">
+                        <td className="p-2 capitalize">{r.category || "—"}</td>
+                        <td className="p-2">{r.set}</td>
+                        <td className="p-2">{r.room}</td>
+                        <td className="p-2">{r.meters}</td>
+                        <td className="p-2">₱{r.rate.toLocaleString()}/m</td>
+                        <td className="p-2 whitespace-pre-wrap">{r.details || "—"}</td>
+                        <td className="p-2">{r.installTxt}</td>
+                        <td className="p-2 text-right">₱{r.totalLine.toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
                     <tr className="border-t border-border/40">
-                      <td colSpan={3} className="text-right py-2">Subtotal</td>
-                      <td className="text-right py-2">₱{subtotal.toLocaleString()}</td>
+                      <td colSpan={7} className="text-right py-2">Subtotal</td>
+                      <td className="text-right py-2" colSpan={1}>₱{subtotal.toLocaleString()}</td>
                     </tr>
                     <tr>
-                      <td colSpan={3} className="text-right py-2">Tax ({taxRate}%)</td>
-                      <td className="text-right py-2">₱{tax.toLocaleString()}</td>
+                      <td colSpan={7} className="text-right py-2">Tax ({taxRate}%)</td>
+                      <td className="text-right py-2" colSpan={1}>₱{tax.toLocaleString()}</td>
                     </tr>
                     {discount > 0 && (
                       <tr>
-                        <td colSpan={3} className="text-right py-2">Discount</td>
-                        <td className="text-right py-2">-₱{discount.toLocaleString()}</td>
+                        <td colSpan={7} className="text-right py-2">Discount</td>
+                        <td className="text-right py-2" colSpan={1}>-₱{discount.toLocaleString()}</td>
                       </tr>
                     )}
                     <tr className="border-t border-border/40">
-                      <td colSpan={3} className="text-right py-2 font-semibold">Total</td>
-                      <td className="text-right py-2 font-semibold">₱{total.toLocaleString()}</td>
+                      <td colSpan={7} className="text-right py-2 font-semibold">Total</td>
+                      <td className="text-right py-2 font-semibold" colSpan={1}>₱{total.toLocaleString()}</td>
                     </tr>
                   </tfoot>
                 </table>
@@ -673,7 +778,7 @@ export default function AdminProposalsPage() {
           </div>
         </div>
       </div>
-      {aiOpen && (
+  {aiOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-2xl bg-card rounded-lg shadow-lg border border-border/40 p-6">
             <div className="text-lg font-semibold text-foreground mb-4">AI Fill from Pricing Versions</div>
@@ -701,17 +806,27 @@ export default function AdminProposalsPage() {
                 <table className="w-full text-xs">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="text-left p-2">Item</th>
-                      <th className="text-right p-2">Qty</th>
-                      <th className="text-right p-2">Unit</th>
+                      <th className="text-left p-2">Category</th>
+                      <th className="text-left p-2">Set</th>
+                      <th className="text-left p-2">Room</th>
+                      <th className="text-left p-2">Meters</th>
+                      <th className="text-left p-2">Rate</th>
+                      <th className="text-left p-2">Details</th>
+                      <th className="text-left p-2">Install</th>
+                      <th className="text-right p-2">Line Total</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {aiPreviewItems.map((x)=> (
-                      <tr key={x.id} className="border-t">
-                        <td className="p-2">{x.description}</td>
-                        <td className="p-2 text-right">{x.quantity}</td>
-                        <td className="p-2 text-right">₱{x.unitPrice.toLocaleString()}</td>
+                    {aiPreviewBreakdown.map((r)=> (
+                      <tr key={r.id} className="border-t">
+                        <td className="p-2 capitalize">{r.category || "—"}</td>
+                        <td className="p-2">{r.set}</td>
+                        <td className="p-2">{r.room}</td>
+                        <td className="p-2">{r.meters}</td>
+                        <td className="p-2">₱{r.rate.toLocaleString()}/m</td>
+                        <td className="p-2 whitespace-pre-wrap">{r.details || "—"}</td>
+                        <td className="p-2">{r.installTxt}</td>
+                        <td className="p-2 text-right">₱{r.totalLine.toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -724,7 +839,23 @@ export default function AdminProposalsPage() {
             </div>
           </div>
         </div>
-      )}
-    </div>
+  )}
+  </div>
   )
+}
+
+// Keyboard shortcuts
+export function useAdminDraftsShortcuts(searchRef: React.RefObject<HTMLInputElement>, page: number, totalPages: number, setPage: (p: number) => void) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return
+      const tag = (e.target as HTMLElement)?.tagName
+      if (["INPUT", "TEXTAREA", "SELECT"].includes(String(tag))) return
+      if (e.key === "/") { e.preventDefault(); searchRef.current?.focus(); return }
+      if (e.key === "ArrowLeft") { e.preventDefault(); if (page > 1) setPage(Math.max(1, page-1)); return }
+      if (e.key === "ArrowRight") { e.preventDefault(); if (page < totalPages) setPage(Math.min(totalPages, page+1)); return }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => { window.removeEventListener("keydown", onKey) }
+  }, [page, totalPages])
 }

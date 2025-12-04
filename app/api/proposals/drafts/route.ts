@@ -16,7 +16,7 @@ export async function GET(request: Request) {
       .select("id,data,created_at,updated_at", { count: "exact" })
     if (q) {
       const esc = q.replace(/%/g, "")
-      query = query.or(`data->>title.ilike.%${esc}%,data->client->>name.ilike.%${esc}%`)
+      query = query.or(`data->>title.ilike.%${esc}%,data->client->>name.ilike.%${esc}%,data->client->>email.ilike.%${esc}%`)
     }
     let col = "updated_at"
     let asc = true
