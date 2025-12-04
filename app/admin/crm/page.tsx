@@ -103,14 +103,20 @@ async function deleteContact(formData: FormData) {
   redirect("/admin/crm?ok=contact-deleted")
 }
 
-export default async function AdminCRMPage() {
+export default async function AdminCRMPage({ searchParams }: { searchParams?: Record<string, string> }) {
   const supabase = supabaseServer()
   const { data: leadsRaw } = await supabase.from("leads").select("*").order("created_at", { ascending: false })
   const { data: dealsRaw } = await supabase.from("deals").select("*").order("created_at", { ascending: false })
   const { data: contactsRaw } = await supabase.from("contacts").select("*").order("created_at", { ascending: false })
   const leads = leadsRaw || []
+  const leadFocusId = String(searchParams?.lead || "").trim()
+  const leadsView = leadFocusId ? [leads.find((l:any)=>String(l.id)===leadFocusId), ...leads.filter((l:any)=>String(l.id)!==leadFocusId)].filter(Boolean) : leads
   const deals = dealsRaw || []
   const contacts = contactsRaw || []
+  const focusId = String(searchParams?.contact || "").trim()
+  const focused = focusId ? contacts.find((c: any) => String(c.id) === focusId) : null
+  const contactsView = focused ? [focused, ...contacts.filter((c: any) => String(c.id) !== focusId)] : contacts
+  const dealFocusId = String(searchParams?.deal || "").trim()
   const stages = ["New", "Qualified", "Proposal", "Won", "Lost"]
   return (
     <div className="flex min-h-screen bg-gradient-to-b from-white to-gray-50">
@@ -184,8 +190,8 @@ export default async function AdminCRMPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {leads.map((l) => (
-                      <tr key={l.id} className="hover:bg-gray-50 transition-colors">
+                    {leadsView.map((l) => (
+                      <tr key={l.id} className={`transition-colors ${String(l.id)===leadFocusId ? "bg-yellow-50 hover:bg-yellow-100" : "hover:bg-gray-50"}`} aria-current={String(l.id)===leadFocusId ? "true" : undefined}>
                         <td className="p-2 font-medium">{l.name}</td>
                         <td className="p-2">{l.email}</td>
                         <td className="p-2">{l.phone}</td>
@@ -219,7 +225,7 @@ export default async function AdminCRMPage() {
                     <div className="text-xs font-semibold mb-2">{s}</div>
                     <div className="space-y-2">
                       {deals.filter((d) => d.stage === s).map((d) => (
-                        <div key={d.id} className="border rounded p-2">
+                        <div key={d.id} className={`border rounded p-2 ${String(d.id)===dealFocusId ? "bg-yellow-50" : ""}`} aria-current={String(d.id)===dealFocusId ? "true" : undefined}>
                           <div className="font-medium text-sm">{d.title}</div>
                           <div className="text-xs text-gray-500">₱{Number(d.value||0).toLocaleString()}</div>
                           <SaveForm action={updateDealStage} className="flex items-center gap-2 mt-2">
@@ -254,8 +260,8 @@ export default async function AdminCRMPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {contacts.map((c) => (
-                      <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+                    {contactsView.map((c) => (
+                      <tr key={c.id} className={`transition-colors ${String(c.id)===focusId ? "bg-yellow-50 hover:bg-yellow-100" : "hover:bg-gray-50"}`} aria-current={String(c.id)===focusId ? "true" : undefined}>
                         <td className="p-2 font-medium">{c.name}</td>
                         <td className="p-2">{c.email}</td>
                         <td className="p-2">{c.phone}</td>

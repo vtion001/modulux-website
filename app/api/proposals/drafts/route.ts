@@ -40,8 +40,9 @@ export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}))
     const id = String(body?.id || `draft_${Date.now()}`)
-    const payload = {
+  const payload = {
       client: body?.client || { name: "", email: "", company: "" },
+      crmId: String(body?.crmId || ""),
       title: String(body?.title || "Proposal"),
       items: Array.isArray(body?.items) ? body.items : [],
       taxRate: Number(body?.taxRate || 0),

@@ -54,6 +54,18 @@ export default function AdminProposalsPage() {
   const [clientName, setClientName] = useState("")
   const [clientEmail, setClientEmail] = useState("")
   const [clientCompany, setClientCompany] = useState("")
+  const [clientPhone, setClientPhone] = useState("")
+  const [crmSelectedId, setCrmSelectedId] = useState<string>("")
+
+  const [crmQuery, setCrmQuery] = useState("")
+  const [crmQueryDebounced, setCrmQueryDebounced] = useState("")
+  const [crmResults, setCrmResults] = useState<any[]>([])
+  const [crmLoading, setCrmLoading] = useState(false)
+  const [crmOpen, setCrmOpen] = useState(false)
+  const crmAllRef = useRef<any[] | null>(null)
+  const crmRef = useRef<HTMLDivElement | null>(null)
+  const [createdDealId, setCreatedDealId] = useState<string>("")
+  const [createdLeadId, setCreatedLeadId] = useState<string>("")
 
   const [title, setTitle] = useState("Kitchen Cabinet Proposal")
   const [issueDate, setIssueDate] = useState<string>(new Date().toISOString().slice(0, 10))
@@ -101,6 +113,7 @@ export default function AdminProposalsPage() {
             setClientName(found?.client?.name || "")
             setClientEmail(found?.client?.email || "")
             setClientCompany(found?.client?.company || "")
+            setClientPhone(found?.client?.phone || "")
             setTitle(found?.title || "Proposal")
             setItems((Array.isArray(found?.items) ? found.items : []).map((x: any) => ({ id: crypto.randomUUID(), description: String(x?.description || ""), quantity: Number(x?.quantity || 0), unitPrice: Number(x?.unitPrice || 0), details: String(x?.details || "") })))
             setTaxRate(Number(found?.taxRate || 0))
@@ -111,6 +124,60 @@ export default function AdminProposalsPage() {
       } catch {}
     })()
   }, [draftId])
+
+  useEffect(() => {
+    const h = setTimeout(() => setCrmQueryDebounced(crmQuery), 300)
+    return () => clearTimeout(h)
+  }, [crmQuery])
+
+  useEffect(() => {
+    const q = crmQueryDebounced.trim().toLowerCase()
+    if (q.length < 2) {
+      setCrmResults([])
+      return
+    }
+    setCrmLoading(true)
+    ;(async () => {
+      try {
+        if (!crmAllRef.current || crmAllRef.current.length === 0) {
+          const res = await fetch("/api/crm/contacts", { cache: "no-store" })
+          const json = await res.json().catch(() => ({}))
+          const merged = ([] as any[]).concat(json?.contacts || [], json?.leads || [], json?.clients || [])
+          crmAllRef.current = merged
+        }
+        const base = crmAllRef.current || []
+        const results = base.filter((c: any) => {
+          const name = String(c?.name || "").toLowerCase()
+          const email = String(c?.email || "").toLowerCase()
+          const company = String(c?.company || "").toLowerCase()
+          return name.includes(q) || email.includes(q) || company.includes(q)
+        }).slice(0, 10)
+        setCrmResults(results)
+        setCrmOpen(true)
+      } finally {
+        setCrmLoading(false)
+      }
+    })()
+  }, [crmQueryDebounced])
+
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      const el = crmRef.current
+      if (el && !el.contains(e.target as Node)) setCrmOpen(false)
+    }
+    document.addEventListener("mousedown", onDoc)
+    return () => document.removeEventListener("mousedown", onDoc)
+  }, [])
+
+  const selectCrm = (c: any) => {
+    setClientName(String(c?.name || ""))
+    setClientEmail(String(c?.email || ""))
+    setClientCompany(String(c?.company || ""))
+    setClientPhone(String(c?.phone || ""))
+    setCrmSelectedId(String(c?.id || ""))
+    setCrmQuery("")
+    setCrmOpen(false)
+  }
 
   useEffect(() => {
     if (!aiOpen) return
@@ -270,7 +337,8 @@ export default function AdminProposalsPage() {
     try {
       setSavingDraft(true)
       const payload = {
-        client: { name: clientName, email: clientEmail, company: clientCompany },
+        client: { name: clientName, email: clientEmail, company: clientCompany, phone: clientPhone },
+        crmId: crmSelectedId,
         title,
         items,
         taxRate,
@@ -394,7 +462,8 @@ export default function AdminProposalsPage() {
               <Button variant="outline" onClick={() => saveDraft()} disabled={savingDraft} aria-busy={savingDraft}>{savingDraft ? "Saving…" : "Save Draft"}</Button>
               <Button onClick={async () => {
                 const payload = {
-                  client: { name: clientName, email: clientEmail, company: clientCompany },
+                  client: { name: clientName, email: clientEmail, company: clientCompany, phone: clientPhone },
+                  crmId: crmSelectedId,
                   title,
                   items,
                   taxRate,
@@ -470,6 +539,8 @@ export default function AdminProposalsPage() {
                       setClientName(String(d?.client?.name || ""))
                       setClientEmail(String(d?.client?.email || ""))
                       setClientCompany(String(d?.client?.company || ""))
+                      setClientPhone(String(d?.client?.phone || ""))
+                      setCrmSelectedId(String(d?.crmId || ""))
                       setTitle(String(d?.title || "Proposal"))
                       setItems((Array.isArray(d?.items) ? d.items : []).map((x: any) => ({ id: crypto.randomUUID(), description: String(x?.description || ""), quantity: Number(x?.quantity || 0), unitPrice: Number(x?.unitPrice || 0), details: String(x?.details || "") })))
                       setTaxRate(Number(d?.taxRate || 0))
@@ -492,7 +563,7 @@ export default function AdminProposalsPage() {
                     }}>Rename</Button>
                     <Button variant="outline" size="sm" onClick={async () => {
                       try {
-                        const payload = { client: d.client, title: String(d.title||"")+" (copy)", items: d.items, taxRate: d.taxRate, discount: d.discount, notes: d.notes }
+                        const payload = { client: d.client, crmId: d.crmId, title: String(d.title||"")+" (copy)", items: d.items, taxRate: d.taxRate, discount: d.discount, notes: d.notes }
                         const res = await fetch("/api/proposals/drafts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
                         const json = await res.json().catch(() => ({}))
                         if (res.ok && json?.ok) {
@@ -537,6 +608,56 @@ export default function AdminProposalsPage() {
           <div className="bg-card border border-border/40 rounded-xl p-4 shadow-sm">
             <div className="text-sm font-semibold text-foreground mb-3">Client Information</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="md:col-span-2 relative" ref={crmRef}>
+                <input
+                  className="p-2 border border-border/40 rounded-md bg-background text-foreground w-full"
+                  placeholder="Search CRM (name/email/company)"
+                  value={crmQuery}
+                  onChange={(e) => setCrmQuery(e.target.value)}
+                  onFocus={() => setCrmOpen(true)}
+                />
+                {crmOpen && (
+                  <div className="absolute z-10 mt-1 w-full border border-border/40 rounded-md bg-background shadow-sm max-h-48 overflow-auto">
+                    {crmLoading ? (
+                      <div className="p-2 text-xs text-muted-foreground">Searching…</div>
+                    ) : crmResults.length === 0 ? (
+                      <div className="p-2 text-xs text-muted-foreground">No matches</div>
+                    ) : (
+                      crmResults.map((c: any) => (
+                        <button
+                          type="button"
+                          key={String(c?.id || Math.random())}
+                          className="w-full text-left p-2 hover:bg-muted"
+                          onClick={() => selectCrm(c)}
+                        >
+                          <div className="text-sm text-foreground">{String(c?.name || "")}</div>
+                          <div className="text-xs text-muted-foreground">{String(c?.email || "")} • {String(c?.company || "")}</div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+              {crmSelectedId && (
+                <div className="md:col-span-2 flex items-center justify-between p-2 border border-border/40 rounded-md bg-background">
+                  <div className="text-xs text-muted-foreground">
+                    Linked CRM: <span className="text-foreground font-medium">{clientName || "—"}</span>{clientEmail ? ` • ${clientEmail}` : ""} <span className="text-muted-foreground">({crmSelectedId})</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-xs underline text-muted-foreground hover:text-foreground"
+                    onClick={() => setCrmSelectedId("")}
+                  >
+                    Clear link
+                  </button>
+                  <a
+                    href={`/admin/crm?contact=${encodeURIComponent(crmSelectedId)}`}
+                    className="ml-2 text-xs underline text-muted-foreground hover:text-foreground"
+                  >
+                    Open in CRM
+                  </a>
+                </div>
+              )}
               <input
                 className="p-2 border border-border/40 rounded-md bg-background text-foreground"
                 placeholder="Client name"
@@ -550,11 +671,98 @@ export default function AdminProposalsPage() {
                 onChange={(e) => setClientEmail(e.target.value)}
               />
               <input
+                className="p-2 border border-border/40 rounded-md bg-background text-foreground"
+                placeholder="Phone (optional)"
+                value={clientPhone}
+                onChange={(e) => setClientPhone(e.target.value)}
+              />
+              <input
                 className="p-2 border border-border/40 rounded-md bg-background text-foreground md:col-span-2"
                 placeholder="Company (optional)"
                 value={clientCompany}
                 onChange={(e) => setClientCompany(e.target.value)}
               />
+              {!crmSelectedId && (clientName.trim() || clientEmail.trim()) && (
+                <div className="md:col-span-2 flex items-center justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        const res = await fetch("/api/crm/contacts", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ name: clientName, email: clientEmail, phone: clientPhone, company: clientCompany }),
+                        })
+                        const json = await res.json().catch(() => ({}))
+                        if (res.ok && json?.ok && json?.id) {
+                          setCrmSelectedId(String(json.id))
+                          toast.success("Added to CRM")
+                        } else {
+                          toast.error(String(json?.error || "Failed to add to CRM"))
+                        }
+                      } catch {}
+                    }}
+                  >
+                    Add to CRM
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        const res = await fetch("/api/crm/leads", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ name: clientName, email: clientEmail, phone: clientPhone, company: clientCompany, source: "Proposal", notes: title }),
+                        })
+                        const json = await res.json().catch(() => ({}))
+                        if (res.ok && json?.ok && json?.id) {
+                          setCreatedLeadId(String(json.id))
+                          toast.success("Lead created")
+                        } else {
+                          toast.error(String(json?.error || "Failed to create lead"))
+                        }
+                      } catch {}
+                    }}
+                  >
+                    Create Lead
+                  </Button>
+                  {createdLeadId && (
+                    <a href={`/admin/crm?lead=${encodeURIComponent(createdLeadId)}`} className="text-xs underline text-muted-foreground hover:text-foreground">
+                      Open lead in CRM
+                    </a>
+                  )}
+                </div>
+              )}
+              {crmSelectedId && (
+                <div className="md:col-span-2 flex items-center justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        const payload = { title, contact_id: crmSelectedId, value: total, next_activity: "Proposal created", due_date: validUntil }
+                        const res = await fetch("/api/crm/deals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+                        const json = await res.json().catch(() => ({}))
+                        if (res.ok && json?.ok && json?.id) {
+                          setCreatedDealId(String(json.id))
+                          toast.success("Deal created")
+                        } else {
+                          toast.error(String(json?.error || "Failed to create deal"))
+                        }
+                      } catch {}
+                    }}
+                  >
+                    Create Deal
+                  </Button>
+                  {createdDealId && (
+                    <a href={`/admin/crm?deal=${encodeURIComponent(createdDealId)}`} className="text-xs underline text-muted-foreground hover:text-foreground">
+                      Open deal in CRM
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -714,6 +922,7 @@ export default function AdminProposalsPage() {
                   <div className="text-xs text-muted-foreground">Client</div>
                   <div className="text-sm font-medium text-foreground">{clientName || "—"}</div>
                   <div className="text-sm text-muted-foreground">{clientEmail || ""}</div>
+                  <div className="text-sm text-muted-foreground">{clientPhone || ""}</div>
                   <div className="text-sm text-muted-foreground">{clientCompany || ""}</div>
                 </div>
                 <div className="rounded-md border border-border/40 p-3">
