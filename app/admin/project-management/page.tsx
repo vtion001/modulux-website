@@ -6,6 +6,7 @@ import { SaveForm, SubmitButton } from "@/components/admin/save-form"
 import Link from "next/link"
 import { KanbanBoard } from "@/components/admin/kanban-board"
 import { AssigneeFilter } from "@/components/admin/assignee-filter"
+import { supabaseServer } from "@/lib/supabase-server"
 
 type Task = {
   id: string
@@ -24,6 +25,12 @@ const tasksPath = path.join(dataDir, "project-tasks.json")
 
 async function loadTasks(): Promise<Task[]> {
   try {
+    try {
+      const supabase = supabaseServer()
+      const { data: rows } = await supabase.from("project_tasks").select("*").order("created_at", { ascending: false })
+      const listDb = (rows || []).map((r: any) => ({ id: String(r.id), project: String(r.project || ""), title: String(r.title || ""), description: String(r.description || ""), assignees: Array.isArray(r.assignees) ? r.assignees : Array.isArray(r.assignees_json) ? r.assignees_json : [], due_date: String(r.due_date || ""), priority: String(r.priority || "Medium") as any, progress: Number(r.progress || 0), status: String(r.status || "Backlog") as any }))
+      if (listDb.length) return listDb as Task[]
+    } catch {}
     const raw = await readFile(tasksPath, "utf-8").catch(() => "[]")
     const list = JSON.parse(raw || "[]")
     if (Array.isArray(list) && list.length) return list
@@ -101,12 +108,17 @@ async function upsertTask(formData: FormData) {
   const priority = (String(formData.get("priority") || "Medium").trim() as Task["priority"])
   const progress = Number(formData.get("progress") || 0)
   const status = (String(formData.get("status") || "Backlog").trim() as Task["status"])
-  await mkdir(dataDir, { recursive: true })
-  const list = await loadTasks()
-  const next = list.some((t) => t.id === id)
-    ? list.map((t) => (t.id === id ? { ...t, project, title, description, assignees, due_date, priority, progress, status } : t))
-    : [{ id, project, title, description, assignees, due_date, priority, progress, status }, ...list]
-  await writeFile(tasksPath, JSON.stringify(next, null, 2))
+  try {
+    const supabase = supabaseServer()
+    await supabase.from("project_tasks").upsert({ id, project, title, description, assignees, assignees_json: assignees, due_date, priority, progress, status })
+  } catch {
+    await mkdir(dataDir, { recursive: true })
+    const list = await loadTasks()
+    const next = list.some((t) => t.id === id)
+      ? list.map((t) => (t.id === id ? { ...t, project, title, description, assignees, due_date, priority, progress, status } : t))
+      : [{ id, project, title, description, assignees, due_date, priority, progress, status }, ...list]
+    await writeFile(tasksPath, JSON.stringify(next, null, 2))
+  }
   revalidatePath("/admin/project-management")
   return { ok: true }
 }
@@ -115,9 +127,14 @@ async function deleteTask(formData: FormData) {
   "use server"
   const id = String(formData.get("id") || "").trim()
   if (!id) return { ok: false }
-  const list = await loadTasks()
-  const next = list.filter((t) => t.id !== id)
-  await writeFile(tasksPath, JSON.stringify(next, null, 2))
+  try {
+    const supabase = supabaseServer()
+    await supabase.from("project_tasks").delete().eq("id", id)
+  } catch {
+    const list = await loadTasks()
+    const next = list.filter((t) => t.id !== id)
+    await writeFile(tasksPath, JSON.stringify(next, null, 2))
+  }
   revalidatePath("/admin/project-management")
   return { ok: true }
 }
