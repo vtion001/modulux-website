@@ -104,6 +104,10 @@ export default function AdminProposalsPage() {
   const [emailPreviewOpen, setEmailPreviewOpen] = useState(false)
   const [emailSubject, setEmailSubject] = useState("")
   const [emailBody, setEmailBody] = useState("")
+  const [emailFormat, setEmailFormat] = useState<"text"|"html">("text")
+  const [attachHtml, setAttachHtml] = useState(false)
+  const [sendToSelf, setSendToSelf] = useState(false)
+  const [adminEmail, setAdminEmail] = useState<string>("")
   useAdminDraftsShortcuts(searchInputRef, page, totalPages, (p:number)=>setPage(p))
 
   useEffect(() => {
@@ -475,6 +479,73 @@ export default function AdminProposalsPage() {
     const totals = [`Subtotal: ${subtotalTxt}`, `Tax: ${taxTxt}`, `Discount: ${discountTxt}`, `Total: ${totalTxt}`].join("\n")
     return `${header}\n\nItems:\n${linesTxt}\n\n${totals}`
   }
+
+  const buildEmailHtml = () => {
+    const nf = new Intl.NumberFormat("en-PH")
+    const rows = previewBreakdown.map((r) => {
+      const rateTxt = `₱${nf.format(Number(r.rate||0))}`
+      const lineTxt = `₱${nf.format(Number(r.totalLine||0))}`
+      const mTxt = `${Number(r.meters||0)}m`
+      const detailsSafe = String(r.details||"").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      return `<tr>
+        <td style="padding:8px;border:1px solid #e5e7eb">${String(r.category||"")}</td>
+        <td style="padding:8px;border:1px solid #e5e7eb">${String(r.set||1)}</td>
+        <td style="padding:8px;border:1px solid #e5e7eb">${String(r.room||"")}</td>
+        <td style="padding:8px;border:1px solid #e5e7eb">${mTxt}</td>
+        <td style="padding:8px;border:1px solid #e5e7eb">${rateTxt}</td>
+        <td style="padding:8px;border:1px solid #e5e7eb">${String(r.installTxt||"₱0")}</td>
+        <td style="padding:8px;border:1px solid #e5e7eb;text-align:right">${lineTxt}</td>
+      </tr>
+      <tr>
+        <td colspan="7" style="padding:8px;border:1px solid #e5e7eb;color:#6b7280">Details: ${detailsSafe}</td>
+      </tr>`
+    }).join("")
+    const subtotalTxt = `₱${nf.format(Number(subtotal||0))}`
+    const taxTxt = `₱${nf.format(Number(tax||0))}`
+    const discountTxt = `₱${nf.format(Number(discount||0))}`
+    const totalTxt = `₱${nf.format(Number(total||0))}`
+    const hdr = `<div style="font-family:ui-sans-serif,system-ui,-apple-system;line-height:1.5;color:#111827">
+      <h2 style="margin:0 0 8px 0">Proposal Preview</h2>
+      <div style="font-size:14px;color:#6b7280">Client: ${String(clientName||"")}${clientCompany?` • ${clientCompany}`:""}${clientPhone?` • ${clientPhone}`:""}</div>
+      <div style="font-size:14px;color:#6b7280">Email: ${String(clientEmail||"")}</div>
+      <div style="font-size:14px;color:#6b7280">Title: ${String(title||"Proposal")}</div>
+      <div style="font-size:14px;color:#6b7280">Issue Date: ${String(issueDate||"")}</div>
+      <div style="font-size:14px;color:#6b7280">Valid Until: ${String(validUntil||"")}</div>
+      <div style="font-size:14px;color:#6b7280">Notes: ${String(notes||"")}</div>
+    </div>`
+    const table = `<table style="border-collapse:collapse;width:100%;margin-top:12px">
+      <thead>
+        <tr style="background:#f9fafb;color:#6b7280">
+          <th style="text-align:left;padding:8px;border:1px solid #e5e7eb">Category</th>
+          <th style="text-align:left;padding:8px;border:1px solid #e5e7eb">Set</th>
+          <th style="text-align:left;padding:8px;border:1px solid #e5e7eb">Room</th>
+          <th style="text-align:left;padding:8px;border:1px solid #e5e7eb">Meters</th>
+          <th style="text-align:left;padding:8px;border:1px solid #e5e7eb">Rate</th>
+          <th style="text-align:left;padding:8px;border:1px solid #e5e7eb">Install</th>
+          <th style="text-align:right;padding:8px;border:1px solid #e5e7eb">Line Total</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`
+    const totals = `<div style="margin-top:12px;font-size:14px">
+      <div>Subtotal: <strong>${subtotalTxt}</strong></div>
+      <div>Tax: <strong>${taxTxt}</strong></div>
+      <div>Discount: <strong>${discountTxt}</strong></div>
+      <div>Total: <strong>${totalTxt}</strong></div>
+    </div>`
+    return `<div>${hdr}${table}${totals}</div>`
+  }
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const res = await fetch('/data/email.json', { cache: 'no-store' })
+        const cfg = await res.json().catch(() => ({}))
+        const admin = String(cfg?.reply_to || cfg?.from_email || '')
+        if (admin) setAdminEmail(admin)
+      } catch {}
+    })()
+  }, [])
 
   return (
     <div className="max-w-7xl mx-auto px-4 space-y-8">
@@ -1175,22 +1246,57 @@ export default function AdminProposalsPage() {
                 onChange={(e) => setEmailSubject(e.target.value)}
                 placeholder="Subject"
               />
+              <div className="flex items-center gap-3 text-xs">
+                <label className="flex items-center gap-2"><input type="radio" checked={emailFormat==='text'} onChange={()=>{setEmailFormat('text'); setEmailBody(buildEmailText())}} /> Plain Text</label>
+                <label className="flex items-center gap-2"><input type="radio" checked={emailFormat==='html'} onChange={()=>{setEmailFormat('html'); setEmailBody(buildEmailHtml())}} /> HTML</label>
+              </div>
               <textarea
                 className="w-full p-2 border border-border/40 rounded-md bg-background text-foreground min-h-[220px]"
                 value={emailBody}
                 onChange={(e) => setEmailBody(e.target.value)}
               />
+              {emailFormat==='html' && (
+                <div className="mt-3">
+                  <div className="text-xs text-muted-foreground mb-1">Live HTML Preview</div>
+                  <div className="rounded-md border border-border/40 p-3 bg-white" dangerouslySetInnerHTML={{ __html: emailBody }} />
+                </div>
+              )}
+              <div className="flex items-center justify-between text-xs">
+                <label className="flex items-center gap-2"><input type="checkbox" checked={attachHtml} onChange={(e)=>setAttachHtml(e.target.checked)} /> Attach HTML snapshot</label>
+                <label className="flex items-center gap-2"><input type="checkbox" checked={sendToSelf} onChange={(e)=>setSendToSelf(e.target.checked)} /> Email to self</label>
+              </div>
             </div>
             <div className="p-4 border-t border-border/40 flex items-center justify-end gap-2">
               <Button variant="outline" onClick={() => setEmailPreviewOpen(false)}>Cancel</Button>
+              {emailFormat==='html' && (
+                <Button variant="outline" onClick={() => {
+                  const html = emailBody || buildEmailHtml()
+                  const b64 = typeof window !== 'undefined' ? btoa(unescape(encodeURIComponent(html))) : Buffer.from(html, 'utf-8').toString('base64')
+                  const url = `data:text/html;base64,${b64}`
+                  window.open(url, '_blank')
+                }}>Open in new tab</Button>
+              )}
               <Button onClick={async () => {
-                if (!clientEmail || !clientEmail.trim()) { toast.error("Add a client email first"); return }
+                const dest = (sendToSelf || !clientEmail?.trim()) ? adminEmail : clientEmail
+                if (!dest || !dest.trim()) { toast.error("Email config missing"); return }
                 try {
                   setSendingEmail(true)
-                  const eres = await fetch("/api/gmail/send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ to: clientEmail, subject: emailSubject, text: emailBody, includeSignature: true }) })
+                  const toBase64 = (s: string) => typeof window !== 'undefined' ? btoa(unescape(encodeURIComponent(s))) : Buffer.from(s, 'utf-8').toString('base64')
+                  const body: any = { to: dest, subject: emailSubject, includeSignature: true }
+                  if (emailFormat === 'html') body.html = emailBody
+                  else body.text = emailBody
+                  if (attachHtml) {
+                    body.attachments = [{ filename: 'proposal-preview.html', content_base64: toBase64(buildEmailHtml()), mime: 'text/html' }]
+                  }
+                  const eres = await fetch("/api/gmail/send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
                   const ejson = await eres.json().catch(() => ({}))
                   if (eres.ok && ejson?.ok) {
                     toast.success("Preview emailed")
+                    try {
+                      if (draftId) {
+                        await fetch('/api/proposals/drafts', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: draftId, patch: { emailed_on: new Date().toISOString() } }) })
+                      }
+                    } catch {}
                     setEmailPreviewOpen(false)
                   } else {
                     toast.error(String(ejson?.error || "Email failed"))

@@ -77,11 +77,12 @@ export async function PATCH(request: Request) {
     const body = await request.json().catch(() => ({}))
     const id = String(body?.id || "")
     const title = String(body?.title || "")
-    if (!id || !title) return NextResponse.json({ ok: false, error: "Missing id or title" }, { status: 400 })
+    const patch = (body?.patch || null) as any
+    if (!id || (!title && !patch)) return NextResponse.json({ ok: false, error: "Missing id or fields" }, { status: 400 })
     const supabase = supabaseServer()
     const { data } = await supabase.from("proposal_drafts").select("data").eq("id", id).single()
     const current = (data?.data || {}) as any
-    const next = { ...current, title }
+    const next = { ...current, ...(title ? { title } : {}), ...(patch && typeof patch === 'object' ? patch : {}) }
     await supabase.from("proposal_drafts").upsert({ id, data: next, updated_at: new Date().toISOString() }, { onConflict: "id" })
     return NextResponse.json({ ok: true })
   } catch (e: any) {
