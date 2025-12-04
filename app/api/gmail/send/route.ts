@@ -7,14 +7,25 @@ const storePath = path.join(dataDir, "gmail.json")
 const emailCfgPath = path.join(dataDir, "email.json")
 
 async function getToken() {
+  const clientId = process.env.GOOGLE_CLIENT_ID || ""
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || ""
+  const envRefresh = process.env.GOOGLE_REFRESH_TOKEN || ""
+  if (clientId && clientSecret && envRefresh) {
+    const res = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, refresh_token: envRefresh, grant_type: "refresh_token" }),
+    })
+    const data = await res.json()
+    if (!res.ok) return null
+    return String(data.access_token || "") || null
+  }
   const raw = await readFile(storePath, "utf-8").catch(() => "{}")
   const cfg = JSON.parse(raw)
   const t = cfg?.token
   if (!t) return null
   const expiresAt = t.obtained_at + (t.expires_in || 0) * 1000 - 60_000
   if (Date.now() < expiresAt) return t.access_token
-  const clientId = process.env.GOOGLE_CLIENT_ID || ""
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || ""
   const refreshToken = t.refresh_token
   if (!refreshToken || !clientId || !clientSecret) return null
   const res = await fetch("https://oauth2.googleapis.com/token", {
@@ -24,11 +35,7 @@ async function getToken() {
   })
   const data = await res.json()
   if (!res.ok) return null
-  cfg.token.access_token = data.access_token
-  cfg.token.expires_in = data.expires_in
-  cfg.token.obtained_at = Date.now()
-  await writeFile(storePath, JSON.stringify(cfg, null, 2))
-  return cfg.token.access_token
+  return String(data.access_token || "") || null
 }
 
 function buildMime({ from, to, subject, text, html, replyTo, bcc, attachments }: { from: string; to: string; subject: string; text?: string; html?: string; replyTo?: string; bcc?: string; attachments?: Array<{ filename: string; content_base64: string; mime?: string }> }) {
