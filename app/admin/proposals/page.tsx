@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { FileText, Plus, Trash2 } from "lucide-react"
 import { estimateCabinetCost } from "@/lib/estimator"
 import { toast } from "sonner"
+import * as Dialog from "@radix-ui/react-dialog"
 const tierSpecs: Record<string, { items: string[]; exclusive: string[] }> = {
   standard: {
     items: [
@@ -99,6 +100,10 @@ export default function AdminProposalsPage() {
   const searchInputRef = useRef<HTMLInputElement | null>(null)
   const [savingDraft, setSavingDraft] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [sendingEmail, setSendingEmail] = useState(false)
+  const [emailPreviewOpen, setEmailPreviewOpen] = useState(false)
+  const [emailSubject, setEmailSubject] = useState("")
+  const [emailBody, setEmailBody] = useState("")
   useAdminDraftsShortcuts(searchInputRef, page, totalPages, (p:number)=>setPage(p))
 
   useEffect(() => {
@@ -446,6 +451,31 @@ export default function AdminProposalsPage() {
     })
   }, [aiPreviewItems, aiPreviewTitle, title])
 
+  const buildEmailText = () => {
+    const nf = new Intl.NumberFormat("en-PH")
+    const linesTxt = previewBreakdown.map((r) => {
+      const rateTxt = `₱${nf.format(Number(r.rate||0))}`
+      const lineTxt = `₱${nf.format(Number(r.totalLine||0))}`
+      const mTxt = `${Number(r.meters||0)}m`
+      return `- ${String(r.category||"")} • Set ${String(r.set||1)} • ${String(r.room||"")} • ${mTxt} @ ${rateTxt} • Install ${String(r.installTxt||"₱0")} • Line ${lineTxt}\n  Details: ${String(r.details||"")}`
+    }).join("\n")
+    const subtotalTxt = `₱${nf.format(Number(subtotal||0))}`
+    const taxTxt = `₱${nf.format(Number(tax||0))}`
+    const discountTxt = `₱${nf.format(Number(discount||0))}`
+    const totalTxt = `₱${nf.format(Number(total||0))}`
+    const header = [
+      `Proposal Preview`,
+      `Client: ${String(clientName||"")}${clientCompany?` • ${clientCompany}`:""}${clientPhone?` • ${clientPhone}`:""}`,
+      `Email: ${String(clientEmail||"")}`,
+      `Title: ${String(title||"Proposal")}`,
+      `Issue Date: ${String(issueDate||"")}`,
+      `Valid Until: ${String(validUntil||"")}`,
+      `Notes: ${String(notes||"")}`,
+    ].join("\n")
+    const totals = [`Subtotal: ${subtotalTxt}`, `Tax: ${taxTxt}`, `Discount: ${discountTxt}`, `Total: ${totalTxt}`].join("\n")
+    return `${header}\n\nItems:\n${linesTxt}\n\n${totals}`
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 space-y-8">
       <div className="relative isolate overflow-hidden rounded-2xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
@@ -528,6 +558,14 @@ export default function AdminProposalsPage() {
                   setSubmitting(false)
                 }
               }} disabled={submitting} aria-busy={submitting}>{submitting ? "Submitting…" : "Submit"}</Button>
+              <Button variant="outline" onClick={() => {
+                if (!clientEmail || !clientEmail.trim()) { toast.error("Add a client email first"); return }
+                const subject = `Proposal Preview: ${String(title||"Proposal")}`
+                const text = buildEmailText()
+                setEmailSubject(subject)
+                setEmailBody(text)
+                setEmailPreviewOpen(true)
+              }}>Email Preview</Button>
               <Button variant="outline" onClick={() => setAiOpen(true)}>AI Fill</Button>
             </div>
           </div>
@@ -1118,9 +1156,55 @@ export default function AdminProposalsPage() {
               <Button onClick={()=>applyAiPrefill()} disabled={!selectedVersionTs}>Apply</Button>
             </div>
           </div>
-        </div>
-  )}
-  </div>
+      </div>
+      <Dialog.Root open={emailPreviewOpen} onOpenChange={setEmailPreviewOpen}>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-black/30" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-2xl rounded-xl border border-border/50 bg-background shadow-xl">
+            <div className="p-4 border-b border-border/40 flex items-center justify-between">
+              <Dialog.Title className="text-lg font-semibold">Email Preview</Dialog.Title>
+              <Dialog.Close asChild>
+                <button className="px-2 py-1 rounded-md border">Close</button>
+              </Dialog.Close>
+            </div>
+            <div className="p-4 space-y-3">
+              <div className="text-xs text-muted-foreground">To: {clientEmail}</div>
+              <input
+                className="w-full p-2 border border-border/40 rounded-md bg-background text-foreground"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                placeholder="Subject"
+              />
+              <textarea
+                className="w-full p-2 border border-border/40 rounded-md bg-background text-foreground min-h-[220px]"
+                value={emailBody}
+                onChange={(e) => setEmailBody(e.target.value)}
+              />
+            </div>
+            <div className="p-4 border-t border-border/40 flex items-center justify-end gap-2">
+              <Button variant="outline" onClick={() => setEmailPreviewOpen(false)}>Cancel</Button>
+              <Button onClick={async () => {
+                if (!clientEmail || !clientEmail.trim()) { toast.error("Add a client email first"); return }
+                try {
+                  setSendingEmail(true)
+                  const eres = await fetch("/api/gmail/send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ to: clientEmail, subject: emailSubject, text: emailBody, includeSignature: true }) })
+                  const ejson = await eres.json().catch(() => ({}))
+                  if (eres.ok && ejson?.ok) {
+                    toast.success("Preview emailed")
+                    setEmailPreviewOpen(false)
+                  } else {
+                    toast.error(String(ejson?.error || "Email failed"))
+                  }
+                } catch {}
+                finally {
+                  setSendingEmail(false)
+                }
+              }} disabled={sendingEmail} aria-busy={sendingEmail}>{sendingEmail ? "Sending…" : "Send Email"}</Button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+    </div>
   )
 }
 
