@@ -73,6 +73,8 @@ export default function AdminProposalsPage() {
   const [aiPreviewDiscount, setAiPreviewDiscount] = useState<number>(0)
   const [aiPreviewTitle, setAiPreviewTitle] = useState<string>("")
   const [aiPreviewNotes, setAiPreviewNotes] = useState<string>("")
+  const [drafts, setDrafts] = useState<any[]>([])
+  const [draftsLoading, setDraftsLoading] = useState<boolean>(false)
 
   useEffect(() => {
     ;(async () => {
@@ -165,7 +167,7 @@ export default function AdminProposalsPage() {
           Number(u.installationAdd||0) ? `Install add: ₱${Number(u.installationAdd||0).toLocaleString()}` : null,
           specIncluded ? `Included: ${specIncluded}` : null,
           specExclusive ? `Exclusive: ${specExclusive}` : null,
-        ].filter(Boolean).join(" • ")
+        ].filter(Boolean).join("\n")
         return {
           id: crypto.randomUUID(),
           description: `${u.category} cabinets (${String(form.cabinetType || (pre?.tier === "standard" ? "basic" : (pre?.tier || "luxury")))})`,
@@ -194,6 +196,40 @@ export default function AdminProposalsPage() {
     setTitle(aiPreviewTitle || title)
     setNotes(aiPreviewNotes || notes)
     setAiOpen(false)
+  }
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        setDraftsLoading(true)
+        const res = await fetch("/api/proposals/drafts", { cache: "no-store" })
+        const json = await res.json().catch(() => ({}))
+        const arr = Array.isArray(json?.drafts) ? json.drafts : []
+        setDrafts(arr)
+      } finally {
+        setDraftsLoading(false)
+      }
+    })()
+  }, [])
+
+  const saveDraft = async () => {
+    try {
+      const payload = {
+        client: { name: clientName, email: clientEmail, company: clientCompany },
+        title,
+        items,
+        taxRate,
+        discount,
+        notes,
+      }
+      const res = await fetch("/api/proposals/drafts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+      const json = await res.json().catch(() => ({}))
+      if (json?.ok) {
+        const list = await fetch("/api/proposals/drafts", { cache: "no-store" })
+        const j2 = await list.json().catch(() => ({}))
+        setDrafts(Array.isArray(j2?.drafts) ? j2.drafts : [])
+      }
+    } catch {}
   }
 
   const addItem = () => {
@@ -236,12 +272,69 @@ export default function AdminProposalsPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline">Save Draft</Button>
-              <Button>Submit</Button>
+              <Button variant="outline" onClick={() => saveDraft()}>Save Draft</Button>
+              <Button onClick={async () => {
+                const payload = {
+                  client: { name: clientName, email: clientEmail, company: clientCompany },
+                  title,
+                  items,
+                  taxRate,
+                  discount,
+                  notes,
+                }
+                try {
+                  const res = await fetch("/api/proposals/create", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+                  const data = await res.json().catch(() => ({}))
+                  if (data?.id) {
+                    window.location.href = `/admin/proposals?id=${encodeURIComponent(data.id)}`
+                  }
+                } catch {}
+              }}>Submit</Button>
               <Button variant="outline" onClick={() => setAiOpen(true)}>AI Fill</Button>
             </div>
           </div>
         </div>
+      </div>
+      <div className="bg-card border border-border/40 rounded-xl p-4 shadow-sm">
+        <div className="text-sm font-semibold text-foreground mb-3">Drafts</div>
+        {draftsLoading ? (
+          <div className="text-xs text-muted-foreground">Loading…</div>
+        ) : (
+          <div className="space-y-2">
+            {drafts.length === 0 ? (
+              <div className="text-xs text-muted-foreground">No drafts saved.</div>
+            ) : (
+              drafts.map((d: any) => (
+                <div key={d.id} className="flex items-center justify-between gap-3 border rounded p-2 text-xs">
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">{String(d.title || "Untitled Proposal")}</div>
+                    <div className="text-muted-foreground truncate">{String(d?.client?.name || "")} • {new Date(d.updated_at || d.created_at || Date.now()).toLocaleString()}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => {
+                      setClientName(String(d?.client?.name || ""))
+                      setClientEmail(String(d?.client?.email || ""))
+                      setClientCompany(String(d?.client?.company || ""))
+                      setTitle(String(d?.title || "Proposal"))
+                      setItems((Array.isArray(d?.items) ? d.items : []).map((x: any) => ({ id: crypto.randomUUID(), description: String(x?.description || ""), quantity: Number(x?.quantity || 0), unitPrice: Number(x?.unitPrice || 0), details: String(x?.details || "") })))
+                      setTaxRate(Number(d?.taxRate || 0))
+                      setDiscount(Number(d?.discount || 0))
+                      setNotes(String(d?.notes || ""))
+                    }}>Load</Button>
+                    <Button variant="outline" size="sm" onClick={async () => {
+                      try {
+                        await fetch("/api/proposals/drafts", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: d.id }) })
+                        const list = await fetch("/api/proposals/drafts", { cache: "no-store" })
+                        const j2 = await list.json().catch(() => ({}))
+                        setDrafts(Array.isArray(j2?.drafts) ? j2.drafts : [])
+                      } catch {}
+                    }}>Delete</Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -449,10 +542,10 @@ export default function AdminProposalsPage() {
                     {items.map((x) => (
                       <tr key={x.id} className="border-t border-border/40">
                         <td className="py-2">{x.description || "—"}</td>
-                        <td className="py-2">{x.details || "—"}</td>
-                        <td className="text-right py-2">{x.details || "—"}</td>
+                        <td className="py-2 whitespace-pre-wrap">{x.details || "—"}</td>
                         <td className="text-right py-2">{x.quantity}</td>
                         <td className="text-right py-2">₱{x.unitPrice.toLocaleString()}</td>
+                        <td className="text-right py-2">₱{(x.quantity * x.unitPrice).toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>

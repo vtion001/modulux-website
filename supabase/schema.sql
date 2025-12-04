@@ -11,3 +11,10 @@ create table if not exists public.calculator_pricing_versions (
 );
 
 create index if not exists idx_calculator_pricing_versions_ts on public.calculator_pricing_versions (ts desc);
+
+create table if not exists public.proposal_drafts (
+  id text primary key,
+  data jsonb not null,
+  created_at timestamptz default now(),
+  updated_at timestamptz
+);
