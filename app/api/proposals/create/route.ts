@@ -49,6 +49,7 @@ export async function POST(request: Request) {
     const data = {
       id,
       client: body?.client || { name: "", email: "", company: "" },
+      crmId: String(body?.crmId || ""),
       title: String(body?.title || "Proposal"),
       items: Array.isArray(body?.items) ? body.items : [],
       taxRate: Number(body?.taxRate || 0),

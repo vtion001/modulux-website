@@ -475,6 +475,49 @@ export default function AdminProposalsPage() {
                   const res = await fetch("/api/proposals/create", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
                   const data = await res.json().catch(() => ({}))
                   if (res.ok && data?.id) {
+                    try {
+                      if (crmSelectedId) {
+                    const dres = await fetch("/api/crm/deals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, contact_id: crmSelectedId, value: total, next_activity: "Proposal submitted", due_date: validUntil }) })
+                        const djson = await dres.json().catch(() => ({}))
+                        if (dres.ok && djson?.ok && djson?.id) {
+                          toast.success(
+                            <span>
+                              Deal created: {String(djson.id)} •{" "}
+                              <a href={`/admin/crm?deal=${encodeURIComponent(String(djson.id))}`} className="underline">Open</a>
+                            </span>,
+                            {
+                              action: {
+                                label: "Copy Link",
+                                onClick: () => {
+                                  const url = `${window.location.origin}/admin/crm?deal=${encodeURIComponent(String(djson.id))}`
+                                  navigator.clipboard.writeText(url)
+                                },
+                              },
+                            }
+                          )
+                        }
+                      } else if (clientName.trim() || clientEmail.trim()) {
+                        const lres = await fetch("/api/crm/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: clientName, email: clientEmail, phone: clientPhone, company: clientCompany, source: "Proposal", notes: title }) })
+                        const ljson = await lres.json().catch(() => ({}))
+                        if (lres.ok && ljson?.ok && ljson?.id) {
+                          toast.success(
+                            <span>
+                              Lead created: {String(ljson.id)} •{" "}
+                              <a href={`/admin/crm?lead=${encodeURIComponent(String(ljson.id))}`} className="underline">Open</a>
+                            </span>,
+                            {
+                              action: {
+                                label: "Copy Link",
+                                onClick: () => {
+                                  const url = `${window.location.origin}/admin/crm?lead=${encodeURIComponent(String(ljson.id))}`
+                                  navigator.clipboard.writeText(url)
+                                },
+                              },
+                            }
+                          )
+                        }
+                      }
+                    } catch {}
                     toast.success("Proposal submitted")
                     window.location.href = `/admin/proposals?id=${encodeURIComponent(data.id)}`
                   } else {
@@ -719,7 +762,21 @@ export default function AdminProposalsPage() {
                         const json = await res.json().catch(() => ({}))
                         if (res.ok && json?.ok && json?.id) {
                           setCreatedLeadId(String(json.id))
-                          toast.success("Lead created")
+                          toast.success(
+                            <span>
+                              Lead created: {String(json.id)} •{" "}
+                              <a href={`/admin/crm?lead=${encodeURIComponent(String(json.id))}`} className="underline">Open</a>
+                            </span>,
+                            {
+                              action: {
+                                label: "Copy Link",
+                                onClick: () => {
+                                  const url = `${window.location.origin}/admin/crm?lead=${encodeURIComponent(String(json.id))}`
+                                  navigator.clipboard.writeText(url)
+                                },
+                              },
+                            }
+                          )
                         } else {
                           toast.error(String(json?.error || "Failed to create lead"))
                         }
@@ -747,7 +804,21 @@ export default function AdminProposalsPage() {
                         const json = await res.json().catch(() => ({}))
                         if (res.ok && json?.ok && json?.id) {
                           setCreatedDealId(String(json.id))
-                          toast.success("Deal created")
+                          toast.success(
+                            <span>
+                              Deal created: {String(json.id)} •{" "}
+                              <a href={`/admin/crm?deal=${encodeURIComponent(String(json.id))}`} className="underline">Open</a>
+                            </span>,
+                            {
+                              action: {
+                                label: "Copy Link",
+                                onClick: () => {
+                                  const url = `${window.location.origin}/admin/crm?deal=${encodeURIComponent(String(json.id))}`
+                                  navigator.clipboard.writeText(url)
+                                },
+                              },
+                            }
+                          )
                         } else {
                           toast.error(String(json?.error || "Failed to create deal"))
                         }
