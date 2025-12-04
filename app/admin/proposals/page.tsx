@@ -5,6 +5,38 @@ import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { FileText, Plus, Trash2 } from "lucide-react"
 import { estimateCabinetCost } from "@/lib/estimator"
+const tierSpecs: Record<string, { items: string[]; exclusive: string[] }> = {
+  standard: {
+    items: [
+      "Carcass: 18mm MR MFC Melamine Board",
+      "Door: 18mm MR MFC Melamine Board",
+      "Hinges: Zinc Plated 3D Hinges Soft Closing",
+      "Drawers: Regular Wooden Drawing Box ( Soft Closing )",
+      "Countertop: Granite Countertop",
+    ],
+    exclusive: ["Special Mechanism", "Lighting", "Appliances"],
+  },
+  premium: {
+    items: [
+      "Carcass: 18mm Melamine Marine Plywood",
+      "Door: 18mm MDF PETG/UV Ray Gloss / Synchronized Boards",
+      "Hinges: Hettich Hinges ( Soft Closing )",
+      "Drawers: Hettich Tandem Box Drawers ( Soft Closing )",
+      "Countertop: Synthetic Quartz Countertop",
+    ],
+    exclusive: ["Special Mechanism", "Lighting", "Appliances"],
+  },
+  luxury: {
+    items: [
+      "Carcass: 18mm Celuka PVC Boards",
+      "Door: 18mm MDF PETG/Acrylic Boards",
+      "Hinges: Blum Hinges ( Soft Closing )",
+      "Drawers: Blum Tandem Box Drawers ( Soft Closing )",
+      "Countertop: Synthetic Quartz Countertop",
+    ],
+    exclusive: ["Special Mechanism", "Lighting", "Appliances"],
+  },
+}
 
 type ProposalItem = {
   id: string
@@ -97,7 +129,7 @@ export default function AdminProposalsPage() {
         projectType: String(form.projectType || "kitchen"),
         cabinetType: String(form.cabinetType || (pre?.tier === "standard" ? "basic" : (pre?.tier || "luxury"))),
         linearMeter: useLegacy ? legacyLm : undefined,
-        installation: Boolean(form.installation || pre?.applyTax),
+        installation: Boolean(form.installation || false),
         cabinetCategory: String(pre?.cabinetCategory || "base"),
         tier: String(pre?.tier || "luxury"),
         baseRates: data?.baseRates || undefined,
@@ -113,6 +145,10 @@ export default function AdminProposalsPage() {
         downgradeToMFC: Boolean(pre?.downgradeMFC || false),
       })
       const metaList = units.filter((u:any)=>Number(u.meters)>0)
+      const tierStr = String(pre?.tier || "luxury")
+      const spec = tierSpecs[tierStr] || { items: [], exclusive: [] }
+      const specIncluded = spec.items.join(", ")
+      const specExclusive = spec.exclusive.join(", ")
       const itemsMapped: ProposalItem[] = (calc?.breakdown?.units || []).map((u:any, idx:number) => {
         const meta = metaList[idx] || {}
         const materialTxt = String(meta.material||"").replace(/_/g," ")
@@ -127,6 +163,8 @@ export default function AdminProposalsPage() {
           `Rate: ₱${Number(u.baseRate||0).toLocaleString()}/m`,
           `Factors: ×${Number(u.tierFactor||1)} ×${Number(u.materialFactor||1)} ×${Number(u.finishFactor||1)} ×${Number(u.hardwareFactor||1)}`,
           Number(u.installationAdd||0) ? `Install add: ₱${Number(u.installationAdd||0).toLocaleString()}` : null,
+          specIncluded ? `Included: ${specIncluded}` : null,
+          specExclusive ? `Exclusive: ${specExclusive}` : null,
         ].filter(Boolean).join(" • ")
         return {
           id: crypto.randomUUID(),
@@ -401,6 +439,7 @@ export default function AdminProposalsPage() {
                   <thead>
                     <tr className="text-muted-foreground">
                       <th className="text-left font-medium pb-2">Item</th>
+                      <th className="text-left font-medium pb-2">Details</th>
                       <th className="text-right font-medium pb-2">Qty</th>
                       <th className="text-right font-medium pb-2">Unit</th>
                       <th className="text-right font-medium pb-2">Amount</th>
@@ -410,9 +449,10 @@ export default function AdminProposalsPage() {
                     {items.map((x) => (
                       <tr key={x.id} className="border-t border-border/40">
                         <td className="py-2">{x.description || "—"}</td>
+                        <td className="py-2">{x.details || "—"}</td>
+                        <td className="text-right py-2">{x.details || "—"}</td>
                         <td className="text-right py-2">{x.quantity}</td>
                         <td className="text-right py-2">₱{x.unitPrice.toLocaleString()}</td>
-                        <td className="text-right py-2">₱{(x.quantity * x.unitPrice).toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>
