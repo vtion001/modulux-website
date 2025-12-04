@@ -1,0 +1,69 @@
+[
+  {
+    "id": "9976a135-3582-4616-b445-9a96be13829d",
+    "project": "Showroom Fit-out",
+    "title": "Wireframing",
+    "description": "Create wireframes for Dashboard",
+    "assignees": [
+      "VD",
+      "CO"
+    ],
+    "due_date": "2025-12-11",
+    "priority": "High",
+    "progress": 30,
+    "status": "In Progress"
+  },
+  {
+    "id": "f2cc1fa6-4762-4a34-8d66-3745c2ecb834",
+    "project": "Kitchen Cabinetry",
+    "title": "Design QA",
+    "description": "Review layouts and specs",
+    "assignees": [
+      "MA"
+    ],
+    "due_date": "2025-12-14",
+    "priority": "Medium",
+    "progress": 10,
+    "status": "Backlog"
+  },
+  {
+    "id": "57e6bd10-816d-45f5-9a00-2d4119fb896e",
+    "project": "Wardrobe Install",
+    "title": "Procurement",
+    "description": "Issue PO for materials",
+    "assignees": [
+      "CO",
+      "VD"
+    ],
+    "due_date": "2025-12-09",
+    "priority": "Urgent",
+    "progress": 60,
+    "status": "In Progress"
+  },
+  {
+    "id": "b73be299-dcae-421b-8361-f0a7a1db3433",
+    "project": "Bathroom Vanities",
+    "title": "Install Scheduling",
+    "description": "Coordinate installers and site schedule",
+    "assignees": [
+      "MA"
+    ],
+    "due_date": "2025-12-19",
+    "priority": "Low",
+    "progress": 100,
+    "status": "Completed"
+  },
+  {
+    "id": "74f0625d-5a01-4040-9f29-219004e953fc",
+    "project": "Office Fit-out",
+    "title": "Ready to Ship",
+    "description": "Pack and prepare delivery",
+    "assignees": [
+      "CO"
+    ],
+    "due_date": "2025-12-07",
+    "priority": "High",
+    "progress": 85,
+    "status": "Ready"
+  }
+]

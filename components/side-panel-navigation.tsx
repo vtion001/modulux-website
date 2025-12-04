@@ -350,20 +350,7 @@ export function SidePanelNavigation() {
         </ScrollArea>
 
         {/* User Profile Section */}
-        <div className="p-4 border-t border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-              <span className="text-gray-600 text-sm font-medium">JD</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">John Doe</p>
-              <p className="text-xs text-gray-500">Administrator</p>
-            </div>
-            <button className="p-1 text-gray-400 hover:text-gray-600">
-              <ChevronDown className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+        <SidePanelUser />
       </nav>
 
       {/* Top Header Bar */}
@@ -415,5 +402,40 @@ export function SidePanelNavigation() {
       {/* Main Content Spacer */}
       <div className="pt-16 md:pl-64" />
     </>
+  )
+}
+
+function SidePanelUser() {
+  const [profile, setProfile] = useState<{ name: string; role: string; email: string; avatar_url?: string; initials: string } | null>(null)
+  useEffect(() => {
+    let mounted = true
+    fetch('/api/admin/profile').then(r=>r.json()).then((j)=>{
+      if (!mounted) return
+      if (j?.ok && j?.profile) setProfile(j.profile)
+    }).catch(()=>{})
+    return () => { mounted = false }
+  }, [])
+  const initials = profile?.initials || 'JD'
+  const name = profile?.name || 'John Doe'
+  const role = profile?.role || 'Administrator'
+  return (
+    <div className="p-4 border-t border-gray-200">
+      <div className="flex items-center gap-3">
+        {profile?.avatar_url ? (
+          <img src={profile.avatar_url} alt={name} className="w-8 h-8 rounded-full object-cover" />
+        ) : (
+          <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+            <span className="text-gray-600 text-sm font-medium">{initials}</span>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-900 truncate">{name}</p>
+          <p className="text-xs text-gray-500">{role}</p>
+        </div>
+        <button className="p-1 text-gray-400 hover:text-gray-600">
+          <ChevronDown className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
   )
 }

@@ -1,0 +1,229 @@
+"use client"
+
+import { useMemo, useState } from "react"
+
+type Task = {
+  id: string
+  project: string
+  title: string
+  description: string
+  assignees: string[]
+  due_date: string
+  priority: "Urgent" | "High" | "Medium" | "Low"
+  progress: number
+  status: "Backlog" | "In Progress" | "Ready" | "Completed"
+}
+
+type Group = { key: Task["status"]; title: string; desc?: string }
+type AssigneeMeta = Record<string, { name?: string; avatar_url?: string }>
+
+export function KanbanBoard({ tasks, groups, actionUpsert, assigneeMeta, layout }: { tasks: Task[]; groups: Group[]; actionUpsert: (formData: FormData) => Promise<any>; assigneeMeta?: AssigneeMeta; layout?: "default" | "swimlanes" }) {
+  const init = useMemo(() => {
+    const map: Record<string, Task[]> = {}
+    groups.forEach((g) => { map[g.key] = [] })
+    tasks.forEach((t) => { (map[t.status] ||= []).push(t) })
+    return map
+  }, [tasks, groups])
+  const [columns, setColumns] = useState<Record<string, Task[]>>(init)
+
+  const onDragStart = (e: React.DragEvent, id: string) => {
+    e.dataTransfer.setData("text/plain", id)
+  }
+
+  const onDrop = (e: React.DragEvent, status: Task["status"]) => {
+    e.preventDefault()
+    const id = e.dataTransfer.getData("text/plain")
+    if (!id) return
+    const fromKey = Object.keys(columns).find((k) => columns[k].some((t) => t.id === id))
+    if (!fromKey) return
+    if (fromKey === status) return
+    const task = columns[fromKey].find((t) => t.id === id)
+    if (!task) return
+    const next: Record<string, Task[]> = {}
+    Object.keys(columns).forEach((k) => { next[k] = columns[k].filter((t) => t.id !== id) })
+    const moved = { ...task, status }
+    next[status] = [moved, ...next[status]]
+    setColumns(next)
+    const fd = new FormData()
+    fd.set("id", moved.id)
+    fd.set("project", moved.project)
+    fd.set("title", moved.title)
+    fd.set("description", moved.description)
+    fd.set("assignees", moved.assignees.join(", "))
+    fd.set("due_date", moved.due_date)
+    fd.set("priority", moved.priority)
+    fd.set("progress", String(moved.progress))
+    fd.set("status", moved.status)
+    actionUpsert(fd)
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {groups.map((g) => (
+        <div key={g.key} className="rounded-xl border bg-card/60 p-3 flex flex-col"
+          onDragOver={(e) => e.preventDefault()} onDrop={(e) => onDrop(e, g.key)}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-sm font-semibold">{g.title}</div>
+            <div className="text-xs text-muted-foreground">{columns[g.key]?.length || 0}</div>
+          </div>
+          <div className="space-y-2 min-h-[180px]">
+            {layout === "swimlanes" ? (
+              Object.entries(
+                (columns[g.key] || []).reduce<Record<string, Task[]>>((acc, t) => {
+                  const key = t.project || "General"
+                  ;(acc[key] ||= []).push(t)
+                  return acc
+                }, {})
+              ).map(([projectName, list]) => (
+                <div key={projectName} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-semibold text-foreground">{projectName}</div>
+                    <div className="text-[11px] text-muted-foreground">{list.length}</div>
+                  </div>
+                  {list.map((t) => (
+                    <div key={t.id} draggable onDragStart={(e) => onDragStart(e, t.id)} className="rounded-md border border-border/40 bg-background/70 p-3 cursor-move">
+                      <div className="text-sm font-medium text-foreground">{t.title}</div>
+                      <div className="text-xs text-muted-foreground mb-2 truncate">{t.description}</div>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-1">
+                          {t.assignees.map((a) => {
+                            const meta = assigneeMeta?.[a]
+                            return meta?.avatar_url ? (
+                              <img key={a} src={meta.avatar_url} alt={meta.name || a} className="w-6 h-6 rounded-full object-cover" />
+                            ) : (
+                              <div key={a} className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[11px] font-semibold text-foreground/80">{a}</div>
+                            )
+                          })}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">{t.due_date}</div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] text-muted-foreground">Progress</span>
+                          <input type="range" min={0} max={100} defaultValue={t.progress} onChange={(e) => {
+                            const val = Number(e.currentTarget.value)
+                            const fd = new FormData()
+                            fd.set("id", t.id)
+                            fd.set("project", t.project)
+                            fd.set("title", t.title)
+                            fd.set("description", t.description)
+                            fd.set("assignees", t.assignees.join(", "))
+                            fd.set("due_date", t.due_date)
+                            fd.set("priority", t.priority)
+                            fd.set("progress", String(val))
+                            fd.set("status", t.status)
+                            actionUpsert(fd)
+                          }} className="flex-1" />
+                          <span className="text-[11px] text-muted-foreground w-8 text-right">{t.progress}%</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] text-muted-foreground">Priority</span>
+                          <select defaultValue={t.priority} onChange={(e) => {
+                            const val = e.currentTarget.value
+                            const fd = new FormData()
+                            fd.set("id", t.id)
+                            fd.set("project", t.project)
+                            fd.set("title", t.title)
+                            fd.set("description", t.description)
+                            fd.set("assignees", t.assignees.join(", "))
+                            fd.set("due_date", t.due_date)
+                            fd.set("priority", val)
+                            fd.set("progress", String(t.progress))
+                            fd.set("status", t.status)
+                            actionUpsert(fd)
+                          }} className="flex-1 px-2 py-1 rounded border text-xs">
+                            <option>Urgent</option>
+                            <option>High</option>
+                            <option>Medium</option>
+                            <option>Low</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))
+            ) : (
+              (columns[g.key] || []).map((t) => (
+                <div key={t.id} draggable onDragStart={(e) => onDragStart(e, t.id)} className="rounded-md border border-border/40 bg-background/70 p-3 cursor-move">
+                  <div className="text-sm font-medium text-foreground">{t.title}</div>
+                  <div className="text-xs text-muted-foreground mb-2">{t.project}</div>
+                  <div className="text-xs text-muted-foreground mb-2 truncate">{t.description}</div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1">
+                      {t.assignees.map((a) => {
+                        const meta = assigneeMeta?.[a]
+                        return meta?.avatar_url ? (
+                          <img key={a} src={meta.avatar_url} alt={meta.name || a} className="w-6 h-6 rounded-full object-cover" />
+                        ) : (
+                          <div key={a} className="w-6 h-6 rounded-full bg-muted flex items-center justify-center text-[11px] font-semibold text-foreground/80">{a}</div>
+                        )
+                      })}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">{t.due_date}</div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-muted-foreground">Progress</span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        defaultValue={t.progress}
+                        onChange={(e) => {
+                          const val = Number(e.currentTarget.value)
+                          const fd = new FormData()
+                          fd.set("id", t.id)
+                          fd.set("project", t.project)
+                          fd.set("title", t.title)
+                          fd.set("description", t.description)
+                          fd.set("assignees", t.assignees.join(", "))
+                          fd.set("due_date", t.due_date)
+                          fd.set("priority", t.priority)
+                          fd.set("progress", String(val))
+                          fd.set("status", t.status)
+                          actionUpsert(fd)
+                        }}
+                        className="flex-1"
+                      />
+                      <span className="text-[11px] text-muted-foreground w-8 text-right">{t.progress}%</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-muted-foreground">Priority</span>
+                      <select
+                        defaultValue={t.priority}
+                        onChange={(e) => {
+                          const val = e.currentTarget.value
+                          const fd = new FormData()
+                          fd.set("id", t.id)
+                          fd.set("project", t.project)
+                          fd.set("title", t.title)
+                          fd.set("description", t.description)
+                          fd.set("assignees", t.assignees.join(", "))
+                          fd.set("due_date", t.due_date)
+                          fd.set("priority", val)
+                          fd.set("progress", String(t.progress))
+                          fd.set("status", t.status)
+                          actionUpsert(fd)
+                        }}
+                        className="flex-1 px-2 py-1 rounded border text-xs"
+                      >
+                        <option>Urgent</option>
+                        <option>High</option>
+                        <option>Medium</option>
+                        <option>Low</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+            {(columns[g.key] || []).length === 0 && (
+              <div className="text-xs text-muted-foreground">No tasks</div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
