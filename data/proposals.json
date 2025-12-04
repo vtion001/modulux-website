@@ -1,5 +1,119 @@
 [
   {
+    "id": "proposal_1764854982870",
+    "client": {
+      "name": "vj ruado",
+      "email": "vjrodriguez1994@gmail.com",
+      "company": ""
+    },
+    "crmId": "",
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "description": "base cabinets (premium)",
+        "quantity": 3,
+        "unitPrice": 45988,
+        "details": "Set 1 • Room: Kitchen • Tier: premium • Finish: standard • Hardware: basic • Meters: 3 • Rate: ₱51,097.4/m • Factors: ×0.9 ×1 ×1 ×1"
+      },
+      {
+        "description": "hanging cabinets (premium)",
+        "quantity": 3,
+        "unitPrice": 43688,
+        "details": "Set 1 • Room: Kitchen • Tier: premium • Material: melamine • Finish: standard • Hardware: basic • Meters: 3 • Rate: ₱48,542.53/m • Factors: ×0.9 ×1 ×1 ×1"
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "Auto-generated from calculator (Admin)",
+    "created_at": 1764854983213,
+    "pricingSnapshot": {
+      "baseRates": {
+        "base": 2,
+        "tall": 2.2,
+        "hanging": 1.6
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withFees": 51097.4,
+          "withoutFees": 40476.4
+        },
+        "tall": {
+          "withFees": 82286.1,
+          "withoutFees": 65182.2
+        },
+        "hanging": {
+          "withFees": 48542.53,
+          "withoutFees": 38452.58
+        }
+      }
+    },
+    "pricingSnapshotTs": "2025-12-04T13:29:42.870Z",
+    "calculatorSnapshot": {
+      "formData": {
+        "projectType": "kitchen",
+        "roomSize": "",
+        "cabinetType": "premium",
+        "material": "",
+        "finish": "",
+        "hardware": "",
+        "installation": false,
+        "linearMeter": "",
+        "kitchenScope": ""
+      },
+      "units": [
+        {
+          "enabled": true,
+          "category": "base",
+          "meters": 3,
+          "material": "",
+          "finish": "standard",
+          "hardware": "basic",
+          "tier": "",
+          "roomType": "kitchen",
+          "customRoomName": "",
+          "setId": 0
+        },
+        {
+          "enabled": true,
+          "category": "hanging",
+          "meters": 3,
+          "material": "melamine",
+          "finish": "standard",
+          "hardware": "basic",
+          "tier": "",
+          "roomType": "kitchen",
+          "customRoomName": "",
+          "setId": 0
+        },
+        {
+          "enabled": false,
+          "category": "tall",
+          "meters": 0,
+          "material": "",
+          "finish": "",
+          "hardware": "",
+          "tier": "",
+          "roomType": "kitchen",
+          "customRoomName": "",
+          "setId": 0
+        }
+      ],
+      "applyTax": true,
+      "taxRate": 0.12,
+      "discount": 0,
+      "cabinetCategory": "base",
+      "tier": "premium",
+      "includeFees": true,
+      "importSurcharge": false,
+      "downgradeMFC": false
+    }
+  },
+  {
     "id": "proposal_1764837402799",
     "client": {
       "name": "vincent john rodriguez",

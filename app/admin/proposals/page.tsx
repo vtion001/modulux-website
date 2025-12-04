@@ -404,18 +404,7 @@ export default function AdminProposalsPage() {
       const first = desc.split(" ")[0].toLowerCase()
       const category = allowed.includes(first) ? first : ""
       const details = String(x.details || "")
-      let tierMul = "×1"
-      let materialMul = "×1"
-      let finishMul = "×1"
-      let hardwareMul = "×1"
       let installTxt = "₱0"
-      const facMatch = details.match(/Factors:\s*×([0-9\.]+)\s*×([0-9\.]+)\s*×([0-9\.]+)\s*×([0-9\.]+)/)
-      if (facMatch) {
-        tierMul = `×${facMatch[1]}`
-        materialMul = `×${facMatch[2]}`
-        finishMul = `×${facMatch[3]}`
-        hardwareMul = `×${facMatch[4]}`
-      }
       const instMatch = details.match(/Install add:\s*₱([0-9,\.]+)/)
       if (instMatch) installTxt = `₱${instMatch[1]}`
       const meters = Number(x.quantity || 0)
@@ -434,18 +423,7 @@ export default function AdminProposalsPage() {
       const first = desc.split(" ")[0].toLowerCase()
       const category = allowed.includes(first) ? first : ""
       const details = String(x.details || "")
-      let tierMul = "×1"
-      let materialMul = "×1"
-      let finishMul = "×1"
-      let hardwareMul = "×1"
       let installTxt = "₱0"
-      const facMatch = details.match(/Factors:\s*×([0-9\.]+)\s*×([0-9\.]+)\s*×([0-9\.]+)\s*×([0-9\.]+)/)
-      if (facMatch) {
-        tierMul = `×${facMatch[1]}`
-        materialMul = `×${facMatch[2]}`
-        finishMul = `×${facMatch[3]}`
-        hardwareMul = `×${facMatch[4]}`
-      }
       const instMatch = details.match(/Install add:\s*₱([0-9,\.]+)/)
       if (instMatch) installTxt = `₱${instMatch[1]}`
       const meters = Number(x.quantity || 0)
@@ -482,58 +460,121 @@ export default function AdminProposalsPage() {
 
   const buildEmailHtml = () => {
     const nf = new Intl.NumberFormat("en-PH")
+    const esc = (s: string) => String(s||"").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+    const logoUrl = "https://res.cloudinary.com/dbviya1rj/image/upload/v1757004631/nlir90vrzv0qywleruvv.png"
+    const header = `
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div style="display:flex;gap:16px;align-items:flex-start">
+          <img src="${logoUrl}" alt="ModuLux Logo" style="width:240px;height:80px;border:1px solid #e5e7eb;border-radius:8px;object-fit:cover" />
+          <div>
+            <div style="font-size:24px;font-weight:700;color:#111827">${esc(title||"Proposal")}</div>
+            <div style="font-size:14px;color:#6b7280">Issue date: ${esc(issueDate||"—")}</div>
+            <div style="font-size:14px;color:#6b7280">Valid until: ${esc(validUntil||"—")}</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:14px;font-weight:600;color:#111827">ModuLux</div>
+          <div style="font-size:14px;color:#6b7280">sales@modulux.ph</div>
+        </div>
+      </div>
+    `
+    const clientSummary = `
+      <div style="display:flex;gap:16px;margin-top:16px">
+        <div style="flex:1;border:1px solid #e5e7eb;border-radius:8px;padding:12px">
+          <div style="font-size:12px;color:#6b7280">Client</div>
+          <div style="font-size:14px;font-weight:600;color:#111827">${esc(clientName||"—")}</div>
+          <div style="font-size:14px;color:#6b7280">${esc(clientEmail||"")}</div>
+          <div style="font-size:14px;color:#6b7280">${esc(clientPhone||"")}</div>
+          <div style="font-size:14px;color:#6b7280">${esc(clientCompany||"")}</div>
+        </div>
+        <div style="flex:1;border:1px solid #e5e7eb;border-radius:8px;padding:12px">
+          <div style="font-size:12px;color:#6b7280">Summary</div>
+          <div style="font-size:14px;color:#6b7280">${esc(notes||"No notes provided.")}</div>
+        </div>
+      </div>
+    `
     const rows = previewBreakdown.map((r) => {
-      const rateTxt = `₱${nf.format(Number(r.rate||0))}`
+      const rateTxt = `₱${nf.format(Number(r.rate||0))}/m`
       const lineTxt = `₱${nf.format(Number(r.totalLine||0))}`
-      const mTxt = `${Number(r.meters||0)}m`
-      const detailsSafe = String(r.details||"").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-      return `<tr>
-        <td style="padding:8px;border:1px solid #e5e7eb">${String(r.category||"")}</td>
-        <td style="padding:8px;border:1px solid #e5e7eb">${String(r.set||1)}</td>
-        <td style="padding:8px;border:1px solid #e5e7eb">${String(r.room||"")}</td>
-        <td style="padding:8px;border:1px solid #e5e7eb">${mTxt}</td>
-        <td style="padding:8px;border:1px solid #e5e7eb">${rateTxt}</td>
-        <td style="padding:8px;border:1px solid #e5e7eb">${String(r.installTxt||"₱0")}</td>
-        <td style="padding:8px;border:1px solid #e5e7eb;text-align:right">${lineTxt}</td>
-      </tr>
-      <tr>
-        <td colspan="7" style="padding:8px;border:1px solid #e5e7eb;color:#6b7280">Details: ${detailsSafe}</td>
+      const mTxt = `${Number(r.meters||0)}`
+      const detailsSafe = esc(r.details||"").replace(/\n/g, "<br>")
+      return `<tr style="border-top:1px solid #e5e7eb">
+        <td style="padding:8px">${esc(r.category||"")}</td>
+        <td style="padding:8px">${esc(String(r.set||1))}</td>
+        <td style="padding:8px">${esc(r.room||"")}</td>
+        <td style="padding:8px">${mTxt}</td>
+        <td style="padding:8px">${rateTxt}</td>
+        <td style="padding:8px;color:#374151">${detailsSafe}</td>
+        <td style="padding:8px">${esc(r.installTxt||"₱0")}</td>
+        <td style="padding:8px;text-align:right">${lineTxt}</td>
       </tr>`
     }).join("")
     const subtotalTxt = `₱${nf.format(Number(subtotal||0))}`
     const taxTxt = `₱${nf.format(Number(tax||0))}`
     const discountTxt = `₱${nf.format(Number(discount||0))}`
     const totalTxt = `₱${nf.format(Number(total||0))}`
-    const hdr = `<div style="font-family:ui-sans-serif,system-ui,-apple-system;line-height:1.5;color:#111827">
-      <h2 style="margin:0 0 8px 0">Proposal Preview</h2>
-      <div style="font-size:14px;color:#6b7280">Client: ${String(clientName||"")}${clientCompany?` • ${clientCompany}`:""}${clientPhone?` • ${clientPhone}`:""}</div>
-      <div style="font-size:14px;color:#6b7280">Email: ${String(clientEmail||"")}</div>
-      <div style="font-size:14px;color:#6b7280">Title: ${String(title||"Proposal")}</div>
-      <div style="font-size:14px;color:#6b7280">Issue Date: ${String(issueDate||"")}</div>
-      <div style="font-size:14px;color:#6b7280">Valid Until: ${String(validUntil||"")}</div>
-      <div style="font-size:14px;color:#6b7280">Notes: ${String(notes||"")}</div>
-    </div>`
-    const table = `<table style="border-collapse:collapse;width:100%;margin-top:12px">
-      <thead>
-        <tr style="background:#f9fafb;color:#6b7280">
-          <th style="text-align:left;padding:8px;border:1px solid #e5e7eb">Category</th>
-          <th style="text-align:left;padding:8px;border:1px solid #e5e7eb">Set</th>
-          <th style="text-align:left;padding:8px;border:1px solid #e5e7eb">Room</th>
-          <th style="text-align:left;padding:8px;border:1px solid #e5e7eb">Meters</th>
-          <th style="text-align:left;padding:8px;border:1px solid #e5e7eb">Rate</th>
-          <th style="text-align:left;padding:8px;border:1px solid #e5e7eb">Install</th>
-          <th style="text-align:right;padding:8px;border:1px solid #e5e7eb">Line Total</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>`
-    const totals = `<div style="margin-top:12px;font-size:14px">
-      <div>Subtotal: <strong>${subtotalTxt}</strong></div>
-      <div>Tax: <strong>${taxTxt}</strong></div>
-      <div>Discount: <strong>${discountTxt}</strong></div>
-      <div>Total: <strong>${totalTxt}</strong></div>
-    </div>`
-    return `<div>${hdr}${table}${totals}</div>`
+    const table = `
+      <table style="width:100%;font-size:14px;margin-top:16px;border-collapse:collapse">
+        <thead>
+          <tr style="color:#6b7280;border-bottom:1px solid #e5e7eb">
+            <th style="text-align:left;padding:8px">Category</th>
+            <th style="text-align:left;padding:8px">Set</th>
+            <th style="text-align:left;padding:8px">Room</th>
+            <th style="text-align:left;padding:8px">Meters</th>
+            <th style="text-align:left;padding:8px">Rate</th>
+            <th style="text-align:left;padding:8px">Details</th>
+            <th style="text-align:left;padding:8px">Install</th>
+            <th style="text-align:right;padding:8px">Line Total</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr style="border-top:1px solid #e5e7eb">
+            <td colspan="7" style="text-align:right;padding:8px">Subtotal</td>
+            <td style="text-align:right;padding:8px">${subtotalTxt}</td>
+          </tr>
+          <tr>
+            <td colspan="7" style="text-align:right;padding:8px">Tax (${taxRate}%)</td>
+            <td style="text-align:right;padding:8px">${taxTxt}</td>
+          </tr>
+          ${discount>0 ? `<tr><td colspan="7" style="text-align:right;padding:8px">Discount</td><td style="text-align:right;padding:8px">-${discountTxt}</td></tr>` : ""}
+          <tr style="border-top:1px solid #e5e7eb">
+            <td colspan="7" style="text-align:right;padding:8px;font-weight:600">Total</td>
+            <td style="text-align:right;padding:8px;font-weight:600">${totalTxt}</td>
+          </tr>
+        </tfoot>
+      </table>
+    `
+    const footer = `<div style="margin-top:16px;font-size:12px;color:#6b7280">This is a proposal document generated for review purposes. Final scope and pricing may vary based on site survey and material selection.</div>`
+    const card = `
+      <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.06);overflow:hidden">
+        <div style="padding:12px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between">
+          <div style="font-weight:600">Preview</div>
+          <div style="font-size:14px;color:#6b7280">Just now</div>
+        </div>
+        <div style="padding:24px">${header}${clientSummary}${table}${footer}</div>
+      </div>
+    `
+    const wrapper = `<div style="max-width:1024px;margin:0 auto;padding:16px;font-family:ui-sans-serif,system-ui,-apple-system;line-height:1.5;color:#111827">${card}</div>`
+    return wrapper
+  }
+
+  const safeBase64 = (s: string) => {
+    try {
+      if (typeof TextEncoder !== 'undefined') {
+        const bytes = new TextEncoder().encode(s)
+        let ascii = ''
+        for (let i = 0; i < bytes.length; i++) ascii += String.fromCharCode(bytes[i])
+        return btoa(ascii)
+      }
+    } catch {}
+    try {
+      // Fallback for environments with Buffer
+      // eslint-disable-next-line no-undef
+      return Buffer.from(s, 'utf-8').toString('base64')
+    } catch {
+      return btoa(s)
+    }
   }
 
   useEffect(() => {
@@ -1228,17 +1269,18 @@ export default function AdminProposalsPage() {
             </div>
           </div>
       </div>
+      )}
       <Dialog.Root open={emailPreviewOpen} onOpenChange={setEmailPreviewOpen}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 bg-black/30" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-2xl rounded-xl border border-border/50 bg-background shadow-xl">
-            <div className="p-4 border-b border-border/40 flex items-center justify-between">
+          <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-5xl h-[90vh] rounded-xl border border-border/50 bg-background shadow-xl flex flex-col">
+            <div className="p-4 border-b border-border/40 flex items-center justify-between shrink-0">
               <Dialog.Title className="text-lg font-semibold">Email Preview</Dialog.Title>
               <Dialog.Close asChild>
                 <button className="px-2 py-1 rounded-md border">Close</button>
               </Dialog.Close>
             </div>
-            <div className="p-4 space-y-3">
+            <div className="p-4 space-y-3 overflow-auto flex-1">
               <div className="text-xs text-muted-foreground">To: {clientEmail}</div>
               <input
                 className="w-full p-2 border border-border/40 rounded-md bg-background text-foreground"
@@ -1250,28 +1292,34 @@ export default function AdminProposalsPage() {
                 <label className="flex items-center gap-2"><input type="radio" checked={emailFormat==='text'} onChange={()=>{setEmailFormat('text'); setEmailBody(buildEmailText())}} /> Plain Text</label>
                 <label className="flex items-center gap-2"><input type="radio" checked={emailFormat==='html'} onChange={()=>{setEmailFormat('html'); setEmailBody(buildEmailHtml())}} /> HTML</label>
               </div>
-              <textarea
-                className="w-full p-2 border border-border/40 rounded-md bg-background text-foreground min-h-[220px]"
-                value={emailBody}
-                onChange={(e) => setEmailBody(e.target.value)}
-              />
+              {emailFormat !== 'html' && (
+                <textarea
+                  className="w-full p-2 border border-border/40 rounded-md bg-background text-foreground min-h-[220px]"
+                  value={emailBody}
+                  onChange={(e) => setEmailBody(e.target.value)}
+                />
+              )}
               {emailFormat==='html' && (
                 <div className="mt-3">
-                  <div className="text-xs text-muted-foreground mb-1">Live HTML Preview</div>
-                  <div className="rounded-md border border-border/40 p-3 bg-white" dangerouslySetInnerHTML={{ __html: emailBody }} />
+                  <div className="text-xs text-muted-foreground mb-1">Live Proposal Preview</div>
+                  <div
+                    className="rounded-md border border-border/40 bg-white max-h-[40vh] overflow-auto"
+                    style={{ whiteSpace: 'normal', wordBreak: 'normal', minWidth: '100%' }}
+                    dangerouslySetInnerHTML={{ __html: emailBody }}
+                  />
                 </div>
               )}
               <div className="flex items-center justify-between text-xs">
-                <label className="flex items-center gap-2"><input type="checkbox" checked={attachHtml} onChange={(e)=>setAttachHtml(e.target.checked)} /> Attach HTML snapshot</label>
+                <label className="flex items-center gap-2"><input type="checkbox" checked={attachHtml} onChange={(e)=>setAttachHtml(e.target.checked)} /> Attach Proposal</label>
                 <label className="flex items-center gap-2"><input type="checkbox" checked={sendToSelf} onChange={(e)=>setSendToSelf(e.target.checked)} /> Email to self</label>
               </div>
             </div>
-            <div className="p-4 border-t border-border/40 flex items-center justify-end gap-2">
+            <div className="p-4 border-t border-border/40 flex items-center justify-end gap-2 shrink-0">
               <Button variant="outline" onClick={() => setEmailPreviewOpen(false)}>Cancel</Button>
               {emailFormat==='html' && (
                 <Button variant="outline" onClick={() => {
                   const html = emailBody || buildEmailHtml()
-                  const b64 = typeof window !== 'undefined' ? btoa(unescape(encodeURIComponent(html))) : Buffer.from(html, 'utf-8').toString('base64')
+                  const b64 = safeBase64(html)
                   const url = `data:text/html;base64,${b64}`
                   window.open(url, '_blank')
                 }}>Open in new tab</Button>
@@ -1281,12 +1329,11 @@ export default function AdminProposalsPage() {
                 if (!dest || !dest.trim()) { toast.error("Email config missing"); return }
                 try {
                   setSendingEmail(true)
-                  const toBase64 = (s: string) => typeof window !== 'undefined' ? btoa(unescape(encodeURIComponent(s))) : Buffer.from(s, 'utf-8').toString('base64')
                   const body: any = { to: dest, subject: emailSubject, includeSignature: true }
                   if (emailFormat === 'html') body.html = emailBody
                   else body.text = emailBody
                   if (attachHtml) {
-                    body.attachments = [{ filename: 'proposal-preview.html', content_base64: toBase64(buildEmailHtml()), mime: 'text/html' }]
+                    body.attachments = [{ filename: 'proposal-preview.html', content_base64: safeBase64(buildEmailHtml()), mime: 'text/html' }]
                   }
                   const eres = await fetch("/api/gmail/send", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
                   const ejson = await eres.json().catch(() => ({}))
