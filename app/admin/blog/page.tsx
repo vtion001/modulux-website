@@ -1,12 +1,17 @@
 import { revalidatePath } from "next/cache"
+import path from "path"
+import { readFile, writeFile, mkdir } from "fs/promises"
 import { Calendar, Pencil, Trash2, Search, Plus, Wand2, Image as ImageIcon } from "lucide-react"
 import Link from "next/link"
-import { BlogAiTools } from "@/components/admin/blog-ai-tools"
+import { AddModal } from "@/components/admin/add-modal"
 import { SaveForm } from "@/components/admin/save-form"
 import { SelectOnFocusInput, SelectOnFocusTextarea } from "@/components/select-on-focus"
-import { AddModal } from "@/components/admin/add-modal"
+import { BlogAiTools } from "@/components/admin/blog-ai-tools"
 import { supabaseServer } from "@/lib/supabase-server"
 
+
+const dataDir = path.join(process.cwd(), "data")
+const blogPath = path.join(dataDir, "blog_posts.json")
 
 async function addPost(formData: FormData) {
   "use server"
@@ -32,6 +37,12 @@ async function addPost(formData: FormData) {
     read_time: readTime,
     category,
   }, { onConflict: "id" })
+  const raw = await readFile(blogPath, "utf-8").catch(() => "[]")
+  const prev = JSON.parse(raw || "[]")
+  const entry = { id, title, excerpt, description, image, author, date: date || new Date().toISOString(), read_time: readTime, category }
+  const next = Array.isArray(prev) ? [entry, ...prev.filter((p: any) => p.id !== id)] : [entry]
+  await mkdir(dataDir, { recursive: true })
+  await writeFile(blogPath, JSON.stringify(next, null, 2))
   revalidatePath("/admin/blog")
   revalidatePath("/blog")
 }
@@ -46,10 +57,32 @@ async function deletePost(formData: FormData) {
   revalidatePath("/blog")
 }
 
+async function seedBlog() {
+  "use server"
+  const supabase = supabaseServer()
+  const now = new Date().toISOString()
+  const items = [
+    { id: "cabinetry-design-trends-2024", title: "Cabinetry Design Trends 2024", excerpt: "Materials, finishes, and space optimization for modern homes.", description: "Overview of cabinetry trends.", image: "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228651/y3wqoymderb4sh87eh3j.jpg", author: "ModuLux", date: now, read_time: "5 min", category: "Design" },
+    { id: "kitchen-layouts-guide", title: "Kitchen Layouts Guide", excerpt: "Choosing between L-shape, U-shape, and galley.", description: "Layouts comparison.", image: "https://res.cloudinary.com/dbviya1rj/image/upload/v1763230412/momirivjqmguvgarjvak.jpg", author: "ModuLux", date: now, read_time: "6 min", category: "Planning" },
+  ]
+  for (const p of items) {
+    await supabase.from("blog_posts").upsert(p, { onConflict: "id" })
+  }
+  await mkdir(dataDir, { recursive: true })
+  await writeFile(blogPath, JSON.stringify(items, null, 2))
+  revalidatePath("/admin/blog")
+  revalidatePath("/blog")
+}
+
 export default async function AdminBlogPage() {
   const supabase = supabaseServer()
   const { data: postsRaw } = await supabase.from("blog_posts").select("*").order("date", { ascending: false })
-  const posts = postsRaw || []
+  let posts = postsRaw || []
+  if (!Array.isArray(posts) || posts.length === 0) {
+    const raw = await readFile(blogPath, "utf-8").catch(() => "[]")
+    const local = JSON.parse(raw || "[]")
+    posts = Array.isArray(local) ? local : []
+  }
   return (
     <div className="max-w-4xl mx-auto px-4">
         <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
@@ -57,8 +90,12 @@ export default async function AdminBlogPage() {
             <h1 className="text-2xl font-bold">Blog</h1>
             <p className="text-sm text-muted-foreground">Manage articles displayed on the site</p>
           </div>
-          <AddModal trigger={<><Plus className="w-4 h-4" /> Add New</>} title="Add Post" description="Create a new article">
-            <SaveForm action={addPost} className="space-y-3">
+          <div className="flex items-center gap-3">
+            <SaveForm action={seedBlog}>
+              <button className="px-3 py-2 rounded-md border border-border/40 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Restore Sample Data</button>
+            </SaveForm>
+            <AddModal trigger={<><Plus className="w-4 h-4" /> Add New</>} title="Add Post" description="Create a new article">
+              <SaveForm action={addPost} className="space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <SelectOnFocusInput name="id" placeholder="id" className="w-full p-2 border border-border/40 rounded" />
                 <SelectOnFocusInput name="title" placeholder="title" className="w-full p-2 border border-border/40 rounded" />
@@ -79,8 +116,9 @@ export default async function AdminBlogPage() {
               <SelectOnFocusInput name="image" placeholder="image url" className="w-full p-2 border border-border/40 rounded" />
               <BlogAiTools descriptionName="description" imageName="image" />
               <button className="w-full bg-primary text-white py-2 rounded transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Add</button>
-            </SaveForm>
-          </AddModal>
+              </SaveForm>
+            </AddModal>
+          </div>
         </div>
 
         <div className="flex items-center gap-3 mb-6 flex-wrap">

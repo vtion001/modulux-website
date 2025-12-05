@@ -1,6 +1,6 @@
 import path from "path"
 import { revalidatePath } from "next/cache"
-import { writeFile, mkdir } from "fs/promises"
+import { writeFile, mkdir, readFile } from "fs/promises"
 import { MapPin, Calendar, Plus, Search, Trash2, Pencil } from "lucide-react"
 import Link from "next/link"
 import { SelectOnFocusInput, SelectOnFocusTextarea } from "@/components/select-on-focus"
@@ -10,6 +10,8 @@ import { SaveForm } from "@/components/admin/save-form"
 import { supabaseServer } from "@/lib/supabase-server"
 
 const uploadsDir = path.join(process.cwd(), "public", "uploads")
+const dataDir = path.join(process.cwd(), "data")
+const projectsPath = path.join(dataDir, "projects.json")
 
 async function addProject(formData: FormData) {
   "use server"
@@ -65,6 +67,34 @@ async function addProject(formData: FormData) {
   }
   image = sanitize(image) || (images.length ? images[0] : "")
   await supabase.from("projects").insert({ id, title, location, year, type, description, image, images, services })
+  const raw = await readFile(projectsPath, "utf-8").catch(() => "[]")
+  const prev = JSON.parse(raw || "[]")
+  const next = Array.isArray(prev)
+    ? [{ id, title, location, year, type, description, image, images, services }, ...prev.filter((p: any) => p.id !== id)]
+    : [{ id, title, location, year, type, description, image, images, services }]
+  await mkdir(dataDir, { recursive: true })
+  await writeFile(projectsPath, JSON.stringify(next, null, 2))
+  revalidatePath("/admin/projects")
+  revalidatePath("/projects")
+  revalidatePath("/")
+}
+
+async function seedProjects() {
+  "use server"
+  const supabase = supabaseServer()
+  const items = [
+    { id: "rizal-avenue-penthouse-kitchen", title: "Puerto Princesa City, Rizal Avenue Penthouse Kitchen Project", location: "Rizal Avenue, Puerto Princesa City, Palawan", year: "2024", type: "Cabinetry", description: "Penthouse kitchen cabinetry", image: "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228651/y3wqoymderb4sh87eh3j.jpg", images: ["https://res.cloudinary.com/dbviya1rj/image/upload/v1763228651/y3wqoymderb4sh87eh3j.jpg"], services: ["Cabinetry"] },
+    { id: "rizal-avenue-kitchen", title: "Puerto Princesa City, Rizal Avenue Kitchen Project", location: "Rizal Avenue, Palawan", year: "2024", type: "Cabinetry", description: "Kitchen cabinetry", image: "https://res.cloudinary.com/dbviya1rj/image/upload/v1763230412/momirivjqmguvgarjvak.jpg", images: ["https://res.cloudinary.com/dbviya1rj/image/upload/v1763230412/momirivjqmguvgarjvak.jpg"], services: ["Cabinetry"] },
+    { id: "abueg-road-kitchen-bath-wic", title: "Puerto Princesa City, Abueg Road Kitchen Bathroom and WIC Project", location: "Bancao Bancao, Puerto Princesa City, Palawan", year: "2024", type: "Cabinetry", description: "Kitchen, bath, and walk-in closet cabinetry", image: "https://res.cloudinary.com/dbviya1rj/image/upload/v1763230884/mnaxvkblij98d2yppmav.jpg", images: ["https://res.cloudinary.com/dbviya1rj/image/upload/v1763230884/mnaxvkblij98d2yppmav.jpg"], services: ["Cabinetry"] },
+    { id: "narra-kitchen", title: "Narra Palawan, Kitchen Project", location: "Narra, Palawan", year: "2024", type: "Cabinetry", description: "Kitchen cabinetry", image: "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228628/yxtlcshl1tr5rwexkhcs.jpg", images: ["https://res.cloudinary.com/dbviya1rj/image/upload/v1763228628/yxtlcshl1tr5rwexkhcs.jpg"], services: ["Cabinetry"] },
+    { id: "wescom-road-kitchen", title: "Puerto Princesa City, Wescom Road Kitchen Project", location: "Wescom Road, Puerto Princesa City, Palawan", year: "2024", type: "Cabinetry", description: "Kitchen cabinetry", image: "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228570/bgcaoojrvuktnyyzsmlr.jpg", images: ["https://res.cloudinary.com/dbviya1rj/image/upload/v1763228570/bgcaoojrvuktnyyzsmlr.jpg"], services: ["Cabinetry"] },
+    { id: "abueg-rd-kitchen", title: "Puerto Princesa City, Abueg Rd Kitchen Project", location: "Puerto Princesa City, Palawan", year: "2024", type: "Cabinetry", description: "Kitchen cabinetry", image: "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228546/neaukknuqfws6djd0m5t.jpg", images: ["https://res.cloudinary.com/dbviya1rj/image/upload/v1763228546/neaukknuqfws6djd0m5t.jpg"], services: ["Cabinetry"] },
+  ]
+  for (const p of items) {
+    await supabase.from("projects").upsert(p, { onConflict: "id" })
+  }
+  await mkdir(dataDir, { recursive: true })
+  await writeFile(projectsPath, JSON.stringify(items, null, 2))
   revalidatePath("/admin/projects")
   revalidatePath("/projects")
   revalidatePath("/")
@@ -84,7 +114,12 @@ async function deleteProject(formData: FormData) {
 export default async function AdminProjectsPage() {
   const supabase = supabaseServer()
   const { data: projectsRaw } = await supabase.from("projects").select("*").order("year", { ascending: false })
-  const projects = projectsRaw || []
+  let projects = projectsRaw || []
+  if (!Array.isArray(projects) || projects.length === 0) {
+    const raw = await readFile(projectsPath, "utf-8").catch(() => "[]")
+    const local = JSON.parse(raw || "[]")
+    projects = Array.isArray(local) ? local : []
+  }
   return (
     <div className="max-w-4xl mx-auto px-4">
         <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
@@ -93,6 +128,9 @@ export default async function AdminProjectsPage() {
             <p className="text-sm text-muted-foreground">Manage portfolio entries displayed on the site</p>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
+            <SaveForm action={seedProjects}>
+              <button className="px-3 py-2 rounded-md border border-border/40 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Restore Sample Data</button>
+            </SaveForm>
             <Link
               href="/calculator"
               className="text-foreground hover:text-primary transition-colors relative group flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:rounded-md px-2 py-1 text-primary"
