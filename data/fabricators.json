@@ -1,1 +1,24 @@
-[]
+[
+  {
+    "id": "fab-001",
+    "name": "nick",
+    "email": "nickfonta@gmail.com",
+    "rates": {
+      "board_cut": 2500,
+      "edge_band": 42,
+      "assembly": 500,
+      "install": 1000
+    },
+    "history": [
+      {
+        "ts": 1764915542444,
+        "rates": {
+          "board_cut": 2500,
+          "edge_band": 42,
+          "assembly": 500,
+          "install": 1000
+        }
+      }
+    ]
+  }
+]

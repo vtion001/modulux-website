@@ -395,10 +395,10 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
                             </select>
                             <SubmitButton variant="outline" size="sm">Update</SubmitButton>
                           </SaveForm>
-                          <form action={deleteTask}>
+                          <SaveForm action={deleteTask}>
                             <input type="hidden" name="id" defaultValue={t.id} />
                             <button className="px-2 py-1 rounded border text-xs">Delete</button>
-                          </form>
+                          </SaveForm>
                         </div>
                       </td>
                     </tr>

@@ -7,6 +7,7 @@ async function saveFabricator(formData: FormData) {
   "use server"
   const id = String(formData.get("id") || "").trim()
   const name = String(formData.get("name") || "").trim()
+  const email = String(formData.get("email") || "").trim()
   const board_cut = Number(formData.get("board_cut") || 0)
   const edge_band = Number(formData.get("edge_band") || 0)
   const assembly = Number(formData.get("assembly") || 0)
@@ -15,7 +16,7 @@ async function saveFabricator(formData: FormData) {
   const { data: prev } = await supabase.from("fabricators").select("*").eq("id", id).single()
   if (!prev) return
   const history = Array.isArray(prev.history) ? [...prev.history, { ts: Date.now(), rates: { board_cut, edge_band, assembly, install } }] : [{ ts: Date.now(), rates: { board_cut, edge_band, assembly, install } }]
-  await supabase.from("fabricators").update({ name, rates: { board_cut, edge_band, assembly, install }, history }).eq("id", id)
+  await supabase.from("fabricators").update({ name, email, rates: { board_cut, edge_band, assembly, install }, history }).eq("id", id)
   revalidatePath(`/admin/fabricators/${id}`)
   revalidatePath(`/admin/fabricators`)
 }
@@ -36,6 +37,10 @@ export default async function AdminFabricatorEditPage({ params }: { params: { id
         <div>
           <label className="text-xs text-muted-foreground block mb-1">Name</label>
           <input name="name" defaultValue={item.name} className="w-full p-2 border rounded" />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground block mb-1">Email</label>
+          <input name="email" type="email" defaultValue={item.email || ""} className="w-full p-2 border rounded" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
