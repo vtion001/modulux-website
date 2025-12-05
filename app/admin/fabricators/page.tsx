@@ -59,9 +59,9 @@ async function sendRFQ(formData: FormData) {
   const profile = formData.get("profile_pdf") as File | null
   let email = to
   let fname = name
+  const supabase = supabaseServer()
   if (!email && fabricator_id) {
     try {
-      const supabase = supabaseServer()
       const { data: fab } = await supabase.from("fabricators").select("*").eq("id", fabricator_id).single()
       email = String((fab as any)?.email || "").trim()
       fname = fname || String((fab as any)?.name || "").trim()
@@ -71,6 +71,25 @@ async function sendRFQ(formData: FormData) {
 
   const attachments: Array<{ filename: string; content_base64: string; mime?: string }> = []
   const archivedPaths: string[] = []
+  async function ensureBucket() {
+    try {
+      const { data: bucketInfo, error: getErr } = await supabase.storage.getBucket("rfq")
+      if (!bucketInfo || getErr) {
+        await supabase.storage.createBucket("rfq", { public: true })
+      }
+    } catch {}
+  }
+  async function uploadToStorage(key: string, bytes: Uint8Array): Promise<string | null> {
+    try {
+      await ensureBucket()
+      const { error } = await supabase.storage.from("rfq").upload(key, bytes, { contentType: "application/pdf", upsert: false })
+      if (error) return null
+      const { data } = supabase.storage.from("rfq").getPublicUrl(key)
+      return String(data?.publicUrl || "") || null
+    } catch {
+      return null
+    }
+  }
   async function pushFile(f: File | null, fallbackName: string) {
     if (!f || typeof f !== "object" || f.size === 0) return
     const ab = await f.arrayBuffer()
@@ -78,12 +97,18 @@ async function sendRFQ(formData: FormData) {
     const filename = f.name || fallbackName
     attachments.push({ filename, content_base64, mime: "application/pdf" })
     try {
-      await mkdir(rfqUploadsDir, { recursive: true })
       const ext = filename.toLowerCase().endsWith(".pdf") ? ".pdf" : (filename.includes(".") ? filename.slice(filename.lastIndexOf(".")) : ".pdf")
       const safe = `${fabricator_id || "rfq"}-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`
-      const dest = path.join(rfqUploadsDir, safe)
-      await writeFile(dest, Buffer.from(ab))
-      archivedPaths.push(`/uploads/rfq/${safe}`)
+      const buf = new Uint8Array(ab)
+      const storageUrl = await uploadToStorage(safe, buf)
+      if (storageUrl) {
+        archivedPaths.push(storageUrl)
+      } else {
+        await mkdir(rfqUploadsDir, { recursive: true })
+        const dest = path.join(rfqUploadsDir, safe)
+        await writeFile(dest, Buffer.from(ab))
+        archivedPaths.push(`/uploads/rfq/${safe}`)
+      }
     } catch {}
   }
   await pushFile(plan, "cabinet-plan.pdf")
@@ -112,7 +137,6 @@ async function sendRFQ(formData: FormData) {
     await mkdir(dataDir, { recursive: true })
     await writeFile(rfqHistoryPath, JSON.stringify(next, null, 2))
     try {
-      const supabase = supabaseServer()
       const rid = `${fabricator_id || 'rfq'}-${Date.now()}`
       await supabase.from('fabricator_rfqs').upsert({
         id: rid,
@@ -125,6 +149,87 @@ async function sendRFQ(formData: FormData) {
         gmail_id: String(data?.id || ""),
         attachments: attachments.map(a => a.filename),
         files: archivedPaths,
+        ts: Date.now(),
+      }, { onConflict: 'id' })
+    } catch {}
+    revalidatePath("/admin/fabricators")
+    return { ok }
+  } catch {
+    return { ok: false }
+  }
+}
+
+async function resendRFQ(formData: FormData) {
+  "use server"
+  const event_id = String(formData.get("event_id") || "").trim()
+  const ts = Number(formData.get("ts") || 0)
+  const supabase = supabaseServer()
+  let record: any = null
+  if (event_id) {
+    const { data } = await supabase.from("fabricator_rfqs").select("*").eq("id", event_id).single()
+    record = data || null
+  }
+  if (!record && ts) {
+    try {
+      const raw = await readFile(rfqHistoryPath, "utf-8").catch(() => "[]")
+      const prev = JSON.parse(raw || "[]")
+      record = Array.isArray(prev) ? prev.find((e: any) => Number(e.ts) === ts) : null
+    } catch {}
+  }
+  if (!record) return { ok: false }
+  const to = String(record.to_email || record.to || "").trim()
+  const fname = String(record.name || "").trim()
+  const subject = String(record.subject || "RFQ").trim()
+  const text = String(record.message || "").trim()
+  const files = Array.isArray(record.files) ? record.files : []
+  const names = Array.isArray(record.attachments) ? record.attachments : []
+  const attachments: Array<{ filename: string; content_base64: string; mime?: string }> = []
+  for (let i = 0; i < files.length; i++) {
+    const url = String(files[i] || "")
+    const name = String(names[i] || `attachment_${i + 1}.pdf`)
+    if (!url) continue
+    try {
+      if (url.startsWith("http")) {
+        const res = await fetch(url)
+        const ab = await res.arrayBuffer()
+        attachments.push({ filename: name, content_base64: Buffer.from(ab).toString("base64"), mime: "application/pdf" })
+      } else {
+        const rel = url.startsWith("/") ? url.slice(1) : url
+        const full = path.join(process.cwd(), rel)
+        const buf = await (await import("fs/promises")).readFile(full).catch(() => null)
+        if (buf) attachments.push({ filename: name, content_base64: Buffer.from(buf).toString("base64"), mime: "application/pdf" })
+      }
+    } catch {}
+  }
+  if (!to || attachments.length === 0) return { ok: false }
+  try {
+    const base = process.env.NEXT_PUBLIC_BASE_URL || ""
+    const res = await fetch(`${base}/api/gmail/send`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ to, subject, text, attachments }),
+    })
+    const ok = res.ok
+    const data = await res.json().catch(() => ({}))
+    const event = { ts: Date.now(), ok, fabricator_id: String(record.fabricator_id || ""), to, name: fname, subject, gmail_id: String(data?.id || ""), attachments: names, files }
+    const raw = await readFile(rfqHistoryPath, "utf-8").catch(() => "[]")
+    const prev = JSON.parse(raw || "[]")
+    const next = Array.isArray(prev) ? [event, ...prev] : [event]
+    await mkdir(dataDir, { recursive: true })
+    await writeFile(rfqHistoryPath, JSON.stringify(next, null, 2))
+    try {
+      const rid = `${record.fabricator_id || 'rfq'}-${Date.now()}`
+      await supabase.from('fabricator_rfqs').upsert({
+        id: rid,
+        fabricator_id: String(record.fabricator_id || ""),
+        to_email: to,
+        name: fname,
+        subject,
+        message: text,
+        ok,
+        gmail_id: String(data?.id || ""),
+        attachments: names,
+        files,
         ts: Date.now(),
       }, { onConflict: 'id' })
     } catch {}
@@ -383,6 +488,13 @@ export default async function AdminFabricatorsPage() {
                         {Array.isArray(e.files) && e.files.length > 0 ? e.files.map((p: string, i: number) => (
                           <a key={`${p}-${i}`} href={p} className="underline mr-2" target="_blank" rel="noreferrer">File {i+1}</a>
                         )) : "—"}
+                        <div className="mt-1 inline-block">
+                          <SaveForm action={resendRFQ}>
+                            {e.id ? <input type="hidden" name="event_id" value={e.id} /> : null}
+                            {!e.id ? <input type="hidden" name="ts" value={String(e.ts||"")} /> : null}
+                            <button className="px-2 py-1 rounded border text-xs">Resend</button>
+                          </SaveForm>
+                        </div>
                       </td>
                     </tr>
                   ))}

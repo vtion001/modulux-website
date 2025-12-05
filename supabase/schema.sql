@@ -47,3 +47,21 @@ create table if not exists public.fabricator_rfqs (
 );
 
 create index if not exists idx_fabricator_rfqs_fabricator on public.fabricator_rfqs (fabricator_id);
+
+create table if not exists public.project_tasks (
+  id text primary key,
+  project text,
+  title text not null,
+  description text,
+  assignees_json jsonb,
+  due_date text,
+  priority text,
+  progress int,
+  status text,
+  created_at timestamptz default now(),
+  updated_at timestamptz
+);
+
+create index if not exists idx_project_tasks_status on public.project_tasks (status);
+create index if not exists idx_project_tasks_due_date on public.project_tasks (due_date);
+create index if not exists idx_project_tasks_project on public.project_tasks (project);

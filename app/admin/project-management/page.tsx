@@ -192,6 +192,56 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
     { key: "Completed", title: "Completed", desc: "Done and archived" },
   ]
 
+  async function emailProgress(formData: FormData) {
+    "use server"
+    const to = String(formData.get("to") || "").trim()
+    const project = String(formData.get("project") || "").trim()
+    const subject = String(formData.get("subject") || "").trim() || (project ? `Project Progress Update: ${project}` : "Project Progress Update")
+    if (!to) return { ok: false }
+    const all = await loadTasks()
+    const list = project ? all.filter((t) => String(t.project||"").toLowerCase() === project.toLowerCase()) : all
+    const sections = groups.map((g) => ({ key: g.key, title: g.title, items: list.filter((t) => t.status === g.key) }))
+    const esc = (s: string) => String(s||"").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    let html = ""
+    html += `<div style="font-family:Arial,Helvetica,sans-serif;color:#111;">`
+    html += `<h2 style="margin:0 0 8px 0;">${esc(subject)}</h2>`
+    if (project) html += `<div style="margin:0 0 16px 0;color:#555;">Project: ${esc(project)}</div>`
+    for (const sec of sections) {
+      if (sec.items.length === 0) continue
+      html += `<h3 style="margin:16px 0 8px 0;">${esc(sec.title)}</h3>`
+      html += `<table style="width:100%;border-collapse:collapse;margin-bottom:12px;">`
+      html += `<thead><tr>`
+      html += `<th style="text-align:left;border-bottom:1px solid #ddd;padding:8px;font-size:13px;color:#555;">Task</th>`
+      html += `<th style="text-align:left;border-bottom:1px solid #ddd;padding:8px;font-size:13px;color:#555;">Assignees</th>`
+      html += `<th style="text-align:left;border-bottom:1px solid #ddd;padding:8px;font-size:13px;color:#555;">Due</th>`
+      html += `<th style="text-align:left;border-bottom:1px solid #ddd;padding:8px;font-size:13px;color:#555;">Priority</th>`
+      html += `<th style="text-align:left;border-bottom:1px solid #ddd;padding:8px;font-size:13px;color:#555;">Progress</th>`
+      html += `</tr></thead><tbody>`
+      for (const t of sec.items) {
+        const assignees = Array.isArray(t.assignees) ? t.assignees.join(", ") : ""
+        const bar = `<div style="width:120px;height:8px;background:#eee;border-radius:4px;overflow:hidden;"><div style="width:${Math.max(0,Math.min(100,Number(t.progress||0)))}%;height:8px;background:#111;border-radius:4px;"></div></div>`
+        html += `<tr>`
+        html += `<td style="padding:8px;border-bottom:1px solid #f0f0f0;"><div style="font-weight:600;">${esc(t.title)}</div><div style="font-size:12px;color:#555;">${esc(t.description||"")}</div></td>`
+        html += `<td style="padding:8px;border-bottom:1px solid #f0f0f0;font-size:12px;color:#333;">${esc(assignees)}</td>`
+        html += `<td style="padding:8px;border-bottom:1px solid #f0f0f0;font-size:12px;color:#333;">${esc(t.due_date||"")}</td>`
+        html += `<td style="padding:8px;border-bottom:1px solid #f0f0f0;font-size:12px;color:#333;">${esc(t.priority)}</td>`
+        html += `<td style="padding:8px;border-bottom:1px solid #f0f0f0;font-size:12px;color:#333;display:flex;align-items:center;gap:8px;">${bar}<span>${Number(t.progress||0)}%</span></td>`
+        html += `</tr>`
+      }
+      html += `</tbody></table>`
+    }
+    html += `</div>`
+    try {
+      const base = process.env.NEXT_PUBLIC_BASE_URL || ""
+      const res = await fetch(`${base}/api/gmail/send`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ to, subject, html }) })
+      const ok = res.ok
+      revalidatePath("/admin/project-management")
+      return { ok }
+    } catch {
+      return { ok: false }
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -208,6 +258,27 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
       </div>
 
       <section className="rounded-xl border bg-card/60 p-4">
+        <div className="mb-4">
+          <div className="text-sm font-semibold">Send Progress Email</div>
+          <div className="text-xs text-muted-foreground mb-2">Send an HTML summary for a specific project or all tasks</div>
+          <SaveForm action={emailProgress} className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">Project (optional)</label>
+              <input name="project" placeholder="Project name" className="w-full p-2 rounded border" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">Recipient</label>
+              <input type="email" name="to" placeholder="client@example.com" className="w-full p-2 rounded border" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="text-xs text-muted-foreground block mb-1">Subject</label>
+              <input name="subject" placeholder="Project Progress Update" className="w-full p-2 rounded border" />
+            </div>
+            <div className="md:col-span-5">
+              <SubmitButton>Send Email</SubmitButton>
+            </div>
+          </SaveForm>
+        </div>
         <form method="get" className="grid grid-cols-1 md:grid-cols-5 gap-3">
           <div className="md:col-span-2">
             <label className="text-xs text-muted-foreground block mb-1">Search</label>
