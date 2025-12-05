@@ -1,6 +1,8 @@
 import { LazyImage } from "@/components/lazy-image"
 import Link from "next/link"
 import { supabaseServer } from "@/lib/supabase-server"
+import path from "path"
+import { readFile } from "fs/promises"
 
 type Post = {
   id: string
@@ -18,7 +20,18 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
   const supabase = supabaseServer()
   const { data: post } = await supabase.from("blog_posts").select("*").eq("id", params.slug).single()
 
-  if (!post) {
+  let fallbackPost: any = post || null
+  if (!fallbackPost) {
+    try {
+      const blogPath = path.join(process.cwd(), "data", "blog_posts.json")
+      const raw = await readFile(blogPath, "utf-8").catch(() => "[]")
+      const local = JSON.parse(raw || "[]")
+      const match = Array.isArray(local) ? local.find((p: any) => String(p.id || "") === params.slug) : null
+      if (match) fallbackPost = match
+    } catch {}
+  }
+
+  if (!fallbackPost) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -43,25 +56,25 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
         <header className="mb-8">
           <div className="flex items-center gap-4 mb-4">
             <span className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
-              {post.category || "Article"}
+              {fallbackPost.category || "Article"}
             </span>
-            <span className="text-sm text-muted-foreground">{(post.readTime||post.read_time) || ""}</span>
+            <span className="text-sm text-muted-foreground">{(fallbackPost.readTime||fallbackPost.read_time) || ""}</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">{post.title}</h1>
+          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">{fallbackPost.title}</h1>
           <div className="flex items-center text-muted-foreground">
-            <span>By {post.author || "ModuLux"}</span>
+            <span>By {fallbackPost.author || "ModuLux"}</span>
             <span className="mx-2">•</span>
-            <span>{post.date || ""}</span>
+            <span>{fallbackPost.date || ""}</span>
           </div>
         </header>
 
         {/* Featured Image */}
-        <LazyImage src={post.image || "/placeholder.svg"} alt={post.title} className="w-full h-64 md:h-96 object-cover object-center rounded-lg mb-8" />
+        <LazyImage src={fallbackPost.image || "/placeholder.svg"} alt={fallbackPost.title} className="w-full h-64 md:h-96 object-cover object-center rounded-lg mb-8" />
 
         {/* Article Content */}
         <div className="prose prose-lg max-w-none prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground">
           {(() => {
-            const content = String(post.description || post.excerpt || "")
+            const content = String(fallbackPost.description || fallbackPost.excerpt || "")
             const paras = content.split(/\r?\n\s*\r?\n/).filter(Boolean)
             return paras.length
               ? paras.map((c, i) => (
