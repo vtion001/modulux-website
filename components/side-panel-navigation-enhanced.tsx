@@ -64,9 +64,13 @@ export interface SidePanelNavigationEnhancedProps {
   breadcrumbItems?: string[]
   rightActions?: React.ReactNode
   showScrollIndicators?: boolean
+  userName?: string
+  userRole?: string
+  userInitials?: string
+  userAvatarUrl?: string
 }
 
-export function SidePanelNavigationEnhanced({ navigation, utility, brandName, brandInitial, breadcrumbItems, rightActions, showScrollIndicators }: SidePanelNavigationEnhancedProps): JSX.Element {
+export function SidePanelNavigationEnhanced({ navigation, utility, brandName, brandInitial, breadcrumbItems, rightActions, showScrollIndicators, userName, userRole, userInitials, userAvatarUrl }: SidePanelNavigationEnhancedProps): JSX.Element {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
@@ -83,6 +87,10 @@ export function SidePanelNavigationEnhanced({ navigation, utility, brandName, br
   const brandInitialText = brandInitial ?? "M"
   const crumbs = breadcrumbItems ?? ["Dashboard", "CMS"]
   const indicatorsOn = showScrollIndicators ?? true
+  const uName = userName ?? "John Doe"
+  const uRole = userRole ?? "Administrator"
+  const uInitials = userInitials ?? (uName.split(" ").map(s=>s[0]).slice(0,2).join("").toUpperCase())
+  const uAvatar = userAvatarUrl ?? ""
 
   const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
     dashboard: LayoutDashboard,
@@ -260,10 +268,12 @@ export function SidePanelNavigationEnhanced({ navigation, utility, brandName, br
         </div>
         <div className="side-panel-user">
           <div className="side-panel-user-content">
-            <div className="side-panel-user-avatar"><span>JD</span></div>
+            <div className="side-panel-user-avatar">
+              {uAvatar ? <img src={uAvatar} alt={uName} className="h-full w-full object-cover rounded-full" /> : <span>{uInitials}</span>}
+            </div>
             <div className="side-panel-user-info">
-              <p className="side-panel-user-name">John Doe</p>
-              <p className="side-panel-user-role">Administrator</p>
+              <p className="side-panel-user-name">{uName}</p>
+              <p className="side-panel-user-role">{uRole}</p>
             </div>
             <button className="side-panel-user-chevron"><ChevronDown className="h-4 w-4" /></button>
           </div>

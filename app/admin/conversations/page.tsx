@@ -137,7 +137,7 @@ export default async function AdminConversationsPage({ searchParams }: { searchP
                           <input name="phone" placeholder="Phone" className="px-2 py-2 rounded border border-border/40 text-sm" />
                           <input name="company" placeholder="Company" className="px-2 py-2 rounded border border-border/40 text-sm" />
                           <textarea name="notes" placeholder="Notes" className="px-2 py-2 rounded border border-border/40 text-sm" />
-                          <SubmitButton className="px-3 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90">Save Lead</SubmitButton>
+                          <SubmitButton confirm="Save lead?" className="px-3 py-2 rounded-md bg-primary text-white text-sm hover:bg-primary/90">Save Lead</SubmitButton>
                         </div>
                       </SaveForm>
                     </div>

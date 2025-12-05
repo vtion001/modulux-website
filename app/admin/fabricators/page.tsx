@@ -1,5 +1,5 @@
 import { revalidatePath } from "next/cache"
-import { SaveForm } from "@/components/admin/save-form"
+import { SaveForm, SubmitButton } from "@/components/admin/save-form"
 import { supabaseServer } from "@/lib/supabase-server"
 import path from "path"
 import { mkdir, writeFile, readFile } from "fs/promises"
@@ -457,7 +457,7 @@ export default async function AdminFabricatorsPage() {
               <h3 className="text-sm font-semibold text-foreground mb-2">RFQ Message Template</h3>
               <SaveForm action={updateEmailTemplate} className="space-y-2">
                 <textarea name="rfq_template_text" placeholder="Default RFQ email body…" className="w-full p-2 border border-border/40 rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20" />
-                <button className="px-3 py-2 rounded-md border text-sm">Save Template</button>
+                <SubmitButton confirm="Save template?" className="px-3 py-2 rounded-md border text-sm">Save Template</SubmitButton>
               </SaveForm>
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { revalidatePath } from "next/cache"
-import { SaveForm } from "@/components/admin/save-form"
+import { SaveForm, SubmitButton } from "@/components/admin/save-form"
 import { supabaseServer } from "@/lib/supabase-server"
 
 
@@ -60,7 +60,7 @@ export default async function AdminFabricatorEditPage({ params }: { params: { id
             <input name="install" defaultValue={r.install || 0} className="w-full p-2 border rounded" />
           </div>
         </div>
-        <button className="px-3 py-2 rounded-md border">Save</button>
+        <SubmitButton confirm="Save fabricator?" className="px-3 py-2 rounded-md border">Save</SubmitButton>
       </SaveForm>
       <div>
         <div className="text-sm font-medium">History</div>
