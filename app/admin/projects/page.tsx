@@ -100,6 +100,44 @@ async function seedProjects() {
   revalidatePath("/")
 }
 
+async function importProjects(formData: FormData) {
+  "use server"
+  const file = formData.get("backupFile") as File | null
+  if (!file || typeof file !== "object" || file.size === 0) return
+  const text = await file.text()
+  let data: any
+  try { data = JSON.parse(text) } catch { return }
+  const list = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.projects)
+      ? data.projects
+      : Array.isArray(data?.items)
+        ? data.items
+        : Array.isArray(data?.data)
+          ? data.data
+          : []
+  if (!Array.isArray(list) || list.length === 0) return
+  const supabase = supabaseServer()
+  for (const p of list) {
+    const id = String(p.id || "").trim()
+    const title = String(p.title || "").trim()
+    if (!id || !title) continue
+    const location = String(p.location || "")
+    const year = String(p.year || "")
+    const type = String(p.type || "")
+    const description = String(p.description || "")
+    const image = String(p.image || "")
+    const images = Array.isArray(p.images) ? p.images : []
+    const services = Array.isArray(p.services) ? p.services : []
+    await supabase.from("projects").upsert({ id, title, location, year, type, description, image, images, services }, { onConflict: "id" })
+  }
+  await mkdir(dataDir, { recursive: true })
+  await writeFile(projectsPath, JSON.stringify(list, null, 2))
+  revalidatePath("/admin/projects")
+  revalidatePath("/projects")
+  revalidatePath("/")
+}
+
 async function deleteProject(formData: FormData) {
   "use server"
   const id = String(formData.get("id") || "").trim()
@@ -130,6 +168,10 @@ export default async function AdminProjectsPage() {
           <div className="flex items-center gap-3 flex-wrap">
             <SaveForm action={seedProjects}>
               <button className="px-3 py-2 rounded-md border border-border/40 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Restore Sample Data</button>
+            </SaveForm>
+            <SaveForm action={importProjects}>
+              <input type="file" name="backupFile" accept="application/json" className="px-3 py-2 rounded-md border border-border/40 text-sm" />
+              <button className="px-3 py-2 rounded-md border border-border/40 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Import JSON</button>
             </SaveForm>
             <Link
               href="/calculator"

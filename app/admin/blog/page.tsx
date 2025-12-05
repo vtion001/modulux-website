@@ -74,6 +74,45 @@ async function seedBlog() {
   revalidatePath("/blog")
 }
 
+async function importBlog(formData: FormData) {
+  "use server"
+  const file = formData.get("backupFile") as File | null
+  if (!file || typeof file !== "object" || file.size === 0) return
+  const text = await file.text()
+  let data: any
+  try { data = JSON.parse(text) } catch { return }
+  const list = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.blog_posts)
+      ? data.blog_posts
+      : Array.isArray(data?.posts)
+        ? data.posts
+        : Array.isArray(data?.items)
+          ? data.items
+          : Array.isArray(data?.data)
+            ? data.data
+            : []
+  if (!Array.isArray(list) || list.length === 0) return
+  const supabase = supabaseServer()
+  for (const p of list) {
+    const id = String(p.id || "").trim()
+    const title = String(p.title || "").trim()
+    if (!id || !title) continue
+    const excerpt = String(p.excerpt || "")
+    const description = String(p.description || "")
+    const image = String(p.image || "")
+    const author = String(p.author || "")
+    const date = String(p.date || new Date().toISOString())
+    const read_time = String(p.read_time || p.readTime || "")
+    const category = String(p.category || "")
+    await supabase.from("blog_posts").upsert({ id, title, excerpt, description, image, author, date, read_time, category }, { onConflict: "id" })
+  }
+  await mkdir(dataDir, { recursive: true })
+  await writeFile(blogPath, JSON.stringify(list, null, 2))
+  revalidatePath("/admin/blog")
+  revalidatePath("/blog")
+}
+
 export default async function AdminBlogPage() {
   const supabase = supabaseServer()
   const { data: postsRaw } = await supabase.from("blog_posts").select("*").order("date", { ascending: false })
@@ -93,6 +132,10 @@ export default async function AdminBlogPage() {
           <div className="flex items-center gap-3">
             <SaveForm action={seedBlog}>
               <button className="px-3 py-2 rounded-md border border-border/40 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Restore Sample Data</button>
+            </SaveForm>
+            <SaveForm action={importBlog}>
+              <input type="file" name="backupFile" accept="application/json" className="px-3 py-2 rounded-md border border-border/40 text-sm" />
+              <button className="px-3 py-2 rounded-md border border-border/40 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Import JSON</button>
             </SaveForm>
             <AddModal trigger={<><Plus className="w-4 h-4" /> Add New</>} title="Add Post" description="Create a new article">
               <SaveForm action={addPost} className="space-y-3">
