@@ -66,6 +66,7 @@ export function AdminSidePanel(): JSX.Element {
       children: [
         { title: "Business Proposal", href: "/proposal", iconName: "file" },
         { title: "Pitch Deck", href: "/pitch-deck", iconName: "file" },
+        { title: "Business Process", href: "/business-process", iconName: "file" },
       ],
     },
   ]

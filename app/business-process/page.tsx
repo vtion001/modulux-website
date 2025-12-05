@@ -1,5 +1,9 @@
 import fs from "fs/promises"
 import path from "path"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
+import { LazyImage } from "@/components/lazy-image"
 
 function escapeHtml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -55,17 +59,75 @@ export default async function BusinessProcessPage() {
   try { content = await fs.readFile(filePath, "utf-8") } catch {}
   return (
     <main className="min-h-screen bg-background">
-      <section className="relative overflow-hidden">
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">Business Process</h1>
-          <p className="mt-3 text-lg text-muted-foreground">Complete workflow and SOPs</p>
-          <div className="mt-8 rounded-2xl border p-6 bg-card">
-            <div className="text-lg font-semibold text-foreground mb-3">Documentation</div>
-            <div className="mt-2 space-y-4" dangerouslySetInnerHTML={{ __html: mdToHtml(content) }} />
+      <section className="relative py-16 sm:py-20 bg-gradient-to-br from-primary/5 to-accent/5">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+            <div>
+              <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">Business Process</h1>
+              <p className="text-lg md:text-xl text-muted-foreground mb-8">A premium-grade workflow from lead to installation and beyond, aligned to operations and SOPs.</p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button size="lg" asChild>
+                  <Link href="/contact?topic=business-process">Discuss Operations</Link>
+                </Button>
+                <Button size="lg" variant="outline" asChild>
+                  <Link href="/proposal">View Proposal</Link>
+                </Button>
+              </div>
+            </div>
+            <div>
+              <LazyImage src="/modern-kitchen-cabinet-installation.jpg" alt="Business process visual" width={700} height={500} className="rounded-xl border" priority />
+            </div>
           </div>
+        </div>
+      </section>
+
+      <section className="py-12 sm:py-16">
+        <div className="container mx-auto px-4 grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl">Core Workflow</CardTitle>
+              <CardDescription>Inquiry to design commitment, procurement, install, after-sales</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-muted-foreground">
+                <li>Customer engagement with CRM capture and 25% design down-payment</li>
+                <li>Concept to detailed 3D design and itemized quotation</li>
+                <li>Local sourcing or import logistics with QC and documentation</li>
+                <li>Installation by certified teams and warranty-backed support</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl">Operations Snapshot</CardTitle>
+              <CardDescription>SOPs, tooling, and risk controls</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-muted-foreground">
+                <li>Supplier vetting, contracts, and inspection procedures</li>
+                <li>Warehouse logistics, delivery scheduling, and QC intake</li>
+                <li>Documentation governance across quotes, POs, BLs, invoices</li>
+                <li>Weekly client updates and escalation pathways</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      <section className="py-12 sm:py-16">
+        <div className="container mx-auto px-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl">Detailed Documentation</CardTitle>
+              <CardDescription>Sourced from the Business Process document</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="mt-2 space-y-4" dangerouslySetInnerHTML={{ __html: mdToHtml(content) }} />
+            </CardContent>
+          </Card>
         </div>
       </section>
     </main>
   )
 }
-

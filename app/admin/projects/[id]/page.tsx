@@ -124,7 +124,7 @@ export default async function AdminProjectEditPage({ params }: { params: { id: s
             <label className="text-xs text-muted-foreground block mb-1">Services</label>
             <SelectOnFocusInput name="services" defaultValue={Array.isArray(project.services) ? project.services.join(", ") : ""} className="w-full p-2 border border-border/40 rounded" />
           </div>
-          <SubmitButton confirm="Save project?">Save Changes</SubmitButton>
+          <SubmitButton confirm="Save project?" className="w-full bg-primary text-white py-2 rounded-md inline-flex items-center justify-center gap-2 transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Save Changes</SubmitButton>
         </SaveForm>
         <div className="mt-6">
           <div className="text-sm font-semibold mb-2">Versions</div>

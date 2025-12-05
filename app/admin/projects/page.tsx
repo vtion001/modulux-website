@@ -79,6 +79,78 @@ async function addProject(formData: FormData) {
   revalidatePath("/")
 }
 
+async function updateProject(prevState: any, formData: FormData) {
+  "use server"
+  const id = String(formData.get("id") || "").trim()
+  const title = String(formData.get("title") || "").trim()
+  const location = String(formData.get("location") || "").trim()
+  const year = String(formData.get("year") || "").trim()
+  const type = String(formData.get("type") || "").trim()
+  const description = String(formData.get("description") || "").trim()
+  let image = String(formData.get("image") || "").trim()
+  const sanitize = (src: string) => {
+    const s = (src || "").trim()
+    if (!s) return ""
+    const trimToFirstExt = (u: string) => {
+      const re = /(\.jpe?g|\.png|\.webp|\.gif)/i
+      const m = re.exec(u)
+      if (!m) return u
+      return u.slice(0, m.index + m[0].length)
+    }
+    if (s.startsWith("http")) return trimToFirstExt(s)
+    if (s.startsWith("/")) {
+      if (s.includes("http")) {
+        const i = s.indexOf("http")
+        return trimToFirstExt(s.slice(i))
+      }
+      return trimToFirstExt(s)
+    }
+    if (s.includes("http")) {
+      const i = s.indexOf("http")
+      return trimToFirstExt(s.slice(i))
+    }
+    return ""
+  }
+  const images = formData
+    .getAll("images")
+    .map((v) => sanitize(String(v || "")))
+    .filter(Boolean) as string[]
+  const services = String(formData.get("services") || "").split(",").map((s) => s.trim()).filter(Boolean)
+  if (!id || !title) return { ok: false }
+  const supabase = supabaseServer()
+  const { data: curr } = await supabase.from("projects").select("*").eq("id", id).single()
+  if (!curr) return { ok: false }
+  try { await supabase.from("project_versions").insert({ id, ts: Date.now(), data: curr }) } catch {}
+  const file = formData.get("imageFile") as File | null
+  if (file && typeof file === "object" && file.size > 0) {
+    await mkdir(uploadsDir, { recursive: true })
+    const ext = file.name.includes(".") ? file.name.substring(file.name.lastIndexOf(".")) : ""
+    const name = `${id}-${Date.now()}${ext}`
+    const dest = path.join(uploadsDir, name)
+    const bytes = new Uint8Array(await file.arrayBuffer())
+    await writeFile(dest, bytes)
+    image = `/uploads/${name}`
+  }
+  image = sanitize(image) || (images.length ? images[0] : (curr.image || ""))
+  await supabase.from("projects").update({ title, location, year, type, description, image, images, services }).eq("id", id)
+  const raw = await readFile(projectsPath, "utf-8").catch(() => "[]")
+  const prev = JSON.parse(raw || "[]")
+  const next = Array.isArray(prev)
+    ? [
+        { id, title, location, year, type, description, image, images, services },
+        ...prev.filter((p: any) => p.id !== id),
+      ]
+    : [
+        { id, title, location, year, type, description, image, images, services },
+      ]
+  await mkdir(dataDir, { recursive: true })
+  await writeFile(projectsPath, JSON.stringify(next, null, 2))
+  revalidatePath("/admin/projects")
+  revalidatePath("/projects")
+  revalidatePath("/")
+  return { ok: true, message: "Project changes saved" }
+}
+
 async function seedProjects() {
   "use server"
   const supabase = supabaseServer()
@@ -297,13 +369,66 @@ export default async function AdminProjectsPage() {
                   </div>
                 )}
                 <div className="flex items-center gap-2">
-                  <Link
-                    href={`/admin/projects/${p.id}`}
-                    className="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-border/50 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]"
+                  <AddModal
+                    trigger={<><Pencil className="w-4 h-4" /> Edit</>}
+                    title="Edit Project"
+                    description="Update portfolio entry"
                   >
-                    <Pencil className="w-4 h-4" />
-                    Edit
-                  </Link>
+                    <SaveForm action={updateProject} className="space-y-3">
+                      <input type="hidden" name="id" defaultValue={p.id} />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-muted-foreground block mb-1">Title</label>
+                          <SelectOnFocusInput name="title" defaultValue={p.title} className="w-full p-2 border border-border/40 rounded" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground block mb-1">Year</label>
+                          <SelectOnFocusInput name="year" defaultValue={p.year} className="w-full p-2 border border-border/40 rounded" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-muted-foreground block mb-1">Location</label>
+                          <SelectOnFocusInput name="location" defaultValue={p.location} className="w-full p-2 border border-border/40 rounded" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground block mb-1">Type</label>
+                          <SelectOnFocusInput name="type" defaultValue={p.type} className="w-full p-2 border border-border/40 rounded" />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-muted-foreground block mb-1">Image URL</label>
+                          <SelectOnFocusInput name="image" defaultValue={p.image} className="w-full p-2 border border-border/40 rounded" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-muted-foreground block mb-1">Upload Image</label>
+                          <input type="file" name="imageFile" accept="image/*" className="w-full p-2 border border-border/40 rounded" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground block mb-1">Additional Images (URLs)</label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <SelectOnFocusInput name="images" defaultValue={Array.isArray(p.images) ? p.images[0] || "" : ""} className="w-full p-2 border border-border/40 rounded" />
+                          <SelectOnFocusInput name="images" defaultValue={Array.isArray(p.images) ? p.images[1] || "" : ""} className="w-full p-2 border border-border/40 rounded" />
+                          <SelectOnFocusInput name="images" defaultValue={Array.isArray(p.images) ? p.images[2] || "" : ""} className="w-full p-2 border border-border/40 rounded" />
+                          <SelectOnFocusInput name="images" defaultValue={Array.isArray(p.images) ? p.images[3] || "" : ""} className="w-full p-2 border border-border/40 rounded" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground block mb-1">Description</label>
+                        <SelectOnFocusTextarea name="description" defaultValue={p.description} className="w-full p-2 border border-border/40 rounded" />
+                      </div>
+                      <BlogAiTools descriptionName="description" imageName="image" />
+                      <div>
+                        <label className="text-xs text-muted-foreground block mb-1">Services</label>
+                        <SelectOnFocusInput name="services" defaultValue={Array.isArray(p.services) ? p.services.join(", ") : ""} className="w-full p-2 border border-border/40 rounded" />
+                      </div>
+                      <button className="w-full bg-primary text-white py-2 rounded-md inline-flex items-center justify-center gap-2 transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">
+                        Save Changes
+                      </button>
+                    </SaveForm>
+                  </AddModal>
                   <SaveForm action={deleteProject}>
                     <input type="hidden" name="id" value={p.id} />
                     <button className="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-border/50 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">

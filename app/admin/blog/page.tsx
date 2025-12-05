@@ -47,6 +47,33 @@ async function addPost(formData: FormData) {
   revalidatePath("/blog")
 }
 
+async function updatePost(prevState: any, formData: FormData) {
+  "use server"
+  const id = String(formData.get("id") || "").trim()
+  const title = String(formData.get("title") || "").trim()
+  const excerpt = String(formData.get("excerpt") || "").trim()
+  const description = String(formData.get("description") || "").trim()
+  const image = String(formData.get("image") || "").trim()
+  const author = String(formData.get("author") || "").trim()
+  const date = String(formData.get("date") || "").trim()
+  const readTime = String(formData.get("readTime") || "").trim()
+  const category = String(formData.get("category") || "").trim()
+  if (!id || !title) return { ok: false }
+  const supabase = supabaseServer()
+  const { data: prev } = await supabase.from("blog_posts").select("*").eq("id", id).single()
+  if (prev) { try { await supabase.from("blog_post_versions").insert({ id, ts: Date.now(), data: prev }) } catch {} }
+  await supabase.from("blog_posts").update({ title, excerpt, description, image, author, date, read_time: readTime, category }).eq("id", id)
+  const raw = await readFile(blogPath, "utf-8").catch(() => "[]")
+  const list = JSON.parse(raw || "[]")
+  const entry = { id, title, excerpt, description, image, author, date: date || new Date().toISOString(), read_time: readTime, category }
+  const next = Array.isArray(list) ? [entry, ...list.filter((p: any) => p.id !== id)] : [entry]
+  await mkdir(dataDir, { recursive: true })
+  await writeFile(blogPath, JSON.stringify(next, null, 2))
+  revalidatePath("/admin/blog")
+  revalidatePath("/blog")
+  return { ok: true, message: "Post updated" }
+}
+
 async function deletePost(formData: FormData) {
   "use server"
   const id = String(formData.get("id") || "").trim()
@@ -189,10 +216,28 @@ export default async function AdminBlogPage() {
                 <div className="font-semibold text-foreground mb-1">{p.title}</div>
                 <p className="text-sm text-muted-foreground mb-4">{p.excerpt}</p>
                 <div className="flex items-center gap-2">
-                  <Link href={`/admin/blog/${p.id}`} className="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-border/50 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">
-                    <Pencil className="w-4 h-4" />
-                    Edit
-                  </Link>
+                  <AddModal trigger={<><Pencil className="w-4 h-4" /> Edit</>} title="Edit Post" description="Update article">
+                    <SaveForm action={updatePost} className="space-y-3">
+                      <input type="hidden" name="id" defaultValue={p.id} />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <SelectOnFocusInput name="title" defaultValue={p.title} className="w-full p-2 border border-border/40 rounded" />
+                        <SelectOnFocusInput name="category" defaultValue={p.category || ""} className="w-full p-2 border border-border/40 rounded" />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <SelectOnFocusInput name="readTime" defaultValue={String((p as any).read_time || (p as any).readTime || "")} className="w-full p-2 border border-border/40 rounded" />
+                        <SelectOnFocusInput name="author" defaultValue={p.author || ""} className="w-full p-2 border border-border/40 rounded" />
+                      </div>
+                      <SelectOnFocusInput name="date" defaultValue={p.date || ""} className="w-full p-2 border border-border/40 rounded" />
+                      <SelectOnFocusInput name="excerpt" defaultValue={p.excerpt || ""} className="w-full p-2 border border-border/40 rounded" />
+                      <div>
+                        <label className="text-xs text-muted-foreground block mb-1">Description</label>
+                        <SelectOnFocusTextarea name="description" defaultValue={p.description || ""} className="w-full p-2 border border-border/40 rounded min-h-32" />
+                      </div>
+                      <SelectOnFocusInput name="image" defaultValue={p.image || ""} className="w-full p-2 border border-border/40 rounded" />
+                      <BlogAiTools descriptionName="description" imageName="image" />
+                      <button className="w-full bg-primary text-white py-2 rounded transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Save Changes</button>
+                    </SaveForm>
+                  </AddModal>
                   <SaveForm action={deletePost}>
                     <input type="hidden" name="id" value={p.id} />
                     <button className="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-border/50 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">
