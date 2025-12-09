@@ -24,6 +24,22 @@ type Task = {
 
 const dataDir = path.join(process.cwd(), "data")
 const tasksPath = path.join(dataDir, "project-tasks.json")
+const eventsPath = path.join(dataDir, "analytics-events.json")
+
+async function trackEvent(name: string, props?: Record<string, any>) {
+  try {
+    const supabase = supabaseServer()
+    await supabase.from("analytics_events").insert({ id: crypto.randomUUID(), name, props_json: props || {}, created_at: new Date().toISOString() })
+    return
+  } catch {}
+  try {
+    await mkdir(dataDir, { recursive: true })
+    const raw = await readFile(eventsPath, "utf-8").catch(() => "[]")
+    const list = JSON.parse(raw || "[]")
+    list.unshift({ id: crypto.randomUUID(), name, props: props || {}, created_at: new Date().toISOString() })
+    await writeFile(eventsPath, JSON.stringify(list, null, 2))
+  } catch {}
+}
 
 async function loadTasks(): Promise<Task[]> {
   try {
@@ -121,6 +137,7 @@ async function upsertTask(formData: FormData) {
       : [{ id, project, title, description, assignees, due_date, priority, progress, status }, ...list]
     await writeFile(tasksPath, JSON.stringify(next, null, 2))
   }
+  await trackEvent("task_upsert", { id, project, status, priority })
   revalidatePath("/admin/project-management")
   return { ok: true }
 }
@@ -137,6 +154,7 @@ async function deleteTask(formData: FormData) {
     const next = list.filter((t) => t.id !== id)
     await writeFile(tasksPath, JSON.stringify(next, null, 2))
   }
+  await trackEvent("task_delete", { id })
   revalidatePath("/admin/project-management")
   return { ok: true }
 }
@@ -148,7 +166,14 @@ async function createProjectWithTasks(formData: FormData) {
   const sourcing = String(formData.get("sourcing") || "Local").trim()
   const designStartRaw = String(formData.get("design_start") || "").trim()
   const installTargetRaw = String(formData.get("install_target") || "").trim()
-  const assignees = String(formData.get("assignees") || "").split(",").map((s) => s.trim()).filter(Boolean)
+  let assignees = String(formData.get("assignees") || "").split(",").map((s) => s.trim()).filter(Boolean)
+  if (!assignees.length) {
+    try {
+      const raw = await readFile(path.join(process.cwd(), "data", "profile.json"), "utf-8")
+      const profile = JSON.parse(raw || "{}")
+      if (profile?.initials) assignees = [String(profile.initials)]
+    } catch {}
+  }
   const designStart = designStartRaw ? new Date(designStartRaw) : new Date()
   const installTarget = installTargetRaw ? new Date(installTargetRaw) : new Date(Date.now() + 21 * 86400000)
   const addDays = (d: Date, days: number) => new Date(d.getTime() + days * 86400000).toISOString().slice(0, 10)
@@ -165,41 +190,116 @@ async function createProjectWithTasks(formData: FormData) {
     status: (opts?.status || "Backlog") as Task["status"],
   })
 
-  const tasks: Task[] = []
-  // Phase 1: Customer Engagement & Design Commitment
-  tasks.push(mk("Initial Consultation", { due_date: addDays(designStart, 0), priority: "Medium" }))
-  tasks.push(mk("Down-payment Collection (25%)", { due_date: addDays(designStart, 2), priority: "Urgent" }))
-  tasks.push(mk("Conceptualization", { due_date: addDays(designStart, 5), priority: "Medium", status: "In Progress" }))
-  tasks.push(mk("Concept Approval", { due_date: addDays(designStart, 7), priority: "High" }))
-  tasks.push(mk("Detailed 3D Design & Itemized Quote", { due_date: addDays(designStart, 12), priority: "High" }))
-  tasks.push(mk("Final Contract & Invoice", { due_date: addDays(designStart, 13), priority: "High" }))
-
-  // Phase 2: Procurement
-  if (sourcing.toLowerCase() === "import") {
-    tasks.push(mk("Request & Approve Samples", { due_date: addDays(designStart, 16), priority: "High" }))
-    tasks.push(mk("Negotiate FOB, 30% Deposit", { due_date: addDays(designStart, 18), priority: "High" }))
-    tasks.push(mk("Arrange Sea Freight & Track BL", { due_date: addDays(designStart, 25), priority: "Medium" }))
-    tasks.push(mk("Customs Clearance", { due_date: addDays(designStart, 35), priority: "Medium" }))
-    tasks.push(mk("Warehouse Receipt → Final QC → Site Delivery", { due_date: addDays(designStart, 40), priority: "High" }))
-  } else {
-    tasks.push(mk("Issue PO & Materials List", { due_date: addDays(designStart, 16), priority: "High" }))
-    tasks.push(mk("Weekly Production Updates", { due_date: addDays(designStart, 23), priority: "Medium" }))
-    tasks.push(mk("Pre-shipment QC", { due_date: addDays(designStart, 28), priority: "High" }))
+  const mapPriority = (title: string): Task["priority"] => {
+    const t = title.toLowerCase()
+    if (t.includes("down-payment") || t.includes("deposit")) return "Urgent"
+    if (t.includes("contract") || t.includes("quote") || t.includes("samples") || t.includes("po ")) return "High"
+    if (t.includes("installation") || t.includes("install")) return "High"
+    if (t.includes("customs") || t.includes("sea freight") || t.includes("bl")) return "Medium"
+    if (t.includes("warranty") || t.includes("support") || t.includes("documentation")) return "Low"
+    if (t.includes("updates") || t.includes("concept")) return "Medium"
+    return "Medium"
   }
 
-  // Phase 3: Installation
-  tasks.push(mk("Pre-install Site Survey", { due_date: addDays(installTarget, -7), priority: "High" }))
-  tasks.push(mk("Installation per Blueprint", { due_date: addDays(installTarget, 0), priority: "High", status: "Ready" }))
-  tasks.push(mk("Client Sign-off", { due_date: addDays(installTarget, 1), priority: "Medium" }))
+  const filePath = path.join(process.cwd(), "docs", "Business Process.md")
+  let md = ""
+  try { md = await readFile(filePath, "utf-8") } catch {}
 
-  // Phase 4: After-Sales Support
-  tasks.push(mk("Warranty Registration", { due_date: addDays(installTarget, 7), priority: "Low" }))
-  tasks.push(mk("Support & Issue Tracking", { due_date: addDays(installTarget, 14), priority: "Low" }))
+  const lines = md.split(/\r?\n/)
+  const getSection = (label: string) => {
+    const start = lines.findIndex((l) => l.toLowerCase().includes(label.toLowerCase()))
+    if (start < 0) return [] as string[]
+    const rest = lines.slice(start + 1)
+    const end = rest.findIndex((l) => l.startsWith("#### "))
+    return rest.slice(0, end >= 0 ? end : rest.length)
+  }
+  const p1 = getSection("Phase 1:")
+  const phase1Titles: string[] = p1.filter((l) => /\|\s*\d+\./.test(l)).map((l) => {
+    const m = l.match(/\|\s*\d+\.\s*\*\*(.+?)\*\*/)
+    return m ? m[1].trim() : ""
+  }).filter(Boolean)
+  const p2 = getSection("Phase 2:")
+  const phase2LocalRaw = p2.slice(p2.findIndex((l) => l.toLowerCase().includes("local sourcing")) + 1)
+  const phase2ImportRaw = p2.slice(p2.findIndex((l) => l.toLowerCase().includes("importation")) + 1)
+  const phase2LocalTitles = phase2LocalRaw.filter((l) => l.trim().startsWith("-")).map((l) => l.replace(/^\-\s*/, "").trim()).map((t) => {
+    const s = t.toLowerCase()
+    if (s.includes("po")) return "Issue PO & Materials List"
+    if (s.includes("weekly")) return "Weekly Production Updates"
+    if (s.includes("qc")) return "Pre-shipment QC"
+    return t
+  })
+  const phase2ImportTitles = phase2ImportRaw.filter((l) => /\d\.\s/.test(l)).map((l) => l.replace(/^\s*\d\.\s*/, "").trim()).map((t) => {
+    const s = t.toLowerCase()
+    if (s.includes("samples")) return "Request & Approve Samples"
+    if (s.includes("fob")) return "Negotiate FOB, 30% Deposit"
+    if (s.includes("sea freight") || s.includes("bl")) return "Arrange Sea Freight & Track BL"
+    if (s.includes("customs")) return "Customs Clearance"
+    if (s.includes("warehouse") || s.includes("site delivery")) return "Warehouse Receipt → Final QC → Site Delivery"
+    return t
+  })
+  const p3 = getSection("Phase 3:")
+  const phase3Titles = p3.join(" ").split(";").map((s) => s.trim()).filter(Boolean).map((t) => {
+    const s = t.toLowerCase()
+    if (s.includes("site survey")) return "Pre-install Site Survey"
+    if (s.includes("install")) return "Installation per Blueprint"
+    if (s.includes("sign-off") || s.includes("signoff")) return "Client Sign-off"
+    return t
+  })
+  const p4 = getSection("Phase 4:")
+  const phase4Titles = ["Warranty Registration", "Support & Issue Tracking"]
+  const pSop = getSection("Key SOPs")
+  const sopTitles = ["Supplier Management", "Quality Control", "Inventory & Logistics", "Documentation", "Customer Communication"]
 
-  // SOPs (optional lightweight backlog tasks)
-  tasks.push(mk("Supplier Vetting & Contracts", { priority: "Medium" }))
-  tasks.push(mk("Documentation Governance", { priority: "Low" }))
-  tasks.push(mk("Weekly Client Updates", { priority: "Medium" }))
+  const tasks: Task[] = []
+  const addPhase = (titles: string[], baseDate: Date, offsets: number[], statuses?: Record<string, Task["status"]>) => {
+    titles.forEach((title, i) => {
+      const off = offsets[i] ?? i * 2
+      const st = statuses?.[title] || (title.toLowerCase().includes("installation") ? "Ready" : title.toLowerCase().includes("conceptualization") ? "In Progress" : "Backlog")
+      tasks.push(mk(title, { due_date: addDays(baseDate, off), priority: mapPriority(title), status: st }))
+    })
+  }
+  if (phase1Titles.length) addPhase(phase1Titles, designStart, [0, 2, 5, 7, 12, 13], { "Conceptualization": "In Progress" })
+  if (sourcing.toLowerCase() === "import" && phase2ImportTitles.length) addPhase(phase2ImportTitles, designStart, [16, 18, 25, 35, 40])
+  if (sourcing.toLowerCase() !== "import" && phase2LocalTitles.length) addPhase(phase2LocalTitles, designStart, [16, 23, 28])
+  if (phase3Titles.length) {
+    phase3Titles.forEach((title) => {
+      if (title.toLowerCase().includes("site")) tasks.push(mk(title, { due_date: addDays(installTarget, -7), priority: mapPriority(title) }))
+      else if (title.toLowerCase().includes("install")) tasks.push(mk(title, { due_date: addDays(installTarget, 0), priority: mapPriority(title), status: "Ready" }))
+      else tasks.push(mk(title, { due_date: addDays(installTarget, 1), priority: mapPriority(title) }))
+    })
+  }
+  phase4Titles.forEach((title, i) => tasks.push(mk(title, { due_date: addDays(installTarget, i ? 14 : 7), priority: mapPriority(title) })) )
+  sopTitles.forEach((title) => tasks.push(mk(title, { priority: mapPriority(title) })) )
+
+  if (!tasks.length) {
+    const fallback: Task[] = []
+    fallback.push(mk("Initial Consultation", { due_date: addDays(designStart, 0), priority: "Medium" }))
+    fallback.push(mk("Down-payment Collection (25%)", { due_date: addDays(designStart, 2), priority: "Urgent" }))
+    fallback.push(mk("Conceptualization", { due_date: addDays(designStart, 5), priority: "Medium", status: "In Progress" }))
+    fallback.push(mk("Concept Approval", { due_date: addDays(designStart, 7), priority: "High" }))
+    fallback.push(mk("Detailed 3D Design & Itemized Quote", { due_date: addDays(designStart, 12), priority: "High" }))
+    fallback.push(mk("Final Contract & Invoice", { due_date: addDays(designStart, 13), priority: "High" }))
+    if (sourcing.toLowerCase() === "import") {
+      fallback.push(mk("Request & Approve Samples", { due_date: addDays(designStart, 16), priority: "High" }))
+      fallback.push(mk("Negotiate FOB, 30% Deposit", { due_date: addDays(designStart, 18), priority: "High" }))
+      fallback.push(mk("Arrange Sea Freight & Track BL", { due_date: addDays(designStart, 25), priority: "Medium" }))
+      fallback.push(mk("Customs Clearance", { due_date: addDays(designStart, 35), priority: "Medium" }))
+      fallback.push(mk("Warehouse Receipt → Final QC → Site Delivery", { due_date: addDays(designStart, 40), priority: "High" }))
+    } else {
+      fallback.push(mk("Issue PO & Materials List", { due_date: addDays(designStart, 16), priority: "High" }))
+      fallback.push(mk("Weekly Production Updates", { due_date: addDays(designStart, 23), priority: "Medium" }))
+      fallback.push(mk("Pre-shipment QC", { due_date: addDays(designStart, 28), priority: "High" }))
+    }
+    fallback.push(mk("Pre-install Site Survey", { due_date: addDays(installTarget, -7), priority: "High" }))
+    fallback.push(mk("Installation per Blueprint", { due_date: addDays(installTarget, 0), priority: "High", status: "Ready" }))
+    fallback.push(mk("Client Sign-off", { due_date: addDays(installTarget, 1), priority: "Medium" }))
+    fallback.push(mk("Warranty Registration", { due_date: addDays(installTarget, 7), priority: "Low" }))
+    fallback.push(mk("Support & Issue Tracking", { due_date: addDays(installTarget, 14), priority: "Low" }))
+    fallback.push(mk("Supplier Vetting & Contracts", { priority: "Medium" }))
+    fallback.push(mk("Documentation Governance", { priority: "Low" }))
+    fallback.push(mk("Weekly Client Updates", { priority: "Medium" }))
+    tasks.push(...fallback)
+  }
 
   try {
     const supabase = supabaseServer()
@@ -221,6 +321,7 @@ async function createProjectWithTasks(formData: FormData) {
     const next = [...tasks, ...prev]
     await writeFile(tasksPath, JSON.stringify(next, null, 2))
   }
+  await trackEvent("create_project", { project, sourcing, tasks_count: tasks.length })
   revalidatePath("/admin/project-management")
   return { ok: true }
 }
@@ -245,6 +346,8 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
   const q = String(searchParams?.q || "").trim().toLowerCase()
   const view = String(searchParams?.view || "table")
   const layoutParam = String(searchParams?.layout || "")
+  const defaultDesignStart = new Date().toISOString().slice(0, 10)
+  const defaultInstallTarget = new Date(Date.now() + 21 * 86400000).toISOString().slice(0, 10)
   const statusCsv = String(searchParams?.status || "").trim()
   const priorityCsv = String(searchParams?.priority || "").trim()
   const assigneeFilter = String(searchParams?.assignee || "").trim().toUpperCase()
@@ -325,9 +428,11 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
       const base = process.env.NEXT_PUBLIC_BASE_URL || ""
       const res = await fetch(`${base}/api/gmail/send`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ to, subject, html }) })
       const ok = res.ok
+      await trackEvent("email_progress", { to, project, ok })
       revalidatePath("/admin/project-management")
       return { ok }
     } catch {
+      await trackEvent("email_progress", { to, project, ok: false })
       return { ok: false }
     }
   }
@@ -358,29 +463,34 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
             <SaveForm action={createProjectWithTasks} successMessage="Project tasks created" className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="md:col-span-2">
                 <label className="text-xs text-muted-foreground block mb-1">Project Name</label>
-                <input name="project" required placeholder="e.g., Showroom Fit-out" className="w-full p-2 rounded border" />
+                <input name="project" required placeholder="e.g., Showroom Fit-out" className="w-full p-2 rounded border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" />
+                <div className="text-[11px] text-muted-foreground mt-1">Required; used to assign all generated tasks</div>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">Sourcing</label>
-                <select name="sourcing" className="w-full p-2 rounded border">
+                <select name="sourcing" className="w-full p-2 rounded border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                   <option>Local</option>
                   <option>Import</option>
                 </select>
+                <div className="text-[11px] text-muted-foreground mt-1">Select procurement branch to generate appropriate tasks</div>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">Design Start</label>
-                <input type="date" name="design_start" className="w-full p-2 rounded border" />
+                <input type="date" name="design_start" defaultValue={defaultDesignStart} className="w-full p-2 rounded border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" />
+                <div className="text-[11px] text-muted-foreground mt-1">Defaults to today if left blank</div>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">Installation Target</label>
-                <input type="date" name="install_target" className="w-full p-2 rounded border" />
+                <input type="date" name="install_target" defaultValue={defaultInstallTarget} className="w-full p-2 rounded border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" />
+                <div className="text-[11px] text-muted-foreground mt-1">Defaults to +21 days; installation tasks align to this</div>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground block mb-1">Default Assignees (initials)</label>
-                <input name="assignees" placeholder="VD, CO, MA" className="w-full p-2 rounded border" />
+                <input name="assignees" placeholder="VD, CO, MA" pattern="^[A-Za-z]{2}(,\s*[A-Za-z]{2})*$" className="w-full p-2 rounded border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" />
+                <div className="text-[11px] text-muted-foreground mt-1">Optional; falls back to your initials from profile</div>
               </div>
               <div className="md:col-span-2">
-                <SubmitButton>Create Tasks</SubmitButton>
+                <SubmitButton className="px-3 py-2 rounded-md border">Create Tasks</SubmitButton>
               </div>
             </SaveForm>
           </div>
