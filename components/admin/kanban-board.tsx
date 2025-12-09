@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { toast } from "sonner"
 
 type Task = {
   id: string
@@ -54,7 +55,7 @@ export function KanbanBoard({ tasks, groups, actionUpsert, assigneeMeta, layout 
     fd.set("priority", moved.priority)
     fd.set("progress", String(moved.progress))
     fd.set("status", moved.status)
-    actionUpsert(fd)
+    actionUpsert(fd).then(() => { try { toast.success("Saved") } catch {} }).catch(() => { try { toast.error("Save failed") } catch {} })
   }
 
   return (
@@ -141,7 +142,7 @@ export function KanbanBoard({ tasks, groups, actionUpsert, assigneeMeta, layout 
                             fd.set("priority", t.priority)
                             fd.set("progress", String(val))
                             fd.set("status", t.status)
-                            actionUpsert(fd)
+                            actionUpsert(fd).then(() => { try { toast.success("Saved") } catch {} }).catch(() => { try { toast.error("Save failed") } catch {} })
                           }} className="flex-1" />
                           <span className="text-[11px] text-muted-foreground w-8 text-right">{t.progress}%</span>
                         </div>
@@ -159,7 +160,7 @@ export function KanbanBoard({ tasks, groups, actionUpsert, assigneeMeta, layout 
                             fd.set("priority", val)
                             fd.set("progress", String(t.progress))
                             fd.set("status", t.status)
-                            actionUpsert(fd)
+                            actionUpsert(fd).then(() => { try { toast.success("Saved") } catch {} }).catch(() => { try { toast.error("Save failed") } catch {} })
                           }} className="flex-1 px-2 py-1 rounded border text-xs">
                             <option>Urgent</option>
                             <option>High</option>
@@ -214,7 +215,7 @@ export function KanbanBoard({ tasks, groups, actionUpsert, assigneeMeta, layout 
                           fd.set("priority", t.priority)
                           fd.set("progress", String(val))
                           fd.set("status", t.status)
-                          actionUpsert(fd)
+                          actionUpsert(fd).then(() => { try { toast.success("Saved") } catch {} }).catch(() => { try { toast.error("Save failed") } catch {} })
                         }}
                         className="flex-1"
                       />
@@ -236,7 +237,7 @@ export function KanbanBoard({ tasks, groups, actionUpsert, assigneeMeta, layout 
                           fd.set("priority", val)
                           fd.set("progress", String(t.progress))
                           fd.set("status", t.status)
-                          actionUpsert(fd)
+                          actionUpsert(fd).then(() => { try { toast.success("Saved") } catch {} }).catch(() => { try { toast.error("Save failed") } catch {} })
                         }}
                         className="flex-1 px-2 py-1 rounded border text-xs"
                       >

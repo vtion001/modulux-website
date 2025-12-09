@@ -2,9 +2,9 @@
 
 import { SaveForm } from "@/components/admin/save-form"
 
-export function AutoSubmitDate({ action, hidden, defaultValue, className, name = "due_date" }: { action: (formData: FormData) => Promise<any>; hidden: { name: string; value: string }[]; defaultValue?: string; className?: string; name?: string }) {
+export function AutoSubmitDate({ action, hidden, defaultValue, className, name = "due_date", successMessage }: { action: (formData: FormData) => Promise<any>; hidden: { name: string; value: string }[]; defaultValue?: string; className?: string; name?: string; successMessage?: string }) {
   return (
-    <SaveForm action={action}>
+    <SaveForm action={action} successMessage={successMessage}>
       {hidden.map((h) => (
         <input key={h.name} type="hidden" name={h.name} defaultValue={h.value} />
       ))}
@@ -13,9 +13,9 @@ export function AutoSubmitDate({ action, hidden, defaultValue, className, name =
   )
 }
 
-export function AutoSubmitRange({ action, hidden, defaultValue, className, name = "progress", min = 0, max = 100 }: { action: (formData: FormData) => Promise<any>; hidden: { name: string; value: string }[]; defaultValue?: number; className?: string; name?: string; min?: number; max?: number }) {
+export function AutoSubmitRange({ action, hidden, defaultValue, className, name = "progress", min = 0, max = 100, successMessage }: { action: (formData: FormData) => Promise<any>; hidden: { name: string; value: string }[]; defaultValue?: number; className?: string; name?: string; min?: number; max?: number; successMessage?: string }) {
   return (
-    <SaveForm action={action}>
+    <SaveForm action={action} successMessage={successMessage}>
       {hidden.map((h) => (
         <input key={h.name} type="hidden" name={h.name} defaultValue={h.value} />
       ))}
@@ -24,9 +24,9 @@ export function AutoSubmitRange({ action, hidden, defaultValue, className, name 
   )
 }
 
-export function AutoSubmitSelect({ action, hidden, defaultValue, className, name, options }: { action: (formData: FormData) => Promise<any>; hidden: { name: string; value: string }[]; defaultValue: string; className?: string; name: string; options: string[] }) {
+export function AutoSubmitSelect({ action, hidden, defaultValue, className, name, options, successMessage }: { action: (formData: FormData) => Promise<any>; hidden: { name: string; value: string }[]; defaultValue: string; className?: string; name: string; options: string[]; successMessage?: string }) {
   return (
-    <SaveForm action={action}>
+    <SaveForm action={action} successMessage={successMessage}>
       {hidden.map((h) => (
         <input key={h.name} type="hidden" name={h.name} defaultValue={h.value} />
       ))}
@@ -38,4 +38,3 @@ export function AutoSubmitSelect({ action, hidden, defaultValue, className, name
     </SaveForm>
   )
 }
-

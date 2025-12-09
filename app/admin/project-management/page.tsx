@@ -352,7 +352,7 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
             <Link href="/admin/project-management?view=board&layout=swimlanes" className={`px-3 py-2 text-sm ${view === "board" && layoutParam === "swimlanes" ? "bg-primary text-white" : "bg-background"}`}>Swimlanes</Link>
           </div>
           <Link href="/projects" className="text-sm text-primary">View Public Projects</Link>
-          <details className="ml-2">
+          <details className="ml-2" id="create-project">
             <summary className="cursor-pointer px-3 py-2 rounded-md border bg-primary text-white text-sm">Create Project</summary>
             <div className="mt-3 rounded-md border p-3 bg-card/60">
             <SaveForm action={createProjectWithTasks} successMessage="Project tasks created" className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -392,7 +392,7 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
         <div className="mb-4">
           <div className="text-sm font-semibold">Send Progress Email</div>
           <div className="text-xs text-muted-foreground mb-2">Send an HTML summary for a specific project or all tasks</div>
-          <SaveForm action={emailProgress} className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          <SaveForm action={emailProgress} successMessage="Email sent" className="grid grid-cols-1 md:grid-cols-5 gap-3">
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Project (optional)</label>
               <input name="project" placeholder="Project name" className="w-full p-2 rounded border" />
@@ -608,8 +608,16 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
                   ))}
                   {list.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="p-4 text-sm text-muted-foreground">No tasks in this group — use Create Project to seed tasks</td>
-                    </tr>
+                      <td colSpan={7} className="p-6">
+                        <div className="flex items-center justify-center">
+                          <div className="text-center">
+                            <svg width="64" height="64" viewBox="0 0 24 24" className="mx-auto mb-2 text-muted-foreground" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="9" /><path d="M9 12h6" /><path d="M12 9v6" /></svg>
+                            <div className="text-sm text-muted-foreground mb-3">No tasks in this group. Create a project to seed tasks.</div>
+                            <a href="#create-project" className="px-3 py-2 rounded-md border text-sm">Create Project</a>
+                          </div>
+                        </div>
+                      </td>
+                  </tr>
                   )}
                 </tbody>
               </table>
