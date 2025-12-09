@@ -404,7 +404,7 @@ export default async function AdminProjectsPage() {
                     title="Edit Project"
                     description="Update portfolio entry"
                   >
-                    <SaveForm action={updateProject} className="space-y-3">
+                    <SaveForm action={updateProject} successMessage="Project saved" className="space-y-3">
                       <input type="hidden" name="id" defaultValue={p.id} />
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>

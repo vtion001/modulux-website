@@ -1,8 +1,9 @@
 "use client"
 import * as React from "react"
+import { toast } from "sonner"
 import { useFormStatus } from "react-dom"
 
-function FormWatcher({ onSubmitted }: any) {
+function FormWatcher({ onSubmitted, successMessage }: any) {
   const { pending } = useFormStatus()
   const wasPending = React.useRef(false)
   const [saved, setSaved] = React.useState(false)
@@ -18,8 +19,9 @@ function FormWatcher({ onSubmitted }: any) {
       } else if (typeof window !== "undefined") {
         try { window.dispatchEvent(new CustomEvent("modal:close")) } catch {}
       }
+      try { if (successMessage) toast.success(String(successMessage)) } catch {}
     }
-  }, [pending, onSubmitted])
+  }, [pending, onSubmitted, successMessage])
   return (
     <div className="text-xs text-muted-foreground mb-1">
       {pending ? "Saving..." : (saved ? "Saved" : null)}
@@ -27,10 +29,10 @@ function FormWatcher({ onSubmitted }: any) {
   )
 }
 
-export const SaveForm: any = ({ action, children, className, onSubmitted }: any) => {
+export const SaveForm: any = ({ action, children, className, onSubmitted, successMessage }: any) => {
   return (
     <form action={action as any} className={className}>
-      <FormWatcher onSubmitted={onSubmitted} />
+      <FormWatcher onSubmitted={onSubmitted} successMessage={successMessage} />
       {children}
     </form>
   )

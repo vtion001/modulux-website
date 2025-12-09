@@ -1,5 +1,39 @@
 [
   {
+    "id": "contemporary-office-space",
+    "title": "Puerto Princesa City, Abueg Road Kitchen Project",
+    "location": "Puerto Princesa City, Palawan",
+    "year": "2023",
+    "type": "Commercial",
+    "description": "Custom office furniture and storage solutions for modern workspace",
+    "image": "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228546/neaukknuqfws6djd0m5t.jpg",
+    "images": [
+      "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228546/xs2kbkay8e5ekpopudd9.jpg",
+      "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228546/m0yfmysvqgdhwcw2epnb.jpg"
+    ],
+    "services": [
+      "Office Furniture",
+      "Storage Solutions"
+    ]
+  },
+  {
+    "id": "wtei-inc-mansion",
+    "title": "Puerto Princesa City, Abueg Road Kitchen Bathroom",
+    "location": "Bancao Bancao, Puerto Princesa City, Palawan",
+    "year": "2022",
+    "type": "Mansion",
+    "description": "Lavatory cabinets and walk-in closet cabinets for luxury mansion",
+    "image": "https://res.cloudinary.com/dbviya1rj/image/upload/v1763230884/mnaxvkblij98d2yppmav.jpg",
+    "images": [
+      "https://res.cloudinary.com/dbviya1rj/image/upload/v1763230886/xltvl2buitsribfarsiv.jpg",
+      "https://res.cloudinary.com/dbviya1rj/image/upload/v1763230885/unl7nmyksifzp3xdghvs.jpg"
+    ],
+    "services": [
+      "Lavatory Cabinets",
+      "Walk-in Closet"
+    ]
+  },
+  {
     "id": "rizal-avenue-penthouse",
     "title": "Puerto Princesa City, Rizal Avenue Penthouse Kitchen Project",
     "location": "Rizal Avenue, Puerto Princesa City, Palawan",
@@ -34,23 +68,6 @@
     ]
   },
   {
-    "id": "wtei-inc-mansion",
-    "title": "Puerto Princesa City, Abueg Road Kitchen Bathroom and WIC Project",
-    "location": "Bancao Bancao, Puerto Princesa City, Palawan",
-    "year": "2022",
-    "type": "Mansion",
-    "description": "Lavatory cabinets and walk-in closet cabinets for luxury mansion",
-    "image": "https://res.cloudinary.com/dbviya1rj/image/upload/v1763230884/mnaxvkblij98d2yppmav.jpg",
-    "images": [
-      "https://res.cloudinary.com/dbviya1rj/image/upload/v1763230886/xltvl2buitsribfarsiv.jpg",
-      "https://res.cloudinary.com/dbviya1rj/image/upload/v1763230885/unl7nmyksifzp3xdghvs.jpg"
-    ],
-    "services": [
-      "Lavatory Cabinets",
-      "Walk-in Closet"
-    ]
-  },
-  {
     "id": "garcia-mansion-kitchen",
     "title": "Narra Palawan, Kitchen Project",
     "location": "Narra, Palawan",
@@ -82,23 +99,6 @@
     "services": [
       "Kitchen Cabinets",
       "Countertop Installation"
-    ]
-  },
-  {
-    "id": "contemporary-office-space",
-    "title": "Puerto Princesa City, Abueg Rd Kitchen Project",
-    "location": "Puerto Princesa City, Palawan",
-    "year": "2023",
-    "type": "Commercial",
-    "description": "Custom office furniture and storage solutions for modern workspace",
-    "image": "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228546/neaukknuqfws6djd0m5t.jpg",
-    "images": [
-      "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228546/xs2kbkay8e5ekpopudd9.jpg",
-      "https://res.cloudinary.com/dbviya1rj/image/upload/v1763228546/m0yfmysvqgdhwcw2epnb.jpg"
-    ],
-    "services": [
-      "Office Furniture",
-      "Storage Solutions"
     ]
   }
 ]

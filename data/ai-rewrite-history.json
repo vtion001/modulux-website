@@ -1,5 +1,163 @@
 [
   {
+    "text": "Transform your workspace with our custom office furniture and storage solutions, designed specifically for the modern professional environment. Our offerings include high-quality materials such as graphite PETG doors and melamine marine plywood carcasses, ensuring durability and style. These materials not only enhance the aesthetic appeal of your office but also provide the strength and resilience needed for everyday use.\n\nIn addition to our innovative structure, we complement our designs with premium quartz countertops and Hettich hardware, ensuring that every piece is not only functional but also exudes elegance. Whether you’re looking to create a collaborative workspace or need efficient storage solutions, our customizable options allow you to tailor your office to your specific needs and preferences.\n\nElevate your modern kitchen or workspace today with our expertly crafted furniture solutions. Contact us to discuss how we can bring your vision to life!",
+    "variants": [
+      "Transform your workspace with our custom office furniture and storage solutions, designed specifically for the modern professional environment. Our offerings include high-quality materials such as graphite PETG doors and melamine marine plywood carcasses, ensuring durability and style. These materials not only enhance the aesthetic appeal of your office but also provide the strength and resilience needed for everyday use.\n\nIn addition to our innovative structure, we complement our designs with premium quartz countertops and Hettich hardware, ensuring that every piece is not only functional but also exudes elegance. Whether you’re looking to create a collaborative workspace or need efficient storage solutions, our customizable options allow you to tailor your office to your specific needs and preferences.\n\nElevate your modern kitchen or workspace today with our expertly crafted furniture solutions. Contact us to discuss how we can bring your vision to life!",
+      "Transform your workspace with our custom office furniture and storage solutions designed specifically for the modern environment. Our products feature high-quality materials such as melamine marine plywood carcasses, ensuring durability and functionality. We prioritize aesthetics and practicality, incorporating sleek graphite PETG doors that not only enhance the visual appeal but also provide long-lasting performance.\n\nTo elevate your office setup, consider integrating our premium quartz countertops, which offer both elegance and resilience. These surfaces are perfect for creating a sophisticated workspace where style meets efficiency. Additionally, we utilize Hettich hardware, known for its reliability and innovative design, ensuring your office furniture operates smoothly and withstands daily use.\n\nInvest in a workspace that reflects your professional image and meets your storage needs. Explore our range of modern office solutions today and discover how we can help you create an inspiring environment tailored to your requirements. Contact us now to learn more!",
+      "In today’s dynamic work environment, the need for custom office furniture and storage solutions tailored to modern workspaces is more crucial than ever. Our expertly crafted designs not only enhance functionality but also elevate the aesthetic appeal of your office. We specialize in creating bespoke pieces that seamlessly integrate with your unique vision, ensuring that every element serves a purpose while reflecting your brand's identity.\n\nOur office solutions feature high-quality materials like graphite PETG doors and melamine marine plywood carcasses, ensuring durability and style. The addition of premium quartz countertops provides a sophisticated touch, while Hettich hardware guarantees smooth operation and longevity. Together, these elements create an inviting and efficient workspace that fosters productivity and creativity.\n\nTransform your office into a haven of modernity and efficiency with our custom furniture solutions. Discover the perfect blend of functionality and elegance tailored specifically for your needs. Contact us today to begin your journey towards an inspired workspace!"
+    ],
+    "items": [
+      {
+        "id": "v1",
+        "text": "Transform your workspace with our custom office furniture and storage solutions, designed specifically for the modern professional environment. Our offerings include high-quality materials such as graphite PETG doors and melamine marine plywood carcasses, ensuring durability and style. These materials not only enhance the aesthetic appeal of your office but also provide the strength and resilience needed for everyday use.\n\nIn addition to our innovative structure, we complement our designs with premium quartz countertops and Hettich hardware, ensuring that every piece is not only functional but also exudes elegance. Whether you’re looking to create a collaborative workspace or need efficient storage solutions, our customizable options allow you to tailor your office to your specific needs and preferences.\n\nElevate your modern kitchen or workspace today with our expertly crafted furniture solutions. Contact us to discuss how we can bring your vision to life!",
+        "meta": {
+          "mode": "rewrite",
+          "keywords": "graphite petg doors, melamine marine plywood carcass, premium quartz countertop, hettich hardwares., modern kitchen",
+          "length": "medium",
+          "sizeHint": "250-400 words"
+        },
+        "quality": {
+          "words": 143,
+          "passed": false
+        },
+        "similarity": {
+          "to_v2": 0.43333333333333335,
+          "to_v3": 0.423841059602649
+        },
+        "timestamp": 1765257876925
+      },
+      {
+        "id": "v2",
+        "text": "Transform your workspace with our custom office furniture and storage solutions designed specifically for the modern environment. Our products feature high-quality materials such as melamine marine plywood carcasses, ensuring durability and functionality. We prioritize aesthetics and practicality, incorporating sleek graphite PETG doors that not only enhance the visual appeal but also provide long-lasting performance.\n\nTo elevate your office setup, consider integrating our premium quartz countertops, which offer both elegance and resilience. These surfaces are perfect for creating a sophisticated workspace where style meets efficiency. Additionally, we utilize Hettich hardware, known for its reliability and innovative design, ensuring your office furniture operates smoothly and withstands daily use.\n\nInvest in a workspace that reflects your professional image and meets your storage needs. Explore our range of modern office solutions today and discover how we can help you create an inspiring environment tailored to your requirements. Contact us now to learn more!",
+        "meta": {
+          "mode": "rewrite",
+          "keywords": "graphite petg doors, melamine marine plywood carcass, premium quartz countertop, hettich hardwares., modern kitchen",
+          "length": "medium",
+          "sizeHint": "250-400 words"
+        },
+        "quality": {
+          "words": 151,
+          "passed": false
+        },
+        "similarity": {
+          "to_v1": 0.43333333333333335,
+          "to_v3": 0.3855421686746988
+        },
+        "timestamp": 1765257876925
+      },
+      {
+        "id": "v3",
+        "text": "In today’s dynamic work environment, the need for custom office furniture and storage solutions tailored to modern workspaces is more crucial than ever. Our expertly crafted designs not only enhance functionality but also elevate the aesthetic appeal of your office. We specialize in creating bespoke pieces that seamlessly integrate with your unique vision, ensuring that every element serves a purpose while reflecting your brand's identity.\n\nOur office solutions feature high-quality materials like graphite PETG doors and melamine marine plywood carcasses, ensuring durability and style. The addition of premium quartz countertops provides a sophisticated touch, while Hettich hardware guarantees smooth operation and longevity. Together, these elements create an inviting and efficient workspace that fosters productivity and creativity.\n\nTransform your office into a haven of modernity and efficiency with our custom furniture solutions. Discover the perfect blend of functionality and elegance tailored specifically for your needs. Contact us today to begin your journey towards an inspired workspace!",
+        "meta": {
+          "mode": "rewrite",
+          "keywords": "graphite petg doors, melamine marine plywood carcass, premium quartz countertop, hettich hardwares., modern kitchen",
+          "length": "medium",
+          "sizeHint": "250-400 words"
+        },
+        "quality": {
+          "words": 158,
+          "passed": false
+        },
+        "similarity": {
+          "to_v1": 0.423841059602649,
+          "to_v2": 0.3855421686746988
+        },
+        "timestamp": 1765257876925
+      }
+    ],
+    "source": "openai",
+    "original": {
+      "text": "Custom office furniture and storage solutions for modern workspace"
+    },
+    "meta": {
+      "mode": "rewrite",
+      "keywords": "graphite petg doors, melamine marine plywood carcass, premium quartz countertop, hettich hardwares., modern kitchen",
+      "length": "medium",
+      "sizeHint": "250-400 words",
+      "generated": 3,
+      "timestamp": 1765257876925
+    }
+  },
+  {
+    "text": "Elevate your modern workspace with our custom office furniture and storage solutions, designed to enhance both functionality and aesthetics. Our offerings feature innovative materials including graphite PETG doors, which provide a sleek, contemporary look while ensuring durability and ease of maintenance. The sturdy melamine marine plywood carcass forms the backbone of our furniture, ensuring longevity and resistance to wear and tear, making it ideal for high-traffic environments.\n\nTo complete your office setup, we offer premium quartz countertops that not only add a touch of sophistication but also provide a resilient surface for daily use. Additionally, our furniture is equipped with Hettich hardware, renowned for its precision engineering and reliability, ensuring smooth operation and enhanced performance. This combination of high-quality materials and expert craftsmanship guarantees that your office space will be both stylish and practical.\n\nTransform your workspace into a seamless blend of design and utility with our bespoke solutions. Contact us today to discover how we can help you create the perfect office environment tailored to your needs.",
+    "variants": [
+      "Elevate your modern workspace with our custom office furniture and storage solutions, designed to enhance both functionality and aesthetics. Our offerings feature innovative materials including graphite PETG doors, which provide a sleek, contemporary look while ensuring durability and ease of maintenance. The sturdy melamine marine plywood carcass forms the backbone of our furniture, ensuring longevity and resistance to wear and tear, making it ideal for high-traffic environments.\n\nTo complete your office setup, we offer premium quartz countertops that not only add a touch of sophistication but also provide a resilient surface for daily use. Additionally, our furniture is equipped with Hettich hardware, renowned for its precision engineering and reliability, ensuring smooth operation and enhanced performance. This combination of high-quality materials and expert craftsmanship guarantees that your office space will be both stylish and practical.\n\nTransform your workspace into a seamless blend of design and utility with our bespoke solutions. Contact us today to discover how we can help you create the perfect office environment tailored to your needs.",
+      "Elevate your workspace with our custom office furniture and storage solutions designed specifically for modern environments. We understand that a productive office requires more than just space; it demands a carefully curated aesthetic and functionality that aligns with your unique needs. Our offerings feature innovative materials such as graphite PETG doors that provide a sleek, contemporary look while ensuring durability and ease of maintenance.\n\nOur cabinets are constructed with high-quality melamine marine plywood carcasses, ensuring resilience against the rigors of daily use. This combination of materials not only enhances the longevity of your furniture but also contributes to a modern, professional appearance. To complete your office setup, we provide premium quartz countertops that offer both style and practicality, making them perfect for workstations and collaborative spaces alike.\n\nAdditionally, we incorporate Hettich hardware into our designs, known for their reliability and smooth functionality. This attention to detail ensures that every drawer and cabinet operates seamlessly, enhancing your overall office experience. \n\nTransform your workspace today with our bespoke solutions that blend design, durability, and efficiency. Contact us to explore how we can help you create the ideal environment for productivity.",
+      "Transform your workspace with our custom office furniture and storage solutions, designed specifically for the modern professional environment. We understand that a well-organized and aesthetically pleasing office is essential for productivity and creativity. That’s why we offer an extensive range of customizable options, including our sleek graphite PETG doors, which provide both durability and a contemporary look. Paired with our melamine marine plywood carcass, these cabinets ensure longevity and resilience, making them ideal for any office setting.\n\nEnhance your workspace further with our premium quartz countertops, which not only add a touch of elegance but are also highly functional and easy to maintain. Our premium materials are complemented by Hettich hardwares, ensuring smooth operation and reliability for all your office furniture needs. Whether you're looking for desks, storage solutions, or collaborative workspaces, our tailored approach allows you to create the perfect environment that reflects your brand and meets your operational needs.\n\nElevate your office today with our custom solutions that blend style, functionality, and quality. Contact us to discuss your specific requirements and let us help you design the ideal workspace for your team."
+    ],
+    "items": [
+      {
+        "id": "v1",
+        "text": "Elevate your modern workspace with our custom office furniture and storage solutions, designed to enhance both functionality and aesthetics. Our offerings feature innovative materials including graphite PETG doors, which provide a sleek, contemporary look while ensuring durability and ease of maintenance. The sturdy melamine marine plywood carcass forms the backbone of our furniture, ensuring longevity and resistance to wear and tear, making it ideal for high-traffic environments.\n\nTo complete your office setup, we offer premium quartz countertops that not only add a touch of sophistication but also provide a resilient surface for daily use. Additionally, our furniture is equipped with Hettich hardware, renowned for its precision engineering and reliability, ensuring smooth operation and enhanced performance. This combination of high-quality materials and expert craftsmanship guarantees that your office space will be both stylish and practical.\n\nTransform your workspace into a seamless blend of design and utility with our bespoke solutions. Contact us today to discover how we can help you create the perfect office environment tailored to your needs.",
+        "meta": {
+          "mode": "rewrite",
+          "keywords": "graphite petg doors, melamine marine plywood carcass, premium quartz countertop, hettich hardwares.",
+          "length": "medium",
+          "sizeHint": "250-400 words"
+        },
+        "quality": {
+          "words": 170,
+          "passed": false
+        },
+        "similarity": {
+          "to_v2": 0.4883720930232558,
+          "to_v3": 0.4034090909090909
+        },
+        "timestamp": 1765257853735
+      },
+      {
+        "id": "v2",
+        "text": "Elevate your workspace with our custom office furniture and storage solutions designed specifically for modern environments. We understand that a productive office requires more than just space; it demands a carefully curated aesthetic and functionality that aligns with your unique needs. Our offerings feature innovative materials such as graphite PETG doors that provide a sleek, contemporary look while ensuring durability and ease of maintenance.\n\nOur cabinets are constructed with high-quality melamine marine plywood carcasses, ensuring resilience against the rigors of daily use. This combination of materials not only enhances the longevity of your furniture but also contributes to a modern, professional appearance. To complete your office setup, we provide premium quartz countertops that offer both style and practicality, making them perfect for workstations and collaborative spaces alike.\n\nAdditionally, we incorporate Hettich hardware into our designs, known for their reliability and smooth functionality. This attention to detail ensures that every drawer and cabinet operates seamlessly, enhancing your overall office experience. \n\nTransform your workspace today with our bespoke solutions that blend design, durability, and efficiency. Contact us to explore how we can help you create the ideal environment for productivity.",
+        "meta": {
+          "mode": "rewrite",
+          "keywords": "graphite petg doors, melamine marine plywood carcass, premium quartz countertop, hettich hardwares.",
+          "length": "medium",
+          "sizeHint": "250-400 words"
+        },
+        "quality": {
+          "words": 189,
+          "passed": false
+        },
+        "similarity": {
+          "to_v1": 0.4883720930232558,
+          "to_v3": 0.38095238095238093
+        },
+        "timestamp": 1765257853735
+      },
+      {
+        "id": "v3",
+        "text": "Transform your workspace with our custom office furniture and storage solutions, designed specifically for the modern professional environment. We understand that a well-organized and aesthetically pleasing office is essential for productivity and creativity. That’s why we offer an extensive range of customizable options, including our sleek graphite PETG doors, which provide both durability and a contemporary look. Paired with our melamine marine plywood carcass, these cabinets ensure longevity and resilience, making them ideal for any office setting.\n\nEnhance your workspace further with our premium quartz countertops, which not only add a touch of elegance but are also highly functional and easy to maintain. Our premium materials are complemented by Hettich hardwares, ensuring smooth operation and reliability for all your office furniture needs. Whether you're looking for desks, storage solutions, or collaborative workspaces, our tailored approach allows you to create the perfect environment that reflects your brand and meets your operational needs.\n\nElevate your office today with our custom solutions that blend style, functionality, and quality. Contact us to discuss your specific requirements and let us help you design the ideal workspace for your team.",
+        "meta": {
+          "mode": "rewrite",
+          "keywords": "graphite petg doors, melamine marine plywood carcass, premium quartz countertop, hettich hardwares.",
+          "length": "medium",
+          "sizeHint": "250-400 words"
+        },
+        "quality": {
+          "words": 187,
+          "passed": false
+        },
+        "similarity": {
+          "to_v1": 0.4034090909090909,
+          "to_v2": 0.38095238095238093
+        },
+        "timestamp": 1765257853735
+      }
+    ],
+    "source": "openai",
+    "original": {
+      "text": "Custom office furniture and storage solutions for modern workspace"
+    },
+    "meta": {
+      "mode": "rewrite",
+      "keywords": "graphite petg doors, melamine marine plywood carcass, premium quartz countertop, hettich hardwares.",
+      "length": "medium",
+      "sizeHint": "250-400 words",
+      "generated": 3,
+      "timestamp": 1765257853735
+    }
+  },
+  {
     "text": "As we look ahead to 2024, cabinetry design trends are poised to reflect a harmonious blend of innovation and timeless elegance, catering to the evolving needs of modern spaces. Homeowners and designers alike are increasingly seeking cabinetry solutions that not only enhance aesthetics but also provide functionality and sustainability. This year, we can expect to see a rise in the popularity of multifunctional cabinetry, which maximizes space while offering seamless integration into various home environments.\n\nOne of the standout trends for 2024 is the shift towards natural materials and finishes. Warm, earthy tones and organic textures are becoming the preferred choice, fostering a connection with nature within living spaces. Additionally, customizable cabinetry options are gaining traction, allowing homeowners to tailor designs to fit their unique lifestyles and preferences. This emphasis on personalization ensures that each cabinetry piece is not just a storage solution, but a statement of individual style.\n\nSustainability remains at the forefront of cabinetry design, with an increasing number of manufacturers prioritizing eco-friendly materials and production practices. As consumers become more environmentally conscious, the demand for sustainable cabinetry options continues to rise. Innovations in finishes and materials that are both durable and environmentally friendly will play a significant role in shaping the industry this year.\n\nIn summary, the cabinetry design trends for 2024 highlight a commitment to functionality, personalization, and sustainability. As you embark on your cabinetry projects, consider these trends to create spaces that are not only beautiful but also practical and eco-friendly. Embrace the future of cabinetry design and transform your home with solutions that reflect your unique style and values. For expert guidance on selecting the perfect cabinetry options for your space, contact us today!",
     "variants": [
       "As we look ahead to 2024, cabinetry design trends are poised to reflect a harmonious blend of innovation and timeless elegance, catering to the evolving needs of modern spaces. Homeowners and designers alike are increasingly seeking cabinetry solutions that not only enhance aesthetics but also provide functionality and sustainability. This year, we can expect to see a rise in the popularity of multifunctional cabinetry, which maximizes space while offering seamless integration into various home environments.\n\nOne of the standout trends for 2024 is the shift towards natural materials and finishes. Warm, earthy tones and organic textures are becoming the preferred choice, fostering a connection with nature within living spaces. Additionally, customizable cabinetry options are gaining traction, allowing homeowners to tailor designs to fit their unique lifestyles and preferences. This emphasis on personalization ensures that each cabinetry piece is not just a storage solution, but a statement of individual style.\n\nSustainability remains at the forefront of cabinetry design, with an increasing number of manufacturers prioritizing eco-friendly materials and production practices. As consumers become more environmentally conscious, the demand for sustainable cabinetry options continues to rise. Innovations in finishes and materials that are both durable and environmentally friendly will play a significant role in shaping the industry this year.\n\nIn summary, the cabinetry design trends for 2024 highlight a commitment to functionality, personalization, and sustainability. As you embark on your cabinetry projects, consider these trends to create spaces that are not only beautiful but also practical and eco-friendly. Embrace the future of cabinetry design and transform your home with solutions that reflect your unique style and values. For expert guidance on selecting the perfect cabinetry options for your space, contact us today!",
