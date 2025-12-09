@@ -7,6 +7,7 @@ import { AutoSubmitDate, AutoSubmitRange, AutoSubmitSelect } from "@/components/
 import Link from "next/link"
 import { KanbanBoard } from "@/components/admin/kanban-board"
 import { AssigneeFilter } from "@/components/admin/assignee-filter"
+import { TaskFilters } from "@/components/admin/task-filters"
 import { supabaseServer } from "@/lib/supabase-server"
 
 type Task = {
@@ -242,6 +243,8 @@ function priorityClass(p: Task["priority"]) {
 export default async function AdminProjectManagementPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
   const tasks = await loadTasks()
   const q = String(searchParams?.q || "").trim().toLowerCase()
+  const view = String(searchParams?.view || "table")
+  const layoutParam = String(searchParams?.layout || "")
   const statusCsv = String(searchParams?.status || "").trim()
   const priorityCsv = String(searchParams?.priority || "").trim()
   const assigneeFilter = String(searchParams?.assignee || "").trim().toUpperCase()
@@ -334,17 +337,25 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Project Management</h1>
-          <p className="text-sm text-muted-foreground">Track tasks across projects with assignees, priority, and progress</p>
+          <p className="text-sm text-muted-foreground">
+            {view === "board"
+              ? (layoutParam === "swimlanes"
+                  ? "Board view with swimlanes by project. Drag to update status."
+                  : "Board view. Drag cards across columns to update status.")
+              : "Table view with inline status, progress, and due dates."}
+          </p>
         </div>
-      <div className="flex items-center gap-2">
-        <Link href="/admin/project-management?view=table" className="px-3 py-2 rounded-md border text-sm">Table</Link>
-        <Link href="/admin/project-management?view=board" className="px-3 py-2 rounded-md border text-sm">Board</Link>
-        <Link href="/admin/project-management?view=board&layout=swimlanes" className="px-3 py-2 rounded-md border text-sm">Swimlanes</Link>
-        <Link href="/projects" className="text-sm text-primary">View Public Projects</Link>
-        <details className="ml-2">
-          <summary className="cursor-pointer px-3 py-2 rounded-md border bg-primary text-white text-sm">Create Project</summary>
-          <div className="mt-3 rounded-md border p-3 bg-card/60">
-            <SaveForm action={createProjectWithTasks} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-md overflow-hidden border">
+            <Link href="/admin/project-management?view=table" className={`px-3 py-2 text-sm border-r ${view === "table" ? "bg-primary text-white" : "bg-background"}`}>Table</Link>
+            <Link href="/admin/project-management?view=board" className={`px-3 py-2 text-sm border-r ${view === "board" && layoutParam !== "swimlanes" ? "bg-primary text-white" : "bg-background"}`}>Board</Link>
+            <Link href="/admin/project-management?view=board&layout=swimlanes" className={`px-3 py-2 text-sm ${view === "board" && layoutParam === "swimlanes" ? "bg-primary text-white" : "bg-background"}`}>Swimlanes</Link>
+          </div>
+          <Link href="/projects" className="text-sm text-primary">View Public Projects</Link>
+          <details className="ml-2">
+            <summary className="cursor-pointer px-3 py-2 rounded-md border bg-primary text-white text-sm">Create Project</summary>
+            <div className="mt-3 rounded-md border p-3 bg-card/60">
+            <SaveForm action={createProjectWithTasks} successMessage="Project tasks created" className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="md:col-span-2">
                 <label className="text-xs text-muted-foreground block mb-1">Project Name</label>
                 <input name="project" required placeholder="e.g., Showroom Fit-out" className="w-full p-2 rounded border" />
@@ -399,47 +410,15 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
             </div>
           </SaveForm>
         </div>
-        <form method="get" className="grid grid-cols-1 md:grid-cols-5 gap-3">
-          <div className="md:col-span-2">
-            <label className="text-xs text-muted-foreground block mb-1">Search</label>
-            <input name="q" defaultValue={q} placeholder="Search tasks" className="w-full p-2 rounded border" />
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground block mb-1">Status</label>
-            <div className="grid grid-cols-2 gap-2 p-2 rounded border">
-              {(["Backlog", "In Progress", "Ready", "Completed"] as const).map((s) => (
-                <label key={s} className="inline-flex items-center gap-2 text-xs">
-                  <input type="checkbox" name="status" value={s} defaultChecked={statusTokens.includes(s)} />
-                  <span>{s}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="text-xs text-muted-foreground block mb-1">Priority</label>
-            <div className="grid grid-cols-2 gap-2 p-2 rounded border">
-              {(["Urgent", "High", "Medium", "Low"] as const).map((p) => (
-                <label key={p} className="inline-flex items-center gap-2 text-xs">
-                  <input type="checkbox" name="priority" value={p} defaultChecked={priorityTokens.includes(p)} />
-                  <span>{p}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-          <AssigneeFilter initial={assigneeFilter} />
-          <div>
-            <label className="text-xs text-muted-foreground block mb-1">Sort</label>
-            <select name="sort" defaultValue={sortKey} className="w-full p-2 rounded border">
-              <option value="">None</option>
-              <option value="due_date">Due Date</option>
-              <option value="progress">Progress</option>
-            </select>
-          </div>
-          <div className="md:col-span-5 flex gap-2">
-            <button className="px-3 py-2 rounded-md border">Apply</button>
-            <Link href="/admin/project-management" className="px-3 py-2 rounded-md border">Reset</Link>
-          </div>
-        </form>
+        <TaskFilters
+          basePath="/admin/project-management"
+          preserve={{ view, layout: layoutParam }}
+          initQ={q}
+          initStatusCsv={statusCsv}
+          initPriorityCsv={priorityCsv}
+          initAssigneeCsv={assigneeFilter}
+          initSort={sortKey}
+        />
       </section>
 
       {String(searchParams?.view || "") === "board" && (
