@@ -3,6 +3,7 @@ import { readFile, writeFile, mkdir } from "fs/promises"
 import { revalidatePath } from "next/cache"
 import { Progress } from "@radix-ui/react-progress"
 import { SaveForm, SubmitButton } from "@/components/admin/save-form"
+import { AutoSubmitDate, AutoSubmitRange, AutoSubmitSelect } from "@/components/admin/auto-submit"
 import Link from "next/link"
 import { KanbanBoard } from "@/components/admin/kanban-board"
 import { AssigneeFilter } from "@/components/admin/assignee-filter"
@@ -139,6 +140,90 @@ async function deleteTask(formData: FormData) {
   return { ok: true }
 }
 
+async function createProjectWithTasks(formData: FormData) {
+  "use server"
+  const project = String(formData.get("project") || "").trim()
+  if (!project) return { ok: false, message: "Project name is required" }
+  const sourcing = String(formData.get("sourcing") || "Local").trim()
+  const designStartRaw = String(formData.get("design_start") || "").trim()
+  const installTargetRaw = String(formData.get("install_target") || "").trim()
+  const assignees = String(formData.get("assignees") || "").split(",").map((s) => s.trim()).filter(Boolean)
+  const designStart = designStartRaw ? new Date(designStartRaw) : new Date()
+  const installTarget = installTargetRaw ? new Date(installTargetRaw) : new Date(Date.now() + 21 * 86400000)
+  const addDays = (d: Date, days: number) => new Date(d.getTime() + days * 86400000).toISOString().slice(0, 10)
+
+  const mk = (title: string, opts?: Partial<Task>) => ({
+    id: crypto.randomUUID(),
+    project,
+    title,
+    description: String(opts?.description || ""),
+    assignees,
+    due_date: String(opts?.due_date || ""),
+    priority: (opts?.priority || "Medium") as Task["priority"],
+    progress: Number(opts?.progress ?? 0),
+    status: (opts?.status || "Backlog") as Task["status"],
+  })
+
+  const tasks: Task[] = []
+  // Phase 1: Customer Engagement & Design Commitment
+  tasks.push(mk("Initial Consultation", { due_date: addDays(designStart, 0), priority: "Medium" }))
+  tasks.push(mk("Down-payment Collection (25%)", { due_date: addDays(designStart, 2), priority: "Urgent" }))
+  tasks.push(mk("Conceptualization", { due_date: addDays(designStart, 5), priority: "Medium", status: "In Progress" }))
+  tasks.push(mk("Concept Approval", { due_date: addDays(designStart, 7), priority: "High" }))
+  tasks.push(mk("Detailed 3D Design & Itemized Quote", { due_date: addDays(designStart, 12), priority: "High" }))
+  tasks.push(mk("Final Contract & Invoice", { due_date: addDays(designStart, 13), priority: "High" }))
+
+  // Phase 2: Procurement
+  if (sourcing.toLowerCase() === "import") {
+    tasks.push(mk("Request & Approve Samples", { due_date: addDays(designStart, 16), priority: "High" }))
+    tasks.push(mk("Negotiate FOB, 30% Deposit", { due_date: addDays(designStart, 18), priority: "High" }))
+    tasks.push(mk("Arrange Sea Freight & Track BL", { due_date: addDays(designStart, 25), priority: "Medium" }))
+    tasks.push(mk("Customs Clearance", { due_date: addDays(designStart, 35), priority: "Medium" }))
+    tasks.push(mk("Warehouse Receipt → Final QC → Site Delivery", { due_date: addDays(designStart, 40), priority: "High" }))
+  } else {
+    tasks.push(mk("Issue PO & Materials List", { due_date: addDays(designStart, 16), priority: "High" }))
+    tasks.push(mk("Weekly Production Updates", { due_date: addDays(designStart, 23), priority: "Medium" }))
+    tasks.push(mk("Pre-shipment QC", { due_date: addDays(designStart, 28), priority: "High" }))
+  }
+
+  // Phase 3: Installation
+  tasks.push(mk("Pre-install Site Survey", { due_date: addDays(installTarget, -7), priority: "High" }))
+  tasks.push(mk("Installation per Blueprint", { due_date: addDays(installTarget, 0), priority: "High", status: "Ready" }))
+  tasks.push(mk("Client Sign-off", { due_date: addDays(installTarget, 1), priority: "Medium" }))
+
+  // Phase 4: After-Sales Support
+  tasks.push(mk("Warranty Registration", { due_date: addDays(installTarget, 7), priority: "Low" }))
+  tasks.push(mk("Support & Issue Tracking", { due_date: addDays(installTarget, 14), priority: "Low" }))
+
+  // SOPs (optional lightweight backlog tasks)
+  tasks.push(mk("Supplier Vetting & Contracts", { priority: "Medium" }))
+  tasks.push(mk("Documentation Governance", { priority: "Low" }))
+  tasks.push(mk("Weekly Client Updates", { priority: "Medium" }))
+
+  try {
+    const supabase = supabaseServer()
+    await supabase.from("project_tasks").upsert(tasks.map((t) => ({
+      id: t.id,
+      project: t.project,
+      title: t.title,
+      description: t.description,
+      assignees: t.assignees,
+      assignees_json: t.assignees,
+      due_date: t.due_date,
+      priority: t.priority,
+      progress: t.progress,
+      status: t.status,
+    })))
+  } catch {
+    await mkdir(dataDir, { recursive: true })
+    const prev = await loadTasks()
+    const next = [...tasks, ...prev]
+    await writeFile(tasksPath, JSON.stringify(next, null, 2))
+  }
+  revalidatePath("/admin/project-management")
+  return { ok: true }
+}
+
 function priorityClass(p: Task["priority"]) {
   switch (p) {
     case "Urgent":
@@ -157,19 +242,21 @@ function priorityClass(p: Task["priority"]) {
 export default async function AdminProjectManagementPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
   const tasks = await loadTasks()
   const q = String(searchParams?.q || "").trim().toLowerCase()
-  const statusFilter = String(searchParams?.status || "").trim()
-  const priorityFilter = String(searchParams?.priority || "").trim()
+  const statusCsv = String(searchParams?.status || "").trim()
+  const priorityCsv = String(searchParams?.priority || "").trim()
   const assigneeFilter = String(searchParams?.assignee || "").trim().toUpperCase()
   const sortKey = String(searchParams?.sort || "").trim()
   let filtered = tasks
   if (q) {
     filtered = filtered.filter((t) => [t.title, t.description, t.project].some((v) => String(v || "").toLowerCase().includes(q)))
   }
-  if (statusFilter && ["Backlog", "In Progress", "Ready", "Completed"].includes(statusFilter)) {
-    filtered = filtered.filter((t) => t.status === statusFilter)
+  const statusTokens = statusCsv.split(",").map((s) => s.trim()).filter(Boolean)
+  if (statusTokens.length) {
+    filtered = filtered.filter((t) => statusTokens.includes(t.status))
   }
-  if (priorityFilter && ["Urgent", "High", "Medium", "Low"].includes(priorityFilter)) {
-    filtered = filtered.filter((t) => t.priority === (priorityFilter as any))
+  const priorityTokens = priorityCsv.split(",").map((s) => s.trim()).filter(Boolean)
+  if (priorityTokens.length) {
+    filtered = filtered.filter((t) => priorityTokens.includes(t.priority))
   }
   const assigneeTokens = assigneeFilter.split(",").map((s) => s.trim()).filter(Boolean)
   if (assigneeTokens.length) {
@@ -249,12 +336,45 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
           <h1 className="text-2xl font-bold">Project Management</h1>
           <p className="text-sm text-muted-foreground">Track tasks across projects with assignees, priority, and progress</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link href="/admin/project-management?view=table" className="px-3 py-2 rounded-md border text-sm">Table</Link>
-          <Link href="/admin/project-management?view=board" className="px-3 py-2 rounded-md border text-sm">Board</Link>
-          <Link href="/admin/project-management?view=board&layout=swimlanes" className="px-3 py-2 rounded-md border text-sm">Swimlanes</Link>
-          <Link href="/projects" className="text-sm text-primary">View Public Projects</Link>
-        </div>
+      <div className="flex items-center gap-2">
+        <Link href="/admin/project-management?view=table" className="px-3 py-2 rounded-md border text-sm">Table</Link>
+        <Link href="/admin/project-management?view=board" className="px-3 py-2 rounded-md border text-sm">Board</Link>
+        <Link href="/admin/project-management?view=board&layout=swimlanes" className="px-3 py-2 rounded-md border text-sm">Swimlanes</Link>
+        <Link href="/projects" className="text-sm text-primary">View Public Projects</Link>
+        <details className="ml-2">
+          <summary className="cursor-pointer px-3 py-2 rounded-md border bg-primary text-white text-sm">Create Project</summary>
+          <div className="mt-3 rounded-md border p-3 bg-card/60">
+            <SaveForm action={createProjectWithTasks} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="md:col-span-2">
+                <label className="text-xs text-muted-foreground block mb-1">Project Name</label>
+                <input name="project" required placeholder="e.g., Showroom Fit-out" className="w-full p-2 rounded border" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Sourcing</label>
+                <select name="sourcing" className="w-full p-2 rounded border">
+                  <option>Local</option>
+                  <option>Import</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Design Start</label>
+                <input type="date" name="design_start" className="w-full p-2 rounded border" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Installation Target</label>
+                <input type="date" name="install_target" className="w-full p-2 rounded border" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Default Assignees (initials)</label>
+                <input name="assignees" placeholder="VD, CO, MA" className="w-full p-2 rounded border" />
+              </div>
+              <div className="md:col-span-2">
+                <SubmitButton>Create Tasks</SubmitButton>
+              </div>
+            </SaveForm>
+          </div>
+        </details>
+      </div>
       </div>
 
       <section className="rounded-xl border bg-card/60 p-4">
@@ -286,23 +406,25 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">Status</label>
-            <select name="status" defaultValue={statusFilter} className="w-full p-2 rounded border">
-              <option value="">All</option>
-              <option>Backlog</option>
-              <option>In Progress</option>
-              <option>Ready</option>
-              <option>Completed</option>
-            </select>
+            <div className="grid grid-cols-2 gap-2 p-2 rounded border">
+              {(["Backlog", "In Progress", "Ready", "Completed"] as const).map((s) => (
+                <label key={s} className="inline-flex items-center gap-2 text-xs">
+                  <input type="checkbox" name="status" value={s} defaultChecked={statusTokens.includes(s)} />
+                  <span>{s}</span>
+                </label>
+              ))}
+            </div>
           </div>
           <div>
             <label className="text-xs text-muted-foreground block mb-1">Priority</label>
-            <select name="priority" defaultValue={priorityFilter} className="w-full p-2 rounded border">
-              <option value="">All</option>
-              <option>Urgent</option>
-              <option>High</option>
-              <option>Medium</option>
-              <option>Low</option>
-            </select>
+            <div className="grid grid-cols-2 gap-2 p-2 rounded border">
+              {(["Urgent", "High", "Medium", "Low"] as const).map((p) => (
+                <label key={p} className="inline-flex items-center gap-2 text-xs">
+                  <input type="checkbox" name="priority" value={p} defaultChecked={priorityTokens.includes(p)} />
+                  <span>{p}</span>
+                </label>
+              ))}
+            </div>
           </div>
           <AssigneeFilter initial={assigneeFilter} />
           <div>
@@ -398,7 +520,7 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
 
             <div className="overflow-x-auto rounded-lg border">
               <table className="min-w-full text-sm">
-                <thead className="bg-muted/30">
+                <thead className="bg-muted/30 sticky top-0 z-10">
                   <tr>
                     <th className="text-left p-2">Task</th>
                     <th className="text-left p-2">Description</th>
@@ -411,7 +533,7 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
                 </thead>
                 <tbody>
                   {list.map((t) => (
-                    <tr key={t.id} className="border-t">
+                    <tr key={t.id} className="border-t odd:bg-muted/20 hover:bg-muted/10">
                       <td className="p-2 align-top">
                         <div className="font-medium text-foreground">{t.title}</div>
                         <div className="text-xs text-muted-foreground">{t.project}</div>
@@ -432,7 +554,21 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
                         </div>
                       </td>
                       <td className="p-2 align-top">
-                        <div className="text-xs text-muted-foreground">{t.due_date}</div>
+                        <AutoSubmitDate
+                          action={upsertTask as any}
+                          hidden={[
+                            { name: "id", value: t.id },
+                            { name: "project", value: t.project },
+                            { name: "title", value: t.title },
+                            { name: "description", value: t.description },
+                            { name: "assignees", value: t.assignees.join(", ") },
+                            { name: "priority", value: t.priority },
+                            { name: "progress", value: String(t.progress) },
+                            { name: "status", value: t.status },
+                          ]}
+                          defaultValue={t.due_date}
+                          className="text-xs text-muted-foreground px-2 py-1 rounded border"
+                        />
                       </td>
                       <td className="p-2 align-top">
                         <span className={`px-2 py-1 text-xs rounded-full ${priorityClass(t.priority)}`}>{t.priority}</span>
@@ -446,26 +582,43 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
                           </div>
                           <div className="text-xs text-muted-foreground w-10 text-right">{t.progress}%</div>
                         </div>
+                        <div className="mt-2">
+                          <AutoSubmitRange
+                            action={upsertTask as any}
+                            hidden={[
+                              { name: "id", value: t.id },
+                              { name: "project", value: t.project },
+                              { name: "title", value: t.title },
+                              { name: "description", value: t.description },
+                              { name: "assignees", value: t.assignees.join(", ") },
+                              { name: "due_date", value: t.due_date },
+                              { name: "priority", value: t.priority },
+                              { name: "status", value: t.status },
+                            ]}
+                            defaultValue={t.progress}
+                            className="w-full"
+                          />
+                        </div>
                       </td>
                       <td className="p-2 align-top">
                         <div className="flex items-center gap-2">
-                          <SaveForm action={upsertTask}>
-                            <input type="hidden" name="id" defaultValue={t.id} />
-                            <input type="hidden" name="project" defaultValue={t.project} />
-                            <input type="hidden" name="title" defaultValue={t.title} />
-                            <input type="hidden" name="description" defaultValue={t.description} />
-                            <input type="hidden" name="assignees" defaultValue={t.assignees.join(", ")} />
-                            <input type="hidden" name="due_date" defaultValue={t.due_date} />
-                            <input type="hidden" name="priority" defaultValue={t.priority} />
-                            <input type="hidden" name="progress" defaultValue={t.progress} />
-                            <select name="status" defaultValue={t.status} className="px-2 py-1 rounded border text-xs">
-                              <option>Backlog</option>
-                              <option>In Progress</option>
-                              <option>Ready</option>
-                              <option>Completed</option>
-                            </select>
-                            <SubmitButton variant="outline" size="sm">Update</SubmitButton>
-                          </SaveForm>
+                          <AutoSubmitSelect
+                            action={upsertTask as any}
+                            hidden={[
+                              { name: "id", value: t.id },
+                              { name: "project", value: t.project },
+                              { name: "title", value: t.title },
+                              { name: "description", value: t.description },
+                              { name: "assignees", value: t.assignees.join(", ") },
+                              { name: "due_date", value: t.due_date },
+                              { name: "priority", value: t.priority },
+                              { name: "progress", value: String(t.progress) },
+                            ]}
+                            defaultValue={t.status}
+                            className="px-2 py-1 rounded border text-xs"
+                            name="status"
+                            options={["Backlog", "In Progress", "Ready", "Completed"]}
+                          />
                           <SaveForm action={deleteTask}>
                             <input type="hidden" name="id" defaultValue={t.id} />
                             <button className="px-2 py-1 rounded border text-xs">Delete</button>
@@ -476,7 +629,7 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
                   ))}
                   {list.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="p-4 text-sm text-muted-foreground">No tasks in this group</td>
+                      <td colSpan={7} className="p-4 text-sm text-muted-foreground">No tasks in this group — use Create Project to seed tasks</td>
                     </tr>
                   )}
                 </tbody>

@@ -66,6 +66,35 @@ export function KanbanBoard({ tasks, groups, actionUpsert, assigneeMeta, layout 
             <div className="text-sm font-semibold">{g.title}</div>
             <div className="text-xs text-muted-foreground">{columns[g.key]?.length || 0}</div>
           </div>
+          <div className="mb-2 grid grid-cols-1 md:grid-cols-3 gap-2">
+            <input placeholder="Task title" className="px-2 py-1 rounded border text-xs" id={`add-title-${g.key}`} />
+            <input placeholder="Project" className="px-2 py-1 rounded border text-xs" id={`add-project-${g.key}`} />
+            <button
+              className="px-2 py-1 rounded-md border text-xs"
+              onClick={() => {
+                const titleEl = document.getElementById(`add-title-${g.key}`) as HTMLInputElement | null
+                const projectEl = document.getElementById(`add-project-${g.key}`) as HTMLInputElement | null
+                const title = String(titleEl?.value || "").trim()
+                if (!title) return
+                const project = String(projectEl?.value || "")
+                const fd = new FormData()
+                fd.set("id", crypto.randomUUID())
+                fd.set("project", project)
+                fd.set("title", title)
+                fd.set("description", "")
+                fd.set("assignees", "")
+                fd.set("due_date", "")
+                fd.set("priority", "Medium")
+                fd.set("progress", "0")
+                fd.set("status", g.key)
+                actionUpsert(fd)
+                if (titleEl) titleEl.value = ""
+                if (projectEl) projectEl.value = ""
+              }}
+            >
+              Add
+            </button>
+          </div>
           <div className="space-y-2 min-h-[180px]">
             {layout === "swimlanes" ? (
               Object.entries(
@@ -160,8 +189,11 @@ export function KanbanBoard({ tasks, groups, actionUpsert, assigneeMeta, layout 
                         )
                       })}
                     </div>
-                    <div className="text-[11px] text-muted-foreground">{t.due_date}</div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground">{t.due_date}</span>
+                    <span className={`px-2 py-0.5 text-[10px] rounded-full ${t.priority === "Urgent" ? "bg-red-100 text-red-700" : t.priority === "High" ? "bg-orange-100 text-orange-700" : t.priority === "Medium" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"}`}>{t.priority}</span>
                   </div>
+                </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] text-muted-foreground">Progress</span>
