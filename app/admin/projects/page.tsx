@@ -6,7 +6,7 @@ import Link from "next/link"
 import { SelectOnFocusInput, SelectOnFocusTextarea } from "@/components/select-on-focus"
 import { BlogAiTools } from "@/components/admin/blog-ai-tools"
 import { AddModal } from "@/components/admin/add-modal"
-import { SaveForm } from "@/components/admin/save-form"
+import { SaveForm, SubmitButton } from "@/components/admin/save-form"
 import { supabaseServer } from "@/lib/supabase-server"
 
 const uploadsDir = path.join(process.cwd(), "public", "uploads")
@@ -79,8 +79,9 @@ async function addProject(formData: FormData) {
   revalidatePath("/")
 }
 
-async function updateProject(prevState: any, formData: FormData) {
+async function updateProject(formData: FormData) {
   "use server"
+  if (!formData || typeof (formData as any).get !== "function") return { ok: false }
   const id = String(formData.get("id") || "").trim()
   const title = String(formData.get("title") || "").trim()
   const location = String(formData.get("location") || "").trim()
@@ -221,6 +222,32 @@ async function deleteProject(formData: FormData) {
   revalidatePath("/")
 }
 
+async function syncProjectsToSupabase() {
+  "use server"
+  const supabase = supabaseServer()
+  const raw = await readFile(projectsPath, "utf-8").catch(() => "[]")
+  const local = JSON.parse(raw || "[]")
+  const list = Array.isArray(local) ? local : []
+  if (!Array.isArray(list) || list.length === 0) return { ok: false }
+  for (const p of list) {
+    const id = String(p.id || "").trim()
+    const title = String(p.title || "").trim()
+    if (!id || !title) continue
+    const location = String(p.location || "")
+    const year = String(p.year || "")
+    const type = String(p.type || "")
+    const description = String(p.description || "")
+    const image = String(p.image || "")
+    const images = Array.isArray(p.images) ? p.images : []
+    const services = Array.isArray(p.services) ? p.services : []
+    await supabase.from("projects").upsert({ id, title, location, year, type, description, image, images, services }, { onConflict: "id" })
+  }
+  revalidatePath("/admin/projects")
+  revalidatePath("/projects")
+  revalidatePath("/")
+  return { ok: true }
+}
+
 export default async function AdminProjectsPage() {
   const supabase = supabaseServer()
   const { data: projectsRaw } = await supabase.from("projects").select("*").order("year", { ascending: false })
@@ -244,6 +271,9 @@ export default async function AdminProjectsPage() {
             <SaveForm action={importProjects}>
               <input type="file" name="backupFile" accept="application/json" className="px-3 py-2 rounded-md border border-border/40 text-sm" />
               <button className="px-3 py-2 rounded-md border border-border/40 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Import JSON</button>
+            </SaveForm>
+            <SaveForm action={syncProjectsToSupabase}>
+              <button className="px-3 py-2 rounded-md border border-border/40 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Sync to Supabase</button>
             </SaveForm>
             <Link
               href="/calculator"
@@ -424,9 +454,9 @@ export default async function AdminProjectsPage() {
                         <label className="text-xs text-muted-foreground block mb-1">Services</label>
                         <SelectOnFocusInput name="services" defaultValue={Array.isArray(p.services) ? p.services.join(", ") : ""} className="w-full p-2 border border-border/40 rounded" />
                       </div>
-                      <button className="w-full bg-primary text-white py-2 rounded-md inline-flex items-center justify-center gap-2 transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">
+                      <SubmitButton confirm="Save project?" className="w-full bg-primary text-white py-2 rounded-md inline-flex items-center justify-center gap-2 transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">
                         Save Changes
-                      </button>
+                      </SubmitButton>
                     </SaveForm>
                   </AddModal>
                   <SaveForm action={deleteProject}>

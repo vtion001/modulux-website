@@ -65,3 +65,31 @@ create table if not exists public.project_tasks (
 create index if not exists idx_project_tasks_status on public.project_tasks (status);
 create index if not exists idx_project_tasks_due_date on public.project_tasks (due_date);
 create index if not exists idx_project_tasks_project on public.project_tasks (project);
+
+create table if not exists public.projects (
+  id text primary key,
+  title text,
+  location text,
+  year text,
+  type text,
+  description text,
+  image text,
+  images jsonb,
+  services jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz
+);
+
+create index if not exists idx_projects_type on public.projects (type);
+create index if not exists idx_projects_year on public.projects (year);
+create index if not exists idx_projects_location on public.projects (location);
+
+create table if not exists public.project_versions (
+  ts bigint primary key,
+  id text,
+  data jsonb not null,
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_project_versions_ts on public.project_versions (ts desc);
+create index if not exists idx_project_versions_id on public.project_versions (id);
