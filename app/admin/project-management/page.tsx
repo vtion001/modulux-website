@@ -501,26 +501,27 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
               <table className="min-w-full text-sm">
                 <thead className="bg-muted/30 sticky top-0 z-10">
                   <tr>
-                    <th className="text-left p-2">Task</th>
-                    <th className="text-left p-2">Description</th>
-                    <th className="text-left p-2">Assignees</th>
-                    <th className="text-left p-2">Due Date</th>
-                    <th className="text-left p-2">Priority</th>
-                    <th className="text-left p-2">Progress</th>
-                    <th className="text-left p-2">Actions</th>
+                    <th id="th-task" className="text-left p-2">Task</th>
+                    <th id="th-description" className="text-left p-2">Description</th>
+                    <th id="th-assignees" className="text-left p-2">Assignees</th>
+                    <th id="th-due-date" className="text-left p-2">Due Date</th>
+                    <th id="th-priority" className="text-left p-2">Priority</th>
+                    <th id="th-progress" className="text-left p-2">Progress</th>
+                    <th id="th-status" className="text-left p-2">Status</th>
+                    <th id="th-actions" className="text-left p-2">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {list.map((t) => (
                     <tr key={t.id} className="border-t odd:bg-muted/20 hover:bg-muted/10">
-                      <td className="p-2 align-top">
+                      <td className="p-2 align-top text-xs">
                         <div className="font-medium text-foreground">{t.title}</div>
                         <div className="text-xs text-muted-foreground">{t.project}</div>
                       </td>
-                      <td className="p-2 align-top">
+                      <td className="p-2 align-top text-xs">
                         <div className="text-muted-foreground">{t.description}</div>
                       </td>
-                      <td className="p-2 align-top">
+                      <td className="p-2 align-top text-xs">
                         <div className="flex items-center gap-1">
                           {t.assignees.map((a) => {
                             const meta = assigneeMeta?.[a]
@@ -532,7 +533,7 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
                           })}
                         </div>
                       </td>
-                      <td className="p-2 align-top">
+                      <td className="p-2 align-top text-xs">
                         <AutoSubmitDate
                           action={upsertTask as any}
                           hidden={[
@@ -547,12 +548,13 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
                           ]}
                           defaultValue={t.due_date}
                           className="text-xs text-muted-foreground px-2 py-1 rounded border"
+                          labelledBy="th-due-date"
                         />
                       </td>
-                      <td className="p-2 align-top">
+                      <td className="p-2 align-top text-xs">
                         <span className={`px-2 py-1 text-xs rounded-full ${priorityClass(t.priority)}`}>{t.priority}</span>
                       </td>
-                      <td className="p-2 align-top w-40">
+                      <td className="p-2 align-top w-40 text-xs">
                         <div className="flex items-center gap-2">
                           <div className="flex-1 h-2 rounded bg-muted/50 overflow-hidden">
                             <Progress value={t.progress} className="h-2 w-full bg-transparent">
@@ -576,28 +578,32 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
                             ]}
                             defaultValue={t.progress}
                             className="w-full"
+                            labelledBy="th-progress"
                           />
                         </div>
                       </td>
+                      <td className="p-2 align-top text-xs">
+                        <AutoSubmitSelect
+                          action={upsertTask as any}
+                          hidden={[
+                            { name: "id", value: t.id },
+                            { name: "project", value: t.project },
+                            { name: "title", value: t.title },
+                            { name: "description", value: t.description },
+                            { name: "assignees", value: t.assignees.join(", ") },
+                            { name: "due_date", value: t.due_date },
+                            { name: "priority", value: t.priority },
+                            { name: "progress", value: String(t.progress) },
+                          ]}
+                          defaultValue={t.status}
+                          className="px-2 py-1 rounded border text-xs"
+                          name="status"
+                          options={["Backlog", "In Progress", "Ready", "Completed"]}
+                          labelledBy="th-status"
+                        />
+                      </td>
                       <td className="p-2 align-top">
                         <div className="flex items-center gap-2">
-                          <AutoSubmitSelect
-                            action={upsertTask as any}
-                            hidden={[
-                              { name: "id", value: t.id },
-                              { name: "project", value: t.project },
-                              { name: "title", value: t.title },
-                              { name: "description", value: t.description },
-                              { name: "assignees", value: t.assignees.join(", ") },
-                              { name: "due_date", value: t.due_date },
-                              { name: "priority", value: t.priority },
-                              { name: "progress", value: String(t.progress) },
-                            ]}
-                            defaultValue={t.status}
-                            className="px-2 py-1 rounded border text-xs"
-                            name="status"
-                            options={["Backlog", "In Progress", "Ready", "Completed"]}
-                          />
                           <SaveForm action={deleteTask}>
                             <input type="hidden" name="id" defaultValue={t.id} />
                             <button className="px-2 py-1 rounded border text-xs">Delete</button>

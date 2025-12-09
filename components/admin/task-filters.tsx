@@ -21,6 +21,7 @@ export function TaskFilters({ basePath, preserve, initQ = "", initStatusCsv = ""
   const priorityInit = useMemo(() => new Set(initPriorityCsv.split(",").map((s) => s.trim()).filter(Boolean)), [initPriorityCsv])
   const [status, setStatus] = useState<Set<string>>(statusInit)
   const [priority, setPriority] = useState<Set<string>>(priorityInit)
+  const [collapsed, setCollapsed] = useState(true)
 
   const push = () => {
     const params = new URLSearchParams()
@@ -62,45 +63,49 @@ export function TaskFilters({ basePath, preserve, initQ = "", initStatusCsv = ""
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-      <div className="md:col-span-2">
-        <label className="text-xs text-muted-foreground block mb-1">Search</label>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search tasks" className="w-full p-2 rounded border" />
+    <div>
+      <div className="md:hidden mb-2">
+        <button type="button" aria-expanded={!collapsed} onClick={() => setCollapsed((v) => !v)} className="px-3 py-2 rounded-md border text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">Filters</button>
+      </div>
+      <div className={(collapsed ? "hidden " : "") + "md:grid grid-cols-1 md:grid-cols-5 gap-3"}>
+        <div className="md:col-span-2">
+        <label id="label-search" className="text-xs text-muted-foreground block mb-1">Search</label>
+        <input aria-labelledby="label-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search tasks" className="w-full p-2 rounded border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" />
       </div>
       <div>
-        <label className="text-xs text-muted-foreground block mb-1">Status</label>
-        <div className="flex flex-wrap gap-2 p-2 rounded border">
+        <label id="label-status" className="text-xs text-muted-foreground block mb-1">Status</label>
+        <div role="group" aria-labelledby="label-status" className="flex flex-wrap gap-2 p-2 rounded border">
           {["Backlog", "In Progress", "Ready", "Completed"].map((s) => (
-            <button key={s} type="button" onClick={() => toggle(setStatus, status, s)} className={`px-2 py-1 rounded-full text-xs border ${status.has(s) ? "bg-primary text-white" : "bg-background"}`}>{s}</button>
+            <button key={s} type="button" aria-pressed={status.has(s)} onClick={() => toggle(setStatus, status, s)} className={`px-2 py-1 rounded-full text-xs border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${status.has(s) ? "bg-primary text-white" : "bg-background"}`}>{s}</button>
           ))}
         </div>
       </div>
       <div>
-        <label className="text-xs text-muted-foreground block mb-1">Priority</label>
-        <div className="flex flex-wrap gap-2 p-2 rounded border">
+        <label id="label-priority" className="text-xs text-muted-foreground block mb-1">Priority</label>
+        <div role="group" aria-labelledby="label-priority" className="flex flex-wrap gap-2 p-2 rounded border">
           {["Urgent", "High", "Medium", "Low"].map((p) => (
-            <button key={p} type="button" onClick={() => toggle(setPriority, priority, p)} className={`px-2 py-1 rounded-full text-xs border ${priority.has(p) ? "bg-primary text-white" : "bg-background"}`}>{p}</button>
+            <button key={p} type="button" aria-pressed={priority.has(p)} onClick={() => toggle(setPriority, priority, p)} className={`px-2 py-1 rounded-full text-xs border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${priority.has(p) ? "bg-primary text-white" : "bg-background"}`}>{p}</button>
           ))}
         </div>
       </div>
       <div>
-        <label className="text-xs text-muted-foreground block mb-1">Assignees</label>
-        <input value={assignee} onChange={(e) => setAssignee(e.target.value)} placeholder="VD, CO, MA" className="w-full p-2 rounded border" />
+        <label id="label-assignees" className="text-xs text-muted-foreground block mb-1">Assignees</label>
+        <input aria-labelledby="label-assignees" value={assignee} onChange={(e) => setAssignee(e.target.value)} placeholder="VD, CO, MA" className="w-full p-2 rounded border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" />
       </div>
       <div>
-        <label className="text-xs text-muted-foreground block mb-1">Sort</label>
-        <select value={sort} onChange={(e) => { setSort(e.target.value); push() }} className="w-full p-2 rounded border">
+        <label id="label-sort" className="text-xs text-muted-foreground block mb-1">Sort</label>
+        <select aria-labelledby="label-sort" value={sort} onChange={(e) => { setSort(e.target.value); push() }} className="w-full p-2 rounded border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
           <option value="">None</option>
           <option value="due_date">Due Date</option>
           <option value="progress">Progress</option>
         </select>
       </div>
       <div className="md:col-span-5 flex gap-2">
-        <button type="button" onClick={push} className="px-3 py-2 rounded-md border">Apply</button>
-        <Link href={basePath} className="px-3 py-2 rounded-md border bg-background text-muted-foreground">Reset</Link>
-        <button type="button" onClick={clearAll} className="px-3 py-2 rounded-md border text-sm">Clear</button>
+        <button type="button" aria-label="Apply filters" onClick={push} className="px-3 py-2 rounded-md border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">Apply</button>
+        <Link href={basePath} aria-label="Reset filters" className="px-3 py-2 rounded-md border bg-background text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">Reset</Link>
+        <button type="button" aria-label="Clear filters" onClick={clearAll} className="px-3 py-2 rounded-md border text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">Clear</button>
+      </div>
       </div>
     </div>
   )
 }
-

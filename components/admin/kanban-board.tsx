@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
 
 type Task = {
@@ -110,8 +111,9 @@ export function KanbanBoard({ tasks, groups, actionUpsert, assigneeMeta, layout 
                     <div className="text-xs font-semibold text-foreground">{projectName}</div>
                     <div className="text-[11px] text-muted-foreground">{list.length}</div>
                   </div>
-                  {list.map((t) => (
-                    <div key={t.id} draggable onDragStart={(e) => onDragStart(e, t.id)} className="rounded-md border border-border/40 bg-background/70 p-3 cursor-move">
+                  <AnimatePresence>
+                    {list.map((t) => (
+                      <motion.div key={t.id} layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} draggable onDragStart={(e) => onDragStart(e, t.id)} className="rounded-md border border-border/40 bg-background/70 p-2 cursor-move transition-transform hover:-translate-y-[1px] hover:shadow-sm">
                       <div className="text-sm font-medium text-foreground">{t.title}</div>
                       <div className="text-xs text-muted-foreground mb-2 truncate">{t.description}</div>
                       <div className="flex items-center justify-between mb-2">
@@ -169,13 +171,15 @@ export function KanbanBoard({ tasks, groups, actionUpsert, assigneeMeta, layout 
                           </select>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </div>
               ))
             ) : (
-              (columns[g.key] || []).map((t) => (
-                <div key={t.id} draggable onDragStart={(e) => onDragStart(e, t.id)} className="rounded-md border border-border/40 bg-background/70 p-3 cursor-move">
+              <AnimatePresence>
+                {(columns[g.key] || []).map((t) => (
+                  <motion.div key={t.id} layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} draggable onDragStart={(e) => onDragStart(e, t.id)} className="rounded-md border border-border/40 bg-background/70 p-2 cursor-move transition-transform hover:-translate-y-[1px] hover:shadow-sm">
                   <div className="text-sm font-medium text-foreground">{t.title}</div>
                   <div className="text-xs text-muted-foreground mb-2">{t.project}</div>
                   <div className="text-xs text-muted-foreground mb-2 truncate">{t.description}</div>
@@ -190,11 +194,11 @@ export function KanbanBoard({ tasks, groups, actionUpsert, assigneeMeta, layout 
                         )
                       })}
                     </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] text-muted-foreground">{t.due_date}</span>
-                    <span className={`px-2 py-0.5 text-[10px] rounded-full ${t.priority === "Urgent" ? "bg-red-100 text-red-700" : t.priority === "High" ? "bg-orange-100 text-orange-700" : t.priority === "Medium" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"}`}>{t.priority}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-muted-foreground">{t.due_date}</span>
+                      <span className={`px-2 py-0.5 text-[10px] rounded-full ${t.priority === "Urgent" ? "bg-red-100 text-red-700" : t.priority === "High" ? "bg-orange-100 text-orange-700" : t.priority === "Medium" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"}`}>{t.priority}</span>
+                    </div>
                   </div>
-                </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] text-muted-foreground">Progress</span>
@@ -248,8 +252,9 @@ export function KanbanBoard({ tasks, groups, actionUpsert, assigneeMeta, layout 
                       </select>
                     </div>
                   </div>
-                </div>
-              ))
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             )}
             {(columns[g.key] || []).length === 0 && (
               <div className="text-xs text-muted-foreground">No tasks</div>
