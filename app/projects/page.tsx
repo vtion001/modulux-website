@@ -97,7 +97,7 @@ export default function ProjectsPage() {
           </motion.div>
         </div>
       </section>
-
+      
       {/* Projects Grid */}
       <section id="projects-grid" className="py-20">
         <div className="container mx-auto px-4">
@@ -132,14 +132,36 @@ export default function ProjectsPage() {
                         <MapPin className="w-4 h-4 mr-1" />
                         {project.location}
                       </div>
-                      <p className="text-muted-foreground mb-4 text-sm text-pretty">{project.description}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {(project.services || []).map((service: string) => (
+
+                      {/* Formatted description with headers, bullets, line breaks */}
+                      <div className="text-muted-foreground mb-4 text-sm text-pretty line-clamp-3 whitespace-pre-wrap">
+                        {(() => {
+                          const desc = String(project.description || "")
+                            .replace(/^#{1}\s+(.+)$/gm, "\n$1\n")           // H1
+                            .replace(/^#{2}\s+(.+)$/gm, "\n$1\n")           // H2
+                            .replace(/^#{3}\s+(.+)$/gm, "\n$1\n")           // H3
+                            .replace(/^-\s+(.+)$/gm, "• $1")                 // bullets
+                            .replace(/\n{2,}/g, "\n\n")                     // normalize breaks
+                            .trim()
+                          return desc
+                        })()}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {(project.services || []).slice(0, 3).map((service: string) => (
                           <span key={service} className="px-3 py-1 bg-accent/10 text-accent text-xs rounded-full">
                             {service}
                           </span>
                         ))}
                       </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Show More
+                      </Button>
                     </div>
                   </div>
                 </Link>

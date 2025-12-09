@@ -2,7 +2,6 @@ import path from "path"
 import { revalidatePath } from "next/cache"
 import { writeFile, mkdir, readFile } from "fs/promises"
 import { MapPin, Calendar, Plus, Search, Trash2, Pencil } from "lucide-react"
-import Link from "next/link"
 import { SelectOnFocusInput, SelectOnFocusTextarea } from "@/components/select-on-focus"
 import { BlogAiTools } from "@/components/admin/blog-ai-tools"
 import { AddModal } from "@/components/admin/add-modal"
@@ -275,14 +274,6 @@ export default async function AdminProjectsPage() {
             <SaveForm action={syncProjectsToSupabase}>
               <button className="px-3 py-2 rounded-md border border-border/40 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Sync to Supabase</button>
             </SaveForm>
-            <Link
-              href="/calculator"
-              className="text-foreground hover:text-primary transition-colors relative group flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:rounded-md px-2 py-1 text-primary"
-              aria-current="page"
-            >
-              Calculator
-              <div className="absolute -bottom-1 left-0 h-0.5 bg-gradient-to-r from-primary to-accent transition-all duration-300 w-full" aria-hidden="true"></div>
-            </Link>
             <AddModal
               trigger={<><Plus className="w-4 h-4" /> Add New</>}
               title="Add Project"

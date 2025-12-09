@@ -143,7 +143,25 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
                 {project.type}
               </div>
             </div>
-            <p className="text-xl text-muted-foreground text-pretty">{project.description}</p>
+            <div
+              className="text-xl text-muted-foreground text-pretty whitespace-pre-line"
+              dangerouslySetInnerHTML={{
+                __html: project.description
+                  .split("\n")
+                  .map((line) => {
+                    // Headers: lines starting with #, ##, ###
+                    if (line.match(/^###\s/)) return `<h3 class="text-2xl font-semibold text-foreground mt-6 mb-3">${line.replace(/^###\s/, "")}</h3>`;
+                    if (line.match(/^##\s/)) return `<h2 class="text-3xl font-bold text-foreground mt-8 mb-4">${line.replace(/^##\s/, "")}</h2>`;
+                    if (line.match(/^#\s/)) return `<h1 class="text-4xl font-extrabold text-foreground mt-10 mb-6">${line.replace(/^#\s/, "")}</h1>`;
+                    // Bold: **text**
+                    line = line.replace(/\*\*(.*?)\*\*/g, "<strong class='font-bold text-foreground'>$1</strong>");
+                    // Line breaks: empty lines become <br/>
+                    if (!line.trim()) return "<br/>";
+                    return `<p>${line}</p>`;
+                  })
+                  .join(""),
+              }}
+            />
           </motion.div>
         </div>
       </section>
@@ -208,68 +226,28 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
         </div>
       </section>
 
-      {/* Project Details */}
+      {/* Services Section */}
       <section className="py-20 bg-primary/5">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
-            <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }}>
-              <h2 className="text-4xl font-bold text-foreground mb-8">Project Details</h2>
-              <div className="space-y-6">
-                {project.client && (
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground mb-2">Client</h3>
-                    <p className="text-muted-foreground">{project.client}</p>
-                  </div>
-                )}
-                {project.details?.duration && (
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground mb-2">Duration</h3>
-                    <p className="text-muted-foreground">{project.details?.duration}</p>
-                  </div>
-                )}
-                {project.details?.area && (
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground mb-2">Area</h3>
-                    <p className="text-muted-foreground">{project.details?.area}</p>
-                  </div>
-                )}
-                {project.details?.budget && (
-                  <div>
-                    <h3 className="text-lg font-semibold text-foreground mb-2">Budget Range</h3>
-                    <p className="text-muted-foreground">{project.details?.budget}</p>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-            >
-              <h2 className="text-4xl font-bold text-foreground mb-8">Services Provided</h2>
-              <div className="space-y-4 mb-8">
-                {Array.isArray(project.services) && project.services.map((service, index) => (
-                  <div key={service} className="flex items-center">
-                    <div className="w-2 h-2 bg-accent rounded-full mr-4" />
-                    <span className="text-foreground">{service}</span>
-                  </div>
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="max-w-4xl mx-auto text-center"
+          >
+            <h2 className="text-4xl font-bold text-foreground mb-8">Services Provided</h2>
+            <div className="flex flex-wrap justify-center gap-4">
+              {Array.isArray(project.services) &&
+                project.services.map((service) => (
+                  <span
+                    key={service}
+                    className="px-4 py-2 bg-accent/10 text-accent border border-accent/20 rounded-full"
+                  >
+                    {service}
+                  </span>
                 ))}
-              </div>
-              {Array.isArray(project.details?.materials) && project.details!.materials!.length > 0 && (
-                <>
-                  <h3 className="text-2xl font-bold text-foreground mb-4">Materials Used</h3>
-                  <div className="space-y-2">
-                    {project.details!.materials!.map((material) => (
-                      <div key={material} className="flex items-center">
-                        <div className="w-2 h-2 bg-primary rounded-full mr-4" />
-                        <span className="text-muted-foreground">{material}</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </motion.div>
-          </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
