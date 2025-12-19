@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server"
+export const runtime = "nodejs"
 
 export async function POST(req: Request) {
   try {
     const { html, format } = await req.json()
-    const puppeteer = await import("puppeteer")
+    let puppeteer: any
+    try {
+      const reqFn = (globalThis as any).require || (0, eval)("require")
+      puppeteer = reqFn("puppeteer")
+    } catch {
+      return NextResponse.json({ ok: false, error: "Puppeteer unavailable" }, { status: 500 })
+    }
     const browser = await puppeteer.launch({ args: ["--no-sandbox", "--disable-setuid-sandbox"], headless: true })
     const page = await browser.newPage()
     await page.setContent(String(html || ""), { waitUntil: "networkidle0" })
@@ -16,4 +23,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: e.message || "PDF conversion failed" }, { status: 500 })
   }
 }
-

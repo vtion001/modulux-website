@@ -115,6 +115,21 @@ async function loadTasks(): Promise<Task[]> {
   return seed
 }
 
+async function loadProjects(): Promise<Array<{ id: string; title: string }>> {
+  try {
+    const supabase = supabaseServer()
+    const { data } = await supabase.from("projects").select("id,title").order("created_at", { ascending: false })
+    const list = Array.isArray(data) ? data.map((p: any) => ({ id: String(p.id), title: String(p.title || "") })) : []
+    if (list.length) return list
+  } catch {}
+  try {
+    const raw = await readFile(path.join(process.cwd(), "data", "projects.json"), "utf-8").catch(() => "[]")
+    const local = JSON.parse(raw || "[]")
+    if (Array.isArray(local) && local.length) return local.map((p: any) => ({ id: String(p.id || p.title || crypto.randomUUID()), title: String(p.title || "") }))
+  } catch {}
+  return []
+}
+
 async function upsertTask(formData: FormData) {
   "use server"
   const id = String(formData.get("id") || "").trim() || crypto.randomUUID()
@@ -303,6 +318,13 @@ async function createProjectWithTasks(formData: FormData) {
 
   try {
     const supabase = supabaseServer()
+    const projectId = project
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || crypto.randomUUID()
+    try {
+      await supabase.from("projects").upsert({ id: projectId, title: project, sourcing, design_start: addDays(designStart, 0), install_target: addDays(installTarget, 0), assignees_default: assignees })
+    } catch {}
     await supabase.from("project_tasks").upsert(tasks.map((t) => ({
       id: t.id,
       project: t.project,
@@ -320,9 +342,18 @@ async function createProjectWithTasks(formData: FormData) {
     const prev = await loadTasks()
     const next = [...tasks, ...prev]
     await writeFile(tasksPath, JSON.stringify(next, null, 2))
+    try {
+      const projectsPath = path.join(process.cwd(), "data", "projects.json")
+      const raw = await readFile(projectsPath, "utf-8").catch(() => "[]")
+      const list = JSON.parse(raw || "[]")
+      const projectItem = { id: (project.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || crypto.randomUUID()), title: project, sourcing, design_start: addDays(designStart, 0), install_target: addDays(installTarget, 0), assignees_default: assignees }
+      const merged = Array.isArray(list) ? [projectItem, ...list.filter((p: any) => String(p.title || "").toLowerCase() !== project.toLowerCase())] : [projectItem]
+      await writeFile(projectsPath, JSON.stringify(merged, null, 2))
+    } catch {}
   }
   await trackEvent("create_project", { project, sourcing, tasks_count: tasks.length })
   revalidatePath("/admin/project-management")
+  revalidatePath("/projects")
   return { ok: true }
 }
 
@@ -343,6 +374,7 @@ function priorityClass(p: Task["priority"]) {
 
 export default async function AdminProjectManagementPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
   const tasks = await loadTasks()
+  const projects = await loadProjects()
   const q = String(searchParams?.q || "").trim().toLowerCase()
   const view = String(searchParams?.view || "table")
   const layoutParam = String(searchParams?.layout || "")
@@ -352,9 +384,13 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
   const priorityCsv = String(searchParams?.priority || "").trim()
   const assigneeFilter = String(searchParams?.assignee || "").trim().toUpperCase()
   const sortKey = String(searchParams?.sort || "").trim()
+  const projectFilter = String(searchParams?.project || "").trim()
   let filtered = tasks
   if (q) {
     filtered = filtered.filter((t) => [t.title, t.description, t.project].some((v) => String(v || "").toLowerCase().includes(q)))
+  }
+  if (projectFilter) {
+    filtered = filtered.filter((t) => String(t.project || "") === projectFilter)
   }
   const statusTokens = statusCsv.split(",").map((s) => s.trim()).filter(Boolean)
   if (statusTokens.length) {
@@ -505,7 +541,12 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
           <SaveForm action={emailProgress} successMessage="Email sent" className="grid grid-cols-1 md:grid-cols-5 gap-3">
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Project (optional)</label>
-              <input name="project" placeholder="Project name" className="w-full p-2 rounded border" />
+              <select name="project" className="w-full p-2 rounded border">
+                <option value="">All</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.title}>{p.title}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Recipient</label>
@@ -528,6 +569,8 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
           initPriorityCsv={priorityCsv}
           initAssigneeCsv={assigneeFilter}
           initSort={sortKey}
+          projects={projects}
+          selectedProject={projectFilter}
         />
       </section>
 

@@ -53,6 +53,7 @@ create table if not exists public.project_tasks (
   project text,
   title text not null,
   description text,
+  assignees text[],
   assignees_json jsonb,
   due_date text,
   priority text,
@@ -66,6 +67,17 @@ create index if not exists idx_project_tasks_status on public.project_tasks (sta
 create index if not exists idx_project_tasks_due_date on public.project_tasks (due_date);
 create index if not exists idx_project_tasks_project on public.project_tasks (project);
 
+-- Analytics events for lightweight CTA tracking
+create table if not exists public.analytics_events (
+  id text primary key,
+  name text not null,
+  props_json jsonb not null default '{}'::jsonb,
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_analytics_events_name on public.analytics_events (name);
+create index if not exists idx_analytics_events_created on public.analytics_events (created_at desc);
+
 create table if not exists public.projects (
   id text primary key,
   title text,
@@ -76,6 +88,10 @@ create table if not exists public.projects (
   image text,
   images jsonb,
   services jsonb,
+  sourcing text,
+  design_start text,
+  install_target text,
+  assignees_default text[],
   created_at timestamptz default now(),
   updated_at timestamptz
 );

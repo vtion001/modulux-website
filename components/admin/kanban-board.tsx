@@ -28,8 +28,8 @@ export function KanbanBoard({ tasks, groups, actionUpsert, assigneeMeta, layout 
   }, [tasks, groups])
   const [columns, setColumns] = useState<Record<string, Task[]>>(init)
 
-  const onDragStart = (e: React.DragEvent, id: string) => {
-    e.dataTransfer.setData("text/plain", id)
+  const onDragStart = (e: any, id: string) => {
+    (e as React.DragEvent).dataTransfer.setData("text/plain", id)
   }
 
   const onDrop = (e: React.DragEvent, status: Task["status"]) => {
