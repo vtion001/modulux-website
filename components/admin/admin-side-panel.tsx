@@ -8,13 +8,13 @@ export function AdminSidePanel(): JSX.Element {
   const [profile, setProfile] = useState<{ name?: string; role?: string; email?: string; avatar_url?: string; initials?: string } | null>(null)
   useEffect(() => {
     let mounted = true
-    ;(async () => {
-      try {
-        const res = await fetch("/api/admin/profile", { method: "GET" })
-        const data = await res.json().catch(() => ({}))
-        if (mounted && data?.ok && data?.profile) setProfile(data.profile)
-      } catch {}
-    })()
+      ; (async () => {
+        try {
+          const res = await fetch("/api/admin/profile", { method: "GET" })
+          const data = await res.json().catch(() => ({}))
+          if (mounted && data?.ok && data?.profile) setProfile(data.profile)
+        } catch { }
+      })()
     return () => { mounted = false }
   }, [])
   const navigation: NavSection[] = [
@@ -52,6 +52,7 @@ export function AdminSidePanel(): JSX.Element {
         { title: "Calculator Pricing", href: "/admin/calculator-pricing", iconName: "calculator" },
         { title: "Fabricators", href: "/admin/fabricators", iconName: "wrench" },
         { title: "Proposal Creator", href: "/admin/proposals", iconName: "file" },
+        { title: "Cutlist Generator", href: "/admin/cutlist-generator", iconName: "scissors" },
       ],
     },
   ]

@@ -6,7 +6,7 @@ import { useState, useEffect, useRef, Fragment } from "react"
 import type React from "react"
 import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
-import { LayoutDashboard, BarChart3, Users, FolderOpen, Package, ShoppingCart, User, CreditCard, FileText, Wallet, Settings, HelpCircle, Mail, Menu, X, ChevronRight, Search, Bell, Sun, ChevronDown, MessageSquare, CalendarDays, Calculator, Wrench } from "lucide-react"
+import { LayoutDashboard, BarChart3, Users, FolderOpen, Package, ShoppingCart, User, CreditCard, FileText, Wallet, Settings, HelpCircle, Mail, Menu, X, ChevronRight, Search, Bell, Sun, ChevronDown, MessageSquare, CalendarDays, Calculator, Wrench, Scissors } from "lucide-react"
 import "./side-panel-navigation.css"
 
 export interface NavItem {
@@ -89,7 +89,7 @@ export function SidePanelNavigationEnhanced({ navigation, utility, brandName, br
   const indicatorsOn = showScrollIndicators ?? true
   const uName = userName ?? "John Doe"
   const uRole = userRole ?? "Administrator"
-  const uInitials = userInitials ?? (uName.split(" ").map(s=>s[0]).slice(0,2).join("").toUpperCase())
+  const uInitials = userInitials ?? (uName.split(" ").map(s => s[0]).slice(0, 2).join("").toUpperCase())
   const uAvatar = userAvatarUrl ?? ""
 
   const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -110,6 +110,7 @@ export function SidePanelNavigationEnhanced({ navigation, utility, brandName, br
     wallet: Wallet,
     shoppingcart: ShoppingCart,
     user: User,
+    scissors: Scissors,
   }
 
   useEffect(() => {

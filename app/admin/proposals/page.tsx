@@ -46,6 +46,15 @@ type ProposalItem = {
   quantity: number
   unitPrice: number
   details?: string
+  category?: string
+  setId?: string | number
+  room?: string
+  baseRate?: number
+  tierFactor?: number
+  materialFactor?: number
+  finishFactor?: number
+  hardwareFactor?: number
+  installationAdd?: number
 }
 
 export default function AdminProposalsPage() {
@@ -104,14 +113,14 @@ export default function AdminProposalsPage() {
   const [emailPreviewOpen, setEmailPreviewOpen] = useState(false)
   const [emailSubject, setEmailSubject] = useState("")
   const [emailBody, setEmailBody] = useState("")
-  const [emailFormat, setEmailFormat] = useState<"text"|"html">("text")
+  const [emailFormat, setEmailFormat] = useState<"text" | "html">("text")
   const [attachHtml, setAttachHtml] = useState(false)
   const [sendToSelf, setSendToSelf] = useState(false)
   const [adminEmail, setAdminEmail] = useState<string>("")
-  useAdminDraftsShortcuts(searchInputRef, page, totalPages, (p:number)=>setPage(p))
+  useAdminDraftsShortcuts(searchInputRef, page, totalPages, (p: number) => setPage(p))
 
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       if (!draftId) return
       try {
         const res = await fetch("/data/proposals.json")
@@ -130,7 +139,7 @@ export default function AdminProposalsPage() {
             setNotes(String(found?.notes || ""))
           }
         }
-      } catch {}
+      } catch { }
     })()
   }, [draftId])
 
@@ -146,27 +155,27 @@ export default function AdminProposalsPage() {
       return
     }
     setCrmLoading(true)
-    ;(async () => {
-      try {
-        if (!crmAllRef.current || crmAllRef.current.length === 0) {
-          const res = await fetch("/api/crm/contacts", { cache: "no-store" })
-          const json = await res.json().catch(() => ({}))
-          const merged = ([] as any[]).concat(json?.contacts || [], json?.leads || [], json?.clients || [])
-          crmAllRef.current = merged
+      ; (async () => {
+        try {
+          if (!crmAllRef.current || crmAllRef.current.length === 0) {
+            const res = await fetch("/api/crm/contacts", { cache: "no-store" })
+            const json = await res.json().catch(() => ({}))
+            const merged = ([] as any[]).concat(json?.contacts || [], json?.leads || [], json?.clients || [])
+            crmAllRef.current = merged
+          }
+          const base = crmAllRef.current || []
+          const results = base.filter((c: any) => {
+            const name = String(c?.name || "").toLowerCase()
+            const email = String(c?.email || "").toLowerCase()
+            const company = String(c?.company || "").toLowerCase()
+            return name.includes(q) || email.includes(q) || company.includes(q)
+          }).slice(0, 10)
+          setCrmResults(results)
+          setCrmOpen(true)
+        } finally {
+          setCrmLoading(false)
         }
-        const base = crmAllRef.current || []
-        const results = base.filter((c: any) => {
-          const name = String(c?.name || "").toLowerCase()
-          const email = String(c?.email || "").toLowerCase()
-          const company = String(c?.company || "").toLowerCase()
-          return name.includes(q) || email.includes(q) || company.includes(q)
-        }).slice(0, 10)
-        setCrmResults(results)
-        setCrmOpen(true)
-      } finally {
-        setCrmLoading(false)
-      }
-    })()
+      })()
   }, [crmQueryDebounced])
 
   useEffect(() => {
@@ -190,14 +199,14 @@ export default function AdminProposalsPage() {
 
   useEffect(() => {
     if (!aiOpen) return
-    ;(async () => {
-      try {
-        const res = await fetch("/api/pricing/versions", { cache: "no-store" })
-        const json = await res.json().catch(() => ({}))
-        const arr = Array.isArray(json?.versions) ? json.versions : []
-        setVersions(arr)
-      } catch {}
-    })()
+      ; (async () => {
+        try {
+          const res = await fetch("/api/pricing/versions", { cache: "no-store" })
+          const json = await res.json().catch(() => ({}))
+          const arr = Array.isArray(json?.versions) ? json.versions : []
+          setVersions(arr)
+        } catch { }
+      })()
   }, [aiOpen])
 
   const buildPreviewFromVersion = (ver: any) => {
@@ -213,9 +222,11 @@ export default function AdminProposalsPage() {
         finish: String(u.finish || ""),
         hardware: String(u.hardware || ""),
         tier: String(u.tier || pre?.tier || "luxury"),
+        items: u.items,
+        exclusive: u.exclusive,
       }))
       const legacyLm = typeof form.linearMeter === "string" ? parseFloat(form.linearMeter) : Number(form.linearMeter || 0)
-      const useLegacy = Number.isFinite(legacyLm) && legacyLm > 0 && units.every((u:any)=>!(u.meters>0))
+      const useLegacy = Number.isFinite(legacyLm) && legacyLm > 0 && units.every((u: any) => !(u.meters > 0))
       const calc = estimateCabinetCost({
         projectType: String(form.projectType || "kitchen"),
         cabinetType: String(form.cabinetType || (pre?.tier === "standard" ? "basic" : (pre?.tier || "luxury"))),
@@ -235,34 +246,41 @@ export default function AdminProposalsPage() {
         applyImportSurcharge: Boolean(pre?.importSurcharge || false),
         downgradeToMFC: Boolean(pre?.downgradeMFC || false),
       })
-      const metaList = units.filter((u:any)=>Number(u.meters)>0)
       const tierStr = String(pre?.tier || "luxury")
-      const spec = tierSpecs[tierStr] || { items: [], exclusive: [] }
-      const specIncluded = spec.items.join(", ")
-      const specExclusive = spec.exclusive.join(", ")
-      const itemsMapped: ProposalItem[] = (calc?.breakdown?.units || []).map((u:any, idx:number) => {
-        const meta = metaList[idx] || {}
-        const materialTxt = String(meta.material||"").replace(/_/g," ")
-        const finishTxt = String(meta.finish||"").replace(/_/g," ")
-        const hardwareTxt = String(meta.hardware||"").replace(/_/g," ")
+      const specDefault = tierSpecs[tierStr] || { items: [], exclusive: [] }
+      const itemsMapped: ProposalItem[] = (calc?.breakdown?.units || []).map((u: any) => {
+        const materialTxt = String(u.material || "").replace(/_/g, " ")
+        const finishTxt = String(u.finish || "").replace(/_/g, " ")
+        const hardwareTxt = String(u.hardware || "").replace(/_/g, " ")
+        const specIncluded = Array.isArray(u.items) ? u.items.join(", ") : (specDefault.items.join(", "))
+        const specExclusive = Array.isArray(u.exclusive) ? u.exclusive.join(", ") : (specDefault.exclusive.join(", "))
         const details = [
-          `Tier: ${String(u.tier||pre?.tier||"luxury")}`,
+          `Tier: ${String(u.tier || pre?.tier || "luxury")}`,
           materialTxt ? `Material: ${materialTxt}` : null,
           finishTxt ? `Finish: ${finishTxt}` : null,
           hardwareTxt ? `Hardware: ${hardwareTxt}` : null,
-          `Meters: ${Number(u.meters||0)}`,
-          `Rate: ₱${Number(u.baseRate||0).toLocaleString()}/m`,
-          `Factors: ×${Number(u.tierFactor||1)} ×${Number(u.materialFactor||1)} ×${Number(u.finishFactor||1)} ×${Number(u.hardwareFactor||1)}`,
-          Number(u.installationAdd||0) ? `Install add: ₱${Number(u.installationAdd||0).toLocaleString()}` : null,
+          `Meters: ${Number(u.meters || 0)}`,
+          `Rate: ₱${Number(u.baseRate || 0).toLocaleString()}/m`,
+          `Factors: ×${Number(u.tierFactor || 1)} ×${Number(u.materialFactor || 1)} ×${Number(u.finishFactor || 1)} ×${Number(u.hardwareFactor || 1)}`,
+          Number(u.installationAdd || 0) ? `Install add: ₱${Number(u.installationAdd || 0).toLocaleString()}` : null,
           specIncluded ? `Included: ${specIncluded}` : null,
           specExclusive ? `Exclusive: ${specExclusive}` : null,
         ].filter(Boolean).join("\n")
         return {
           id: crypto.randomUUID(),
-          description: `${u.category} cabinets (${String(form.cabinetType || (pre?.tier === "standard" ? "basic" : (pre?.tier || "luxury")))})`,
-          quantity: Number(u.meters||0),
-          unitPrice: Math.round(Number(u.lineTotal||0)/Math.max(1, Number(u.meters||1))),
+          description: `${u.category} cabinets (${String(u.tier || pre?.tier || "luxury")})`,
+          quantity: Number(u.meters || 0),
+          unitPrice: Number(u.meters || 0) > 0 ? Math.round(Number(u.lineTotal || 0) / Number(u.meters)) : 0,
           details,
+          category: u.category,
+          setId: u.setId,
+          room: u.room || "Kitchen",
+          baseRate: u.baseRate,
+          tierFactor: u.tierFactor,
+          materialFactor: u.materialFactor,
+          finishFactor: u.finishFactor,
+          hardwareFactor: u.hardwareFactor,
+          installationAdd: u.installationAdd,
         }
       })
       const subtotalCalc = Number(calc?.breakdown?.subtotal || 0)
@@ -275,7 +293,9 @@ export default function AdminProposalsPage() {
       setAiPreviewDiscount(discountAbs)
       setAiPreviewTitle(`${titleFrom} Proposal`)
       setAiPreviewNotes("Auto-filled from Pricing Version")
-    } catch {}
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   const applyAiPrefill = () => {
@@ -362,7 +382,7 @@ export default function AdminProposalsPage() {
       } else {
         toast.error(String(json?.error || "Failed to save draft"))
       }
-    } catch {}
+    } catch { }
     finally {
       setSavingDraft(false)
     }
@@ -436,23 +456,23 @@ export default function AdminProposalsPage() {
   const buildEmailText = () => {
     const nf = new Intl.NumberFormat("en-PH")
     const linesTxt = previewBreakdown.map((r) => {
-      const rateTxt = `₱${nf.format(Number(r.rate||0))}`
-      const lineTxt = `₱${nf.format(Number(r.totalLine||0))}`
-      const mTxt = `${Number(r.meters||0)}m`
-      return `- ${String(r.category||"")} • Set ${String(r.set||1)} • ${String(r.room||"")} • ${mTxt} @ ${rateTxt} • Install ${String(r.installTxt||"₱0")} • Line ${lineTxt}\n  Details: ${String(r.details||"")}`
+      const rateTxt = `₱${nf.format(Number(r.rate || 0))}`
+      const lineTxt = `₱${nf.format(Number(r.totalLine || 0))}`
+      const mTxt = `${Number(r.meters || 0)}m`
+      return `- ${String(r.category || "")} • Set ${String(r.set || 1)} • ${String(r.room || "")} • ${mTxt} @ ${rateTxt} • Install ${String(r.installTxt || "₱0")} • Line ${lineTxt}\n  Details: ${String(r.details || "")}`
     }).join("\n")
-    const subtotalTxt = `₱${nf.format(Number(subtotal||0))}`
-    const taxTxt = `₱${nf.format(Number(tax||0))}`
-    const discountTxt = `₱${nf.format(Number(discount||0))}`
-    const totalTxt = `₱${nf.format(Number(total||0))}`
+    const subtotalTxt = `₱${nf.format(Number(subtotal || 0))}`
+    const taxTxt = `₱${nf.format(Number(tax || 0))}`
+    const discountTxt = `₱${nf.format(Number(discount || 0))}`
+    const totalTxt = `₱${nf.format(Number(total || 0))}`
     const header = [
       `Proposal Preview`,
-      `Client: ${String(clientName||"")}${clientCompany?` • ${clientCompany}`:""}${clientPhone?` • ${clientPhone}`:""}`,
-      `Email: ${String(clientEmail||"")}`,
-      `Title: ${String(title||"Proposal")}`,
-      `Issue Date: ${String(issueDate||"")}`,
-      `Valid Until: ${String(validUntil||"")}`,
-      `Notes: ${String(notes||"")}`,
+      `Client: ${String(clientName || "")}${clientCompany ? ` • ${clientCompany}` : ""}${clientPhone ? ` • ${clientPhone}` : ""}`,
+      `Email: ${String(clientEmail || "")}`,
+      `Title: ${String(title || "Proposal")}`,
+      `Issue Date: ${String(issueDate || "")}`,
+      `Valid Until: ${String(validUntil || "")}`,
+      `Notes: ${String(notes || "")}`,
     ].join("\n")
     const totals = [`Subtotal: ${subtotalTxt}`, `Tax: ${taxTxt}`, `Discount: ${discountTxt}`, `Total: ${totalTxt}`].join("\n")
     return `${header}\n\nItems:\n${linesTxt}\n\n${totals}`
@@ -460,16 +480,16 @@ export default function AdminProposalsPage() {
 
   const buildEmailHtml = () => {
     const nf = new Intl.NumberFormat("en-PH")
-    const esc = (s: string) => String(s||"").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+    const esc = (s: string) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
     const logoUrl = "https://res.cloudinary.com/dbviya1rj/image/upload/v1757004631/nlir90vrzv0qywleruvv.png"
     const header = `
       <div style="display:flex;align-items:flex-start;justify-content:space-between">
         <div style="display:flex;gap:16px;align-items:flex-start">
           <img src="${logoUrl}" alt="ModuLux Logo" style="width:240px;height:80px;border:1px solid #e5e7eb;border-radius:8px;object-fit:cover" />
           <div>
-            <div style="font-size:24px;font-weight:700;color:#111827">${esc(title||"Proposal")}</div>
-            <div style="font-size:14px;color:#6b7280">Issue date: ${esc(issueDate||"—")}</div>
-            <div style="font-size:14px;color:#6b7280">Valid until: ${esc(validUntil||"—")}</div>
+            <div style="font-size:24px;font-weight:700;color:#111827">${esc(title || "Proposal")}</div>
+            <div style="font-size:14px;color:#6b7280">Issue date: ${esc(issueDate || "—")}</div>
+            <div style="font-size:14px;color:#6b7280">Valid until: ${esc(validUntil || "—")}</div>
           </div>
         </div>
         <div style="text-align:right">
@@ -482,37 +502,37 @@ export default function AdminProposalsPage() {
       <div style="display:flex;gap:16px;margin-top:16px">
         <div style="flex:1;border:1px solid #e5e7eb;border-radius:8px;padding:12px">
           <div style="font-size:12px;color:#6b7280">Client</div>
-          <div style="font-size:14px;font-weight:600;color:#111827">${esc(clientName||"—")}</div>
-          <div style="font-size:14px;color:#6b7280">${esc(clientEmail||"")}</div>
-          <div style="font-size:14px;color:#6b7280">${esc(clientPhone||"")}</div>
-          <div style="font-size:14px;color:#6b7280">${esc(clientCompany||"")}</div>
+          <div style="font-size:14px;font-weight:600;color:#111827">${esc(clientName || "—")}</div>
+          <div style="font-size:14px;color:#6b7280">${esc(clientEmail || "")}</div>
+          <div style="font-size:14px;color:#6b7280">${esc(clientPhone || "")}</div>
+          <div style="font-size:14px;color:#6b7280">${esc(clientCompany || "")}</div>
         </div>
         <div style="flex:1;border:1px solid #e5e7eb;border-radius:8px;padding:12px">
           <div style="font-size:12px;color:#6b7280">Summary</div>
-          <div style="font-size:14px;color:#6b7280">${esc(notes||"No notes provided.")}</div>
+          <div style="font-size:14px;color:#6b7280">${esc(notes || "No notes provided.")}</div>
         </div>
       </div>
     `
     const rows = previewBreakdown.map((r) => {
-      const rateTxt = `₱${nf.format(Number(r.rate||0))}/m`
-      const lineTxt = `₱${nf.format(Number(r.totalLine||0))}`
-      const mTxt = `${Number(r.meters||0)}`
-      const detailsSafe = esc(r.details||"").replace(/\n/g, "<br>")
+      const rateTxt = `₱${nf.format(Number(r.rate || 0))}/m`
+      const lineTxt = `₱${nf.format(Number(r.totalLine || 0))}`
+      const mTxt = `${Number(r.meters || 0)}`
+      const detailsSafe = esc(r.details || "").replace(/\n/g, "<br>")
       return `<tr style="border-top:1px solid #e5e7eb">
-        <td style="padding:8px">${esc(r.category||"")}</td>
-        <td style="padding:8px">${esc(String(r.set||1))}</td>
-        <td style="padding:8px">${esc(r.room||"")}</td>
+        <td style="padding:8px">${esc(r.category || "")}</td>
+        <td style="padding:8px">${esc(String(r.set || 1))}</td>
+        <td style="padding:8px">${esc(r.room || "")}</td>
         <td style="padding:8px">${mTxt}</td>
         <td style="padding:8px">${rateTxt}</td>
         <td style="padding:8px;color:#374151">${detailsSafe}</td>
-        <td style="padding:8px">${esc(r.installTxt||"₱0")}</td>
+        <td style="padding:8px">${esc(r.installTxt || "₱0")}</td>
         <td style="padding:8px;text-align:right">${lineTxt}</td>
       </tr>`
     }).join("")
-    const subtotalTxt = `₱${nf.format(Number(subtotal||0))}`
-    const taxTxt = `₱${nf.format(Number(tax||0))}`
-    const discountTxt = `₱${nf.format(Number(discount||0))}`
-    const totalTxt = `₱${nf.format(Number(total||0))}`
+    const subtotalTxt = `₱${nf.format(Number(subtotal || 0))}`
+    const taxTxt = `₱${nf.format(Number(tax || 0))}`
+    const discountTxt = `₱${nf.format(Number(discount || 0))}`
+    const totalTxt = `₱${nf.format(Number(total || 0))}`
     const table = `
       <table style="width:100%;font-size:14px;margin-top:16px;border-collapse:collapse">
         <thead>
@@ -537,7 +557,7 @@ export default function AdminProposalsPage() {
             <td colspan="7" style="text-align:right;padding:8px">Tax (${taxRate}%)</td>
             <td style="text-align:right;padding:8px">${taxTxt}</td>
           </tr>
-          ${discount>0 ? `<tr><td colspan="7" style="text-align:right;padding:8px">Discount</td><td style="text-align:right;padding:8px">-${discountTxt}</td></tr>` : ""}
+          ${discount > 0 ? `<tr><td colspan="7" style="text-align:right;padding:8px">Discount</td><td style="text-align:right;padding:8px">-${discountTxt}</td></tr>` : ""}
           <tr style="border-top:1px solid #e5e7eb">
             <td colspan="7" style="text-align:right;padding:8px;font-weight:600">Total</td>
             <td style="text-align:right;padding:8px;font-weight:600">${totalTxt}</td>
@@ -567,7 +587,7 @@ export default function AdminProposalsPage() {
         for (let i = 0; i < bytes.length; i++) ascii += String.fromCharCode(bytes[i])
         return btoa(ascii)
       }
-    } catch {}
+    } catch { }
     try {
       // Fallback for environments with Buffer
       // eslint-disable-next-line no-undef
@@ -578,13 +598,13 @@ export default function AdminProposalsPage() {
   }
 
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       try {
         const res = await fetch('/data/email.json', { cache: 'no-store' })
         const cfg = await res.json().catch(() => ({}))
         const admin = String(cfg?.reply_to || cfg?.from_email || '')
         if (admin) setAdminEmail(admin)
-      } catch {}
+      } catch { }
     })()
   }, [])
 
@@ -619,7 +639,7 @@ export default function AdminProposalsPage() {
                   if (res.ok && data?.id) {
                     try {
                       if (crmSelectedId) {
-                    const dres = await fetch("/api/crm/deals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, contact_id: crmSelectedId, value: total, next_activity: "Proposal submitted", due_date: validUntil }) })
+                        const dres = await fetch("/api/crm/deals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, contact_id: crmSelectedId, value: total, next_activity: "Proposal submitted", due_date: validUntil }) })
                         const djson = await dres.json().catch(() => ({}))
                         if (dres.ok && djson?.ok && djson?.id) {
                           toast.success(
@@ -659,20 +679,20 @@ export default function AdminProposalsPage() {
                           )
                         }
                       }
-                    } catch {}
+                    } catch { }
                     toast.success("Proposal submitted")
                     window.location.href = `/admin/proposals?id=${encodeURIComponent(data.id)}`
                   } else {
                     toast.error(String(data?.error || "Submission failed"))
                   }
-                } catch {}
+                } catch { }
                 finally {
                   setSubmitting(false)
                 }
               }} disabled={submitting} aria-busy={submitting}>{submitting ? "Submitting…" : "Submit"}</Button>
               <Button variant="outline" onClick={() => {
                 if (!clientEmail || !clientEmail.trim()) { toast.error("Add a client email first"); return }
-                const subject = `Proposal Preview: ${String(title||"Proposal")}`
+                const subject = `Proposal Preview: ${String(title || "Proposal")}`
                 const text = buildEmailText()
                 setEmailSubject(subject)
                 setEmailBody(text)
@@ -705,7 +725,7 @@ export default function AdminProposalsPage() {
           </select>
           <select
             value={String(pageSize)}
-            onChange={(e) => { const v = Number(e.target.value)||10; setPageSize(v); setPage(1) }}
+            onChange={(e) => { const v = Number(e.target.value) || 10; setPageSize(v); setPage(1) }}
             className="p-2 border rounded-md bg-background text-foreground text-sm"
           >
             <option value="5">5</option>
@@ -735,7 +755,22 @@ export default function AdminProposalsPage() {
                       setClientPhone(String(d?.client?.phone || ""))
                       setCrmSelectedId(String(d?.crmId || ""))
                       setTitle(String(d?.title || "Proposal"))
-                      setItems((Array.isArray(d?.items) ? d.items : []).map((x: any) => ({ id: crypto.randomUUID(), description: String(x?.description || ""), quantity: Number(x?.quantity || 0), unitPrice: Number(x?.unitPrice || 0), details: String(x?.details || "") })))
+                      setItems((Array.isArray(d?.items) ? d.items : []).map((x: any) => ({
+                        id: crypto.randomUUID(),
+                        description: String(x?.description || ""),
+                        quantity: Number(x?.quantity || 0),
+                        unitPrice: Number(x?.unitPrice || 0),
+                        details: String(x?.details || ""),
+                        category: x?.category,
+                        setId: x?.setId,
+                        room: x?.room,
+                        baseRate: x?.baseRate,
+                        tierFactor: x?.tierFactor,
+                        materialFactor: x?.materialFactor,
+                        finishFactor: x?.finishFactor,
+                        hardwareFactor: x?.hardwareFactor,
+                        installationAdd: x?.installationAdd
+                      })))
                       setTaxRate(Number(d?.taxRate || 0))
                       setDiscount(Number(d?.discount || 0))
                       setNotes(String(d?.notes || ""))
@@ -752,11 +787,11 @@ export default function AdminProposalsPage() {
                         } else {
                           toast.error(String(json?.error || "Rename failed"))
                         }
-                      } catch {}
+                      } catch { }
                     }}>Rename</Button>
                     <Button variant="outline" size="sm" onClick={async () => {
                       try {
-                        const payload = { client: d.client, crmId: d.crmId, title: String(d.title||"")+" (copy)", items: d.items, taxRate: d.taxRate, discount: d.discount, notes: d.notes }
+                        const payload = { client: d.client, crmId: d.crmId, title: String(d.title || "") + " (copy)", items: d.items, taxRate: d.taxRate, discount: d.discount, notes: d.notes }
                         const res = await fetch("/api/proposals/drafts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
                         const json = await res.json().catch(() => ({}))
                         if (res.ok && json?.ok) {
@@ -765,7 +800,7 @@ export default function AdminProposalsPage() {
                         } else {
                           toast.error(String(json?.error || "Duplicate failed"))
                         }
-                      } catch {}
+                      } catch { }
                     }}>Duplicate</Button>
                     <Button variant="outline" size="sm" onClick={async () => {
                       try {
@@ -777,21 +812,21 @@ export default function AdminProposalsPage() {
                         } else {
                           toast.error(String(json?.error || "Delete failed"))
                         }
-                      } catch {}
+                      } catch { }
                     }}>Delete</Button>
                   </div>
                 </div>
               ))
             )}
-      {draftTotal > 0 && (
-        <div className="flex items-center justify-between gap-3 pt-2">
-          <div className="text-xs text-muted-foreground">Page {page} of {totalPages}</div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setPage(Math.max(1, page-1))} disabled={page<=1}>Prev</Button>
-            <Button variant="outline" size="sm" onClick={() => setPage(Math.min(totalPages, page+1))} disabled={page>=totalPages}>Next</Button>
-          </div>
-        </div>
-      )}
+            {draftTotal > 0 && (
+              <div className="flex items-center justify-between gap-3 pt-2">
+                <div className="text-xs text-muted-foreground">Page {page} of {totalPages}</div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setPage(Math.max(1, page - 1))} disabled={page <= 1}>Prev</Button>
+                  <Button variant="outline" size="sm" onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page >= totalPages}>Next</Button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -894,7 +929,7 @@ export default function AdminProposalsPage() {
                         } else {
                           toast.error(String(json?.error || "Failed to add to CRM"))
                         }
-                      } catch {}
+                      } catch { }
                     }}
                   >
                     Add to CRM
@@ -930,7 +965,7 @@ export default function AdminProposalsPage() {
                         } else {
                           toast.error(String(json?.error || "Failed to create lead"))
                         }
-                      } catch {}
+                      } catch { }
                     }}
                   >
                     Create Lead
@@ -972,7 +1007,7 @@ export default function AdminProposalsPage() {
                         } else {
                           toast.error(String(json?.error || "Failed to create deal"))
                         }
-                      } catch {}
+                      } catch { }
                     }}
                   >
                     Create Deal
@@ -1034,47 +1069,124 @@ export default function AdminProposalsPage() {
                 <Plus className="w-4 h-4" /> Add item
               </Button>
             </div>
-            <div className="space-y-2">
-              {items.map((item) => (
-                <div key={item.id} className="grid grid-cols-12 gap-2">
-                  <input
-                    className="col-span-4 p-2 border border-border/40 rounded-md bg-background text-foreground"
-                    placeholder="Description"
-                    value={item.description}
-                    onChange={(e) => updateItem(item.id, { description: e.target.value })}
-                  />
-                  <input
-                    className="col-span-2 p-2 border border-border/40 rounded-md bg-background text-foreground"
-                    placeholder="Details"
-                    value={item.details || ""}
-                    onChange={(e) => updateItem(item.id, { details: e.target.value })}
-                  />
-                  <input
-                    type="number"
-                    min={0}
-                    className="col-span-2 p-2 border border-border/40 rounded-md bg-background text-foreground"
-                    placeholder="Qty"
-                    value={item.quantity}
-                    onChange={(e) => updateItem(item.id, { quantity: Number(e.target.value) || 0 })}
-                  />
-                  <input
-                    type="number"
-                    min={0}
-                    className="col-span-3 p-2 border border-border/40 rounded-md bg-background text-foreground"
-                    placeholder="Unit price"
-                    value={item.unitPrice}
-                    onChange={(e) => updateItem(item.id, { unitPrice: Number(e.target.value) || 0 })}
-                  />
-                  <button
-                    type="button"
-                    aria-label="Remove"
-                    onClick={() => removeItem(item.id)}
-                    className="col-span-1 inline-flex items-center justify-center rounded-md border border-border/40 bg-background text-foreground hover:bg-muted/50"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+            <div className="overflow-x-auto -mx-4 px-4 pb-2">
+              <table className="w-full text-xs border-collapse min-w-[800px]">
+                <thead>
+                  <tr className="bg-muted/30 border-b border-border/40">
+                    <th className="p-2 text-left font-medium text-muted-foreground w-20">Category</th>
+                    <th className="p-2 text-left font-medium text-muted-foreground w-12">Set</th>
+                    <th className="p-2 text-left font-medium text-muted-foreground w-20">Room</th>
+                    <th className="p-2 text-left font-medium text-muted-foreground">Description</th>
+                    <th className="p-2 text-left font-medium text-muted-foreground w-12">Qty/m</th>
+                    <th className="p-2 text-left font-medium text-muted-foreground w-20">Rate</th>
+                    <th className="p-2 text-left font-medium text-muted-foreground w-12">Tier</th>
+                    <th className="p-2 text-left font-medium text-muted-foreground w-12">Mat</th>
+                    <th className="p-2 text-left font-medium text-muted-foreground w-12">Fin</th>
+                    <th className="p-2 text-left font-medium text-muted-foreground w-12">Hw</th>
+                    <th className="p-2 text-left font-medium text-muted-foreground w-24">Install</th>
+                    <th className="p-2 text-right font-medium text-muted-foreground w-24">Total</th>
+                    <th className="p-2 text-center w-10"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {items.map((item) => (
+                    <tr key={item.id} className="hover:bg-muted/20 transition-colors">
+                      <td className="p-1">
+                        <input
+                          className="w-full p-1 border-0 bg-transparent focus:ring-1 focus:ring-primary rounded capitalize"
+                          value={item.category || ""}
+                          onChange={(e) => updateItem(item.id, { category: e.target.value })}
+                          placeholder="base"
+                        />
+                      </td>
+                      <td className="p-1 text-center">
+                        <input
+                          className="w-full p-1 border-0 bg-transparent focus:ring-1 focus:ring-primary rounded text-center"
+                          value={item.setId || ""}
+                          onChange={(e) => updateItem(item.id, { setId: e.target.value })}
+                        />
+                      </td>
+                      <td className="p-1">
+                        <input
+                          className="w-full p-1 border-0 bg-transparent focus:ring-1 focus:ring-primary rounded"
+                          value={item.room || ""}
+                          onChange={(e) => updateItem(item.id, { room: e.target.value })}
+                          placeholder="Kitchen"
+                        />
+                      </td>
+                      <td className="p-1">
+                        <input
+                          className="w-full p-1 border-0 bg-transparent focus:ring-1 focus:ring-primary rounded font-medium"
+                          value={item.description}
+                          onChange={(e) => updateItem(item.id, { description: e.target.value })}
+                          placeholder="Description"
+                        />
+                      </td>
+                      <td className="p-1">
+                        <input
+                          type="number"
+                          className="w-full p-1 border-0 bg-transparent focus:ring-1 focus:ring-primary rounded text-center"
+                          value={item.quantity}
+                          onChange={(e) => updateItem(item.id, { quantity: Number(e.target.value) || 0 })}
+                        />
+                      </td>
+                      <td className="p-1">
+                        <div className="flex items-center gap-1 group">
+                          <span className="text-muted-foreground shrink-0">₱</span>
+                          <input
+                            type="number"
+                            className="w-full p-1 border-0 bg-transparent focus:ring-1 focus:ring-primary rounded p-0"
+                            value={item.baseRate ?? item.unitPrice}
+                            onChange={(e) => {
+                              const v = Number(e.target.value) || 0
+                              if (item.baseRate !== undefined) updateItem(item.id, { baseRate: v })
+                              else updateItem(item.id, { unitPrice: v })
+                            }}
+                          />
+                        </div>
+                      </td>
+                      <td className="p-1 text-muted-foreground text-[10px]">
+                        {item.tierFactor ? `×${item.tierFactor}` : "—"}
+                      </td>
+                      <td className="p-1 text-muted-foreground text-[10px]">
+                        {item.materialFactor ? `×${item.materialFactor}` : "—"}
+                      </td>
+                      <td className="p-1 text-muted-foreground text-[10px]">
+                        {item.finishFactor ? `×${item.finishFactor}` : "—"}
+                      </td>
+                      <td className="p-1 text-muted-foreground text-[10px]">
+                        {item.hardwareFactor ? `×${item.hardwareFactor}` : "—"}
+                      </td>
+                      <td className="p-1">
+                        <div className="flex items-center gap-1">
+                          <span className="text-muted-foreground shrink-0">₱</span>
+                          <input
+                            type="number"
+                            className="w-full p-1 border-0 bg-transparent focus:ring-1 focus:ring-primary rounded"
+                            value={item.installationAdd || 0}
+                            onChange={(e) => updateItem(item.id, { installationAdd: Number(e.target.value) || 0 })}
+                          />
+                        </div>
+                      </td>
+                      <td className="p-2 text-right font-semibold">
+                        ₱{Math.round(item.baseRate
+                          ? (item.baseRate * item.quantity * (item.tierFactor || 1) * (item.materialFactor || 1) * (item.finishFactor || 1) * (item.hardwareFactor || 1) + (item.installationAdd || 0))
+                          : (item.quantity * item.unitPrice)
+                        ).toLocaleString()}
+                      </td>
+                      <td className="p-1 text-center">
+                        <button
+                          type="button"
+                          onClick={() => removeItem(item.id)}
+                          className="p-1 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -1208,18 +1320,18 @@ export default function AdminProposalsPage() {
           </div>
         </div>
       </div>
-  {aiOpen && (
+      {aiOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-2xl bg-card rounded-lg shadow-lg border border-border/40 p-6">
             <div className="text-lg font-semibold text-foreground mb-4">AI Fill from Pricing Versions</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
               <select
                 value={selectedVersionTs}
-                onChange={(e)=>{ setSelectedVersionTs(e.target.value); const ver = versions.find((v:any)=>String(v.ts)===e.target.value); if (ver) buildPreviewFromVersion(ver) }}
+                onChange={(e) => { setSelectedVersionTs(e.target.value); const ver = versions.find((v: any) => String(v.ts) === e.target.value); if (ver) buildPreviewFromVersion(ver) }}
                 className="w-full p-2 border border-border/40 rounded-md bg-background text-foreground"
               >
                 <option value="">Select a version</option>
-                {versions.map((v:any)=>(
+                {versions.map((v: any) => (
                   <option key={v.ts} value={String(v.ts)}>{new Date(v.ts).toLocaleString()}</option>
                 ))}
               </select>
@@ -1247,7 +1359,7 @@ export default function AdminProposalsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {aiPreviewBreakdown.map((r)=> (
+                    {aiPreviewBreakdown.map((r) => (
                       <tr key={r.id} className="border-t">
                         <td className="p-2 capitalize">{r.category || "—"}</td>
                         <td className="p-2">{r.set}</td>
@@ -1264,11 +1376,11 @@ export default function AdminProposalsPage() {
               </div>
             )}
             <div className="mt-4 flex justify-end gap-2">
-              <Button variant="outline" onClick={()=>setAiOpen(false)}>Cancel</Button>
-              <Button onClick={()=>applyAiPrefill()} disabled={!selectedVersionTs}>Apply</Button>
+              <Button variant="outline" onClick={() => setAiOpen(false)}>Cancel</Button>
+              <Button onClick={() => applyAiPrefill()} disabled={!selectedVersionTs}>Apply</Button>
             </div>
           </div>
-      </div>
+        </div>
       )}
       <Dialog.Root open={emailPreviewOpen} onOpenChange={setEmailPreviewOpen}>
         <Dialog.Portal>
@@ -1289,8 +1401,8 @@ export default function AdminProposalsPage() {
                 placeholder="Subject"
               />
               <div className="flex items-center gap-3 text-xs">
-                <label className="flex items-center gap-2"><input type="radio" checked={emailFormat==='text'} onChange={()=>{setEmailFormat('text'); setEmailBody(buildEmailText())}} /> Plain Text</label>
-                <label className="flex items-center gap-2"><input type="radio" checked={emailFormat==='html'} onChange={()=>{setEmailFormat('html'); setEmailBody(buildEmailHtml())}} /> HTML</label>
+                <label className="flex items-center gap-2"><input type="radio" checked={emailFormat === 'text'} onChange={() => { setEmailFormat('text'); setEmailBody(buildEmailText()) }} /> Plain Text</label>
+                <label className="flex items-center gap-2"><input type="radio" checked={emailFormat === 'html'} onChange={() => { setEmailFormat('html'); setEmailBody(buildEmailHtml()) }} /> HTML</label>
               </div>
               {emailFormat !== 'html' && (
                 <textarea
@@ -1299,7 +1411,7 @@ export default function AdminProposalsPage() {
                   onChange={(e) => setEmailBody(e.target.value)}
                 />
               )}
-              {emailFormat==='html' && (
+              {emailFormat === 'html' && (
                 <div className="mt-3">
                   <div className="text-xs text-muted-foreground mb-1">Live Proposal Preview</div>
                   <div
@@ -1310,13 +1422,13 @@ export default function AdminProposalsPage() {
                 </div>
               )}
               <div className="flex items-center justify-between text-xs">
-                <label className="flex items-center gap-2"><input type="checkbox" checked={attachHtml} onChange={(e)=>setAttachHtml(e.target.checked)} /> Attach Proposal</label>
-                <label className="flex items-center gap-2"><input type="checkbox" checked={sendToSelf} onChange={(e)=>setSendToSelf(e.target.checked)} /> Email to self</label>
+                <label className="flex items-center gap-2"><input type="checkbox" checked={attachHtml} onChange={(e) => setAttachHtml(e.target.checked)} /> Attach Proposal</label>
+                <label className="flex items-center gap-2"><input type="checkbox" checked={sendToSelf} onChange={(e) => setSendToSelf(e.target.checked)} /> Email to self</label>
               </div>
             </div>
             <div className="p-4 border-t border-border/40 flex items-center justify-end gap-2 shrink-0">
               <Button variant="outline" onClick={() => setEmailPreviewOpen(false)}>Cancel</Button>
-              {emailFormat==='html' && (
+              {emailFormat === 'html' && (
                 <Button variant="outline" onClick={() => {
                   const html = emailBody || buildEmailHtml()
                   const b64 = safeBase64(html)
@@ -1337,11 +1449,11 @@ export default function AdminProposalsPage() {
                     const pres = await fetch('/api/pdf/convert', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ html: htmlForPdf, format: 'A4' }) })
                     const pjson = await pres.json().catch(() => ({}))
                     if (pres.ok && pjson?.ok && pjson?.pdf_base64) {
-                      body.attachments = [...(body.attachments||[]), { filename: 'proposal-preview.pdf', content_base64: String(pjson.pdf_base64||''), mime: 'application/pdf' }]
+                      body.attachments = [...(body.attachments || []), { filename: 'proposal-preview.pdf', content_base64: String(pjson.pdf_base64 || ''), mime: 'application/pdf' }]
                     } else {
                       toast.message('PDF attachment unavailable (conversion failed)')
                     }
-                  } catch {}
+                  } catch { }
                   if (attachHtml) {
                     body.attachments = [{ filename: 'proposal-preview.html', content_base64: safeBase64(buildEmailHtml()), mime: 'text/html' }]
                   }
@@ -1353,12 +1465,12 @@ export default function AdminProposalsPage() {
                       if (draftId) {
                         await fetch('/api/proposals/drafts', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: draftId, patch: { emailed_on: new Date().toISOString() } }) })
                       }
-                    } catch {}
+                    } catch { }
                     setEmailPreviewOpen(false)
                   } else {
                     toast.error(String(ejson?.error || "Email failed"))
                   }
-                } catch {}
+                } catch { }
                 finally {
                   setSendingEmail(false)
                 }
@@ -1379,8 +1491,8 @@ export function useAdminDraftsShortcuts(searchRef: React.RefObject<HTMLInputElem
       const tag = (e.target as HTMLElement)?.tagName
       if (["INPUT", "TEXTAREA", "SELECT"].includes(String(tag))) return
       if (e.key === "/") { e.preventDefault(); searchRef.current?.focus(); return }
-      if (e.key === "ArrowLeft") { e.preventDefault(); if (page > 1) setPage(Math.max(1, page-1)); return }
-      if (e.key === "ArrowRight") { e.preventDefault(); if (page < totalPages) setPage(Math.min(totalPages, page+1)); return }
+      if (e.key === "ArrowLeft") { e.preventDefault(); if (page > 1) setPage(Math.max(1, page - 1)); return }
+      if (e.key === "ArrowRight") { e.preventDefault(); if (page < totalPages) setPage(Math.min(totalPages, page + 1)); return }
     }
     window.addEventListener("keydown", onKey)
     return () => { window.removeEventListener("keydown", onKey) }

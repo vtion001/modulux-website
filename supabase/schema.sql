@@ -109,3 +109,23 @@ create table if not exists public.project_versions (
 
 create index if not exists idx_project_versions_ts on public.project_versions (ts desc);
 create index if not exists idx_project_versions_id on public.project_versions (id);
+
+-- Stores global specification templates for different quality tiers
+create table if not exists public.specification_templates (
+  id uuid primary key default gen_random_uuid(),
+  tier text not null unique, -- 'luxury', 'premium', 'standard'
+  items jsonb not null default '[]'::jsonb,
+  exclusive jsonb not null default '[]'::jsonb,
+  updated_at timestamptz default now()
+);
+
+-- Initial seeds for specification templates
+insert into public.specification_templates (tier, items, exclusive)
+values 
+  ('standard', '["Carcass: 18mm MR MFC Melamine Board", "Door: 18mm MR MFC Melamine Board", "Hinges: Zinc Plated 3D Hinges Soft Closing", "Drawers: Regular Wooden Drawing Box ( Soft Closing )", "Countertop: Granite Countertop"]'::jsonb, '["Special Mechanism", "Lighting", "Appliances"]'::jsonb),
+  ('premium', '["Carcass: 18mm Melamine Marine Plywood", "Door: 18mm MDF PETG/UV Ray Gloss / Synchronized Boards", "Hinges: Hettich Hinges ( Soft Closing )", "Drawers: Hettich Tandem Box Drawers ( Soft Closing )", "Countertop: Synthetic Quartz Countertop"]'::jsonb, '["Special Mechanism", "Lighting", "Appliances"]'::jsonb),
+  ('luxury', '["Carcass: 18mm Celuka PVC Boards", "Door: 18mm MDF PETG/Acrylic Boards", "Hinges: Blum Hinges ( Soft Closing )", "Drawers: Blum Tandem Box Drawers ( Soft Closing )", "Countertop: Synthetic Quartz Countertop"]'::jsonb, '["Special Mechanism", "Lighting", "Appliances"]'::jsonb)
+on conflict (tier) do update set 
+  items = excluded.items, 
+  exclusive = excluded.exclusive, 
+  updated_at = now();

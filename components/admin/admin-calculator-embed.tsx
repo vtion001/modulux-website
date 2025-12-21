@@ -5,6 +5,7 @@ import * as Popover from "@radix-ui/react-popover"
 import { estimateCabinetCost } from "@/lib/estimator"
 import { LazyImage } from "@/components/lazy-image"
 import { toast } from "sonner"
+import { X } from "lucide-react"
 
 interface CalculatorState {
   projectType: string
@@ -16,6 +17,22 @@ interface CalculatorState {
   installation: boolean
   linearMeter: string
   kitchenScope: string
+}
+
+interface Unit {
+  enabled: boolean
+  category: string
+  meters: number
+  material: string
+  finish: string
+  hardware: string
+  tier: string
+  roomType: string
+  customRoomName: string
+  setId: number
+  items?: string[]
+  exclusive?: string[]
+  notes?: string
 }
 
 export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }): JSX.Element {
@@ -35,7 +52,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
   const [subtotal, setSubtotal] = useState<number | null>(null)
   const [tax, setTax] = useState<number | null>(null)
   const [lines, setLines] = useState<any[]>([])
-  const tierSpecs: Record<string, { items: string[]; exclusive: string[] }> = {
+  const [tierSpecs, setTierSpecs] = useState<Record<string, { items: string[]; exclusive: string[] }>>({
     standard: {
       items: [
         "Carcass: 18mm MR MFC Melamine Board",
@@ -66,7 +83,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
       ],
       exclusive: ["Special Mechanism", "Lighting", "Appliances"],
     },
-  }
+  })
   const [baseRates, setBaseRates] = useState<{ base: number; hanging: number; tall: number } | null>(null)
   const [tiers, setTiers] = useState<{ luxury: number; premium: number; standard: number } | null>(null)
   const [cabinetCategory, setCabinetCategory] = useState<string>("base")
@@ -74,7 +91,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
   const [sheetRates, setSheetRates] = useState<any>(null)
   const [ctMultipliers, setCtMultipliers] = useState<{ luxury: number; premium: number; basic: number } | null>(null)
 
-  const [units, setUnits] = useState([
+  const [units, setUnits] = useState<Unit[]>([
     { enabled: true, category: "base", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType: "kitchen", customRoomName: "", setId: 0 },
     { enabled: false, category: "hanging", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType: "kitchen", customRoomName: "", setId: 0 },
     { enabled: false, category: "tall", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType: "kitchen", customRoomName: "", setId: 0 },
@@ -96,9 +113,10 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
   const [clientQuery, setClientQuery] = useState("")
   const [loadingContacts, setLoadingContacts] = useState(false)
   const [shouldAutoCalc, setShouldAutoCalc] = useState(false)
+  const [expandedUnitId, setExpandedUnitId] = useState<string | null>(null)
 
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       try {
         const res = await fetch("/api/pricing/get")
         const cfg = await res.json()
@@ -111,6 +129,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
           tall: { withoutFees: 65182.2, withFees: 82286.1 },
         })
         if (cfg?.cabinetTypeMultipliers) setCtMultipliers(cfg.cabinetTypeMultipliers)
+        if (cfg?.tierSpecs) setTierSpecs(cfg.tierSpecs)
         if (cfg?.prefill) {
           const p = cfg.prefill as any
           if (p?.formData) setFormData(p.formData)
@@ -144,9 +163,9 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
               if (typeof p?.downgradeMFC === "boolean") setDowngradeMFC(p.downgradeMFC)
               setShouldAutoCalc(true)
             }
-          } catch {}
+          } catch { }
         }
-      } catch {}
+      } catch { }
     })()
   }, [versionKey])
 
@@ -192,7 +211,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
         const merged2 = [...arrC2, ...arrL2]
         setContactsAll(merged2)
         setContacts(merged2)
-        toast.success(`Loaded ${merged2.length} contacts (local)`) 
+        toast.success(`Loaded ${merged2.length} contacts (local)`)
       } catch {
         toast.error("Failed to load contacts. Please check CRM configuration.")
       }
@@ -228,6 +247,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
           tall: { withoutFees: 65182.2, withFees: 82286.1 },
         },
         cabinetTypeMultipliers: ctMultipliers || { luxury: 1, premium: 0.9, basic: 0.8 },
+        tierSpecs: tierSpecs,
       })
     }
   }, [configOpen])
@@ -264,6 +284,8 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
           finish: u.finish || undefined,
           hardware: u.hardware || undefined,
           tier: u.tier || tier,
+          items: u.items,
+          exclusive: u.exclusive,
         }))
       const legacyLm = parseFloat(formData.linearMeter)
       const useLegacy = !activeUnits.length && !isNaN(legacyLm) && legacyLm > 0
@@ -357,14 +379,14 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
               <div>
                 <label className="block text-sm font-medium text-foreground mb-3">Project Type</label>
                 <div className="grid grid-cols-2 gap-3">
-                  {["kitchen","bathroom","bedroom","office"].map((value)=> (
-                    <button key={value} onClick={() => handleInputChange("projectType", value)} className={`p-3 rounded-md border text-sm font-medium transition-all ${formData.projectType===value?"bg-primary text-white border-primary":"bg-background text-foreground border-border/40 hover:border-primary/50"}`}>{value[0].toUpperCase()+value.slice(1)}</button>
+                  {["kitchen", "bathroom", "bedroom", "office"].map((value) => (
+                    <button key={value} onClick={() => handleInputChange("projectType", value)} className={`p-3 rounded-md border text-sm font-medium transition-all ${formData.projectType === value ? "bg-primary text-white border-primary" : "bg-background text-foreground border-border/40 hover:border-primary/50"}`}>{value[0].toUpperCase() + value.slice(1)}</button>
                   ))}
                 </div>
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-3">Cabinet Type</label>
-                    <select value={cabinetCategory} onChange={(e)=>setCabinetCategory(e.target.value)} className="w-full p-3 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+                    <select value={cabinetCategory} onChange={(e) => setCabinetCategory(e.target.value)} className="w-full p-3 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
                       <option value="base">Base Cabinet</option>
                       <option value="hanging">Hanging Cabinet</option>
                       <option value="tall">Tall Units</option>
@@ -372,7 +394,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-3">Quality Tier</label>
-                    <select value={tier} onChange={(e)=>setTier(e.target.value)} className="w-full p-3 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+                    <select value={tier} onChange={(e) => setTier(e.target.value)} className="w-full p-3 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
                       <option value="luxury">Luxury</option>
                       <option value="premium">Premium</option>
                       <option value="standard">Standard</option>
@@ -382,13 +404,13 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                 <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-3">Linear Meters (fallback)</label>
-                    <input type="number" min="0" step="0.1" value={formData.linearMeter} onChange={(e)=>handleInputChange("linearMeter", e.target.value)} className="w-full p-3 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                    <input type="number" min="0" step="0.1" value={formData.linearMeter} onChange={(e) => handleInputChange("linearMeter", e.target.value)} className="w-full p-3 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20" />
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <label className="flex items-center gap-2 text-sm text-foreground"><input type="checkbox" checked={includeFees} onChange={(e)=>setIncludeFees(e.target.checked)} /> Include VAT & Legal Fees</label>
-                  <label className="flex items-center gap-2 text-sm text-foreground"><input type="checkbox" checked={importSurcharge} onChange={(e)=>setImportSurcharge(e.target.checked)} /> Add 10% Import (Manila)</label>
-                  <label className="flex items-center gap-2 text-sm text-foreground"><input type="checkbox" checked={downgradeMFC} onChange={(e)=>setDowngradeMFC(e.target.checked)} /> Downgrade to MFC (-10%)</label>
+                  <label className="flex items-center gap-2 text-sm text-foreground"><input type="checkbox" checked={includeFees} onChange={(e) => setIncludeFees(e.target.checked)} /> Include VAT & Legal Fees</label>
+                  <label className="flex items-center gap-2 text-sm text-foreground"><input type="checkbox" checked={importSurcharge} onChange={(e) => setImportSurcharge(e.target.checked)} /> Add 10% Import (Manila)</label>
+                  <label className="flex items-center gap-2 text-sm text-foreground"><input type="checkbox" checked={downgradeMFC} onChange={(e) => setDowngradeMFC(e.target.checked)} /> Downgrade to MFC (-10%)</label>
                 </div>
               </div>
 
@@ -442,7 +464,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                             <label className="block text-xs font-medium text-muted-foreground">Room Type</label>
                             <select
                               value={rt}
-                              onChange={(e)=>{
+                              onChange={(e) => {
                                 const newRoom = e.target.value
                                 const currentName = cn
                                 setUnits(prev => prev.map(u => ((typeof (u as any).setId === 'number' ? (u as any).setId : 0) === sid) ? { ...u, roomType: newRoom, customRoomName: newRoom === 'custom' ? currentName : '' } : u))
@@ -471,7 +493,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                               type="text"
                               placeholder="e.g. Pantry, Laundry, Walk-in Closet"
                               value={cn}
-                              onChange={(e)=>{
+                              onChange={(e) => {
                                 const name = e.target.value
                                 setUnits(prev => prev.map(u => ((typeof (u as any).setId === 'number' ? (u as any).setId : 0) === sid) ? { ...u, customRoomName: name } : u))
                               }}
@@ -480,141 +502,309 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                           </div>
                         )}
                         <div className="space-y-3">
-                          {group.map((u:any,i:number)=> (
-                            <div key={`${u.category}-${sid}-${i}`} className="border border-border/40 rounded-md p-3">
-                              <div className="flex items-center justify-between">
-                                <div className="font-medium text-foreground capitalize">{u.category} units</div>
-                                <div className="flex items-center gap-2">
-                                  <label className="flex items-center gap-2 text-sm text-foreground">
-                                    <input
-                                      type="checkbox"
-                                      className="w-4 h-4"
-                                      checked={Boolean(u.enabled)}
-                                      onChange={(e)=>setUnits(prev=>{
+                          {group.map((u: any, i: number) => {
+                            const unitId = `${sid}-${u.category}-${i}`;
+                            return (
+                              <div key={unitId} className="border border-border/40 rounded-md p-3">
+                                <div className="flex items-center justify-between">
+                                  <div className="font-medium text-foreground capitalize">{u.category} units</div>
+                                  <div className="flex items-center gap-2">
+                                    <label className="flex items-center gap-2 text-sm text-foreground">
+                                      <input
+                                        type="checkbox"
+                                        className="w-4 h-4"
+                                        checked={Boolean(u.enabled)}
+                                        onChange={(e) => setUnits(prev => {
+                                          let count = -1
+                                          return prev.map(x => {
+                                            const sidX = typeof (x as any).setId === 'number' ? (x as any).setId : 0
+                                            if (sidX === sid) {
+                                              count++
+                                              if (count === i) return { ...x, enabled: e.target.checked }
+                                            }
+                                            return x
+                                          })
+                                        })}
+                                      />
+                                      Enable
+                                    </label>
+                                    <button
+                                      type="button"
+                                      onClick={() => setExpandedUnitId(expandedUnitId === unitId ? null : unitId)}
+                                      className={`px-2 py-1 rounded-md border text-xs transition-colors ${expandedUnitId === unitId ? "bg-primary text-white border-primary" : "text-foreground hover:bg-primary/10"}`}
+                                    >
+                                      {expandedUnitId === unitId ? "Close Config" : "Configure"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setUnits(prev => {
                                         let count = -1
-                                        return prev.map(x => {
+                                        const result: any[] = []
+                                        prev.forEach((x) => {
                                           const sidX = typeof (x as any).setId === 'number' ? (x as any).setId : 0
                                           if (sidX === sid) {
                                             count++
-                                            if (count === i) return { ...x, enabled: e.target.checked }
+                                            if (count === i) return
                                           }
-                                          return x
+                                          result.push(x)
                                         })
+                                        return result
                                       })}
-                                    />
-                                    Enable
-                                  </label>
-                                  <button
-                                    type="button"
-                                    onClick={() => setUnits(prev => {
+                                      className="px-2 py-1 rounded-md border text-xs text-foreground hover:bg-destructive hover:text-white transition-colors"
+                                      aria-label={`Delete ${u.category} unit`}
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className="mt-3 grid grid-cols-1 md:grid-cols-4 gap-2">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.1"
+                                    placeholder="Meters"
+                                    value={u.meters}
+                                    onChange={(e) => setUnits(prev => {
                                       let count = -1
-                                      const result: any[] = []
-                                      prev.forEach((x) => {
+                                      const val = parseFloat(e.target.value) || 0
+                                      return prev.map(x => {
                                         const sidX = typeof (x as any).setId === 'number' ? (x as any).setId : 0
                                         if (sidX === sid) {
                                           count++
-                                          if (count === i) return
+                                          if (count === i) return { ...x, meters: val }
                                         }
-                                        result.push(x)
+                                        return x
                                       })
-                                      return result
                                     })}
-                                    className="px-2 py-1 rounded-md border text-xs text-foreground hover:bg-destructive hover:text-white transition-colors"
-                                    aria-label={`Delete ${u.category} unit`}
+                                    className="p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                  />
+                                  <select
+                                    value={u.material}
+                                    onChange={(e) => setUnits(prev => {
+                                      let count = -1
+                                      const val = e.target.value
+                                      return prev.map(x => {
+                                        const sidX = typeof (x as any).setId === 'number' ? (x as any).setId : 0
+                                        if (sidX === sid) {
+                                          count++
+                                          if (count === i) return { ...x, material: val }
+                                        }
+                                        return x
+                                      })
+                                    })}
+                                    className="p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                                   >
-                                    Delete
-                                  </button>
+                                    <option value="">Material</option>
+                                    <option value="melamine">Melamine</option>
+                                    <option value="laminate">Laminate</option>
+                                    <option value="wood">Solid Wood</option>
+                                    <option value="premium">Premium Wood</option>
+                                  </select>
+                                  <select
+                                    value={u.finish}
+                                    onChange={(e) => setUnits(prev => {
+                                      let count = -1
+                                      const val = e.target.value
+                                      return prev.map(x => {
+                                        const sidX = typeof (x as any).setId === 'number' ? (x as any).setId : 0
+                                        if (sidX === sid) {
+                                          count++
+                                          if (count === i) return { ...x, finish: val }
+                                        }
+                                        return x
+                                      })
+                                    })}
+                                    className="p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                  >
+                                    <option value="">Finish</option>
+                                    <option value="standard">Standard</option>
+                                    <option value="painted">Painted</option>
+                                    <option value="stained">Stained</option>
+                                    <option value="lacquer">Lacquer</option>
+                                  </select>
+                                  <select
+                                    value={u.hardware}
+                                    onChange={(e) => setUnits(prev => {
+                                      let count = -1
+                                      const val = e.target.value
+                                      return prev.map(x => {
+                                        const sidX = typeof (x as any).setId === 'number' ? (x as any).setId : 0
+                                        if (sidX === sid) {
+                                          count++
+                                          if (count === i) return { ...x, hardware: val }
+                                        }
+                                        return x
+                                      })
+                                    })}
+                                    className="p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                  >
+                                    <option value="">Hardware</option>
+                                    <option value="basic">Basic</option>
+                                    <option value="soft_close">Soft-close</option>
+                                    <option value="premium">Premium</option>
+                                  </select>
                                 </div>
+                                {expandedUnitId === unitId && (
+                                  <div className="mt-4 space-y-4 pt-4 border-t border-border/20">
+                                    <div className="grid grid-cols-1 gap-3">
+                                      <div>
+                                        <label className="block text-xs font-medium text-muted-foreground mb-1">Unit Quality Tier</label>
+                                        <select
+                                          value={u.tier || ""}
+                                          onChange={(e) => setUnits(prev => {
+                                            let count = -1
+                                            const val = e.target.value
+                                            return prev.map(x => {
+                                              const sidX = typeof (x as any).setId === 'number' ? (x as any).setId : 0
+                                              if (sidX === sid) {
+                                                count++
+                                                if (count === i) return { ...x, tier: val }
+                                              }
+                                              return x
+                                            })
+                                          })}
+                                          className="p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm"
+                                        >
+                                          <option value="">Default (follows global {tier})</option>
+                                          <option value="luxury">Luxury</option>
+                                          <option value="premium">Premium</option>
+                                          <option value="standard">Standard</option>
+                                        </select>
+                                      </div>
+                                    </div>
+
+                                    <div className="text-xs border rounded bg-muted/5 overflow-hidden">
+                                      <div className="p-2 font-semibold bg-primary/5 border-b flex items-center justify-between">
+                                        <span>Specification • {(u.tier || tier).charAt(0).toUpperCase() + (u.tier || tier).slice(1)}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() => setExpandedUnitId(null)}
+                                          className="p-1 hover:bg-muted rounded-full transition-colors"
+                                        >
+                                          <X className="w-4 h-4 text-muted-foreground" />
+                                        </button>
+                                      </div>
+                                      <div className="p-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                          <div className="flex items-center justify-between mb-1">
+                                            <div className="font-medium">Included</div>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const newItem = window.prompt("Add included item:");
+                                                if (!newItem) return;
+                                                setUnits(prev => prev.map((x, idx) => {
+                                                  if (idx === units.indexOf(u)) {
+                                                    const current = x.items || tierSpecs[x.tier || tier]?.items || [];
+                                                    return { ...x, items: [...current, newItem] };
+                                                  }
+                                                  return x;
+                                                }));
+                                              }}
+                                              className="text-[10px] text-primary hover:underline"
+                                            >
+                                              + Add
+                                            </button>
+                                          </div>
+                                          <ul className="list-disc pl-5 space-y-1">
+                                            {(u.items || tierSpecs[u.tier || tier]?.items || []).map((it: string, idx: number) => (
+                                              <li key={idx} className="group relative">
+                                                {it}
+                                                <button
+                                                  onClick={() => {
+                                                    setUnits(prev => prev.map((x, xidx) => {
+                                                      if (xidx === units.indexOf(u)) {
+                                                        const current = x.items || (tierSpecs[x.tier || tier]?.items || []);
+                                                        return { ...x, items: current.filter((_: any, i: number) => i !== idx) };
+                                                      }
+                                                      return x;
+                                                    }));
+                                                  }}
+                                                  className="ml-2 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                  ×
+                                                </button>
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                        <div>
+                                          <div className="flex items-center justify-between mb-1">
+                                            <div className="font-medium">Exclusive</div>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const newItem = window.prompt("Add exclusive item:");
+                                                if (!newItem) return;
+                                                setUnits(prev => prev.map((x, idx) => {
+                                                  if (idx === units.indexOf(u)) {
+                                                    const current = x.exclusive || tierSpecs[x.tier || tier]?.exclusive || [];
+                                                    return { ...x, exclusive: [...current, newItem] };
+                                                  }
+                                                  return x;
+                                                }));
+                                              }}
+                                              className="text-[10px] text-primary hover:underline"
+                                            >
+                                              + Add
+                                            </button>
+                                          </div>
+                                          <ul className="list-disc pl-5 space-y-1">
+                                            {(u.exclusive || tierSpecs[u.tier || tier]?.exclusive || []).map((it: string, idx: number) => (
+                                              <li key={idx} className="group relative">
+                                                {it}
+                                                <button
+                                                  onClick={() => {
+                                                    setUnits(prev => prev.map((x, xidx) => {
+                                                      if (xidx === units.indexOf(u)) {
+                                                        const current = x.exclusive || (tierSpecs[x.tier || tier]?.exclusive || []);
+                                                        return { ...x, exclusive: current.filter((_: any, i: number) => i !== idx) };
+                                                      }
+                                                      return x;
+                                                    }));
+                                                  }}
+                                                  className="ml-2 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                  ×
+                                                </button>
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <label className="block text-xs font-medium text-muted-foreground mb-1">Custom Notes / Specs</label>
+                                        <textarea
+                                          value={u.notes || ""}
+                                          onChange={(e) => setUnits(prev => {
+                                            const val = e.target.value
+                                            return prev.map((x, idx) => {
+                                              if (idx === units.indexOf(u)) return { ...x, notes: val }
+                                              return x
+                                            })
+                                          })}
+                                          placeholder="e.g. Special handle requests, soft-close variations..."
+                                          className="w-full p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm h-20"
+                                        />
+                                      </div>
+                                      <div className="p-2 border-t bg-primary/5 flex justify-end">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setExpandedUnitId(null);
+                                            toast.success("Unit configuration saved");
+                                          }}
+                                          className="px-3 py-1.5 bg-primary text-primary-foreground rounded text-xs font-medium hover:bg-primary/90 transition-colors"
+                                        >
+                                          Save Changes
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                              <div className="mt-3 grid grid-cols-1 md:grid-cols-4 gap-2">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  step="0.1"
-                                  placeholder="Meters"
-                                  value={u.meters}
-                                  onChange={(e)=>setUnits(prev=>{
-                                    let count = -1
-                                    const val = parseFloat(e.target.value)||0
-                                    return prev.map(x => {
-                                      const sidX = typeof (x as any).setId === 'number' ? (x as any).setId : 0
-                                      if (sidX === sid) {
-                                        count++
-                                        if (count === i) return { ...x, meters: val }
-                                      }
-                                      return x
-                                    })
-                                  })}
-                                  className="p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                />
-                                <select
-                                  value={u.material}
-                                  onChange={(e)=>setUnits(prev=>{
-                                    let count = -1
-                                    const val = e.target.value
-                                    return prev.map(x => {
-                                      const sidX = typeof (x as any).setId === 'number' ? (x as any).setId : 0
-                                      if (sidX === sid) {
-                                        count++
-                                        if (count === i) return { ...x, material: val }
-                                      }
-                                      return x
-                                    })
-                                  })}
-                                  className="p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                >
-                                  <option value="">Material</option>
-                                  <option value="melamine">Melamine</option>
-                                  <option value="laminate">Laminate</option>
-                                  <option value="wood">Solid Wood</option>
-                                  <option value="premium">Premium Wood</option>
-                                </select>
-                                <select
-                                  value={u.finish}
-                                  onChange={(e)=>setUnits(prev=>{
-                                    let count = -1
-                                    const val = e.target.value
-                                    return prev.map(x => {
-                                      const sidX = typeof (x as any).setId === 'number' ? (x as any).setId : 0
-                                      if (sidX === sid) {
-                                        count++
-                                        if (count === i) return { ...x, finish: val }
-                                      }
-                                      return x
-                                    })
-                                  })}
-                                  className="p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                >
-                                  <option value="">Finish</option>
-                                  <option value="standard">Standard</option>
-                                  <option value="painted">Painted</option>
-                                  <option value="stained">Stained</option>
-                                  <option value="lacquer">Lacquer</option>
-                                </select>
-                                <select
-                                  value={u.hardware}
-                                  onChange={(e)=>setUnits(prev=>{
-                                    let count = -1
-                                    const val = e.target.value
-                                    return prev.map(x => {
-                                      const sidX = typeof (x as any).setId === 'number' ? (x as any).setId : 0
-                                      if (sidX === sid) {
-                                        count++
-                                        if (count === i) return { ...x, hardware: val }
-                                      }
-                                      return x
-                                    })
-                                  })}
-                                  className="p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-                                >
-                                  <option value="">Hardware</option>
-                                  <option value="basic">Basic</option>
-                                  <option value="soft_close">Soft-close</option>
-                                  <option value="premium">Premium</option>
-                                </select>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     )
@@ -624,7 +814,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                   onClick={() => {
                     const roomType = roomTypeSelection || "kitchen"
                     const customRoomNameLocal = customRoomName || ""
-                    const maxSid = Math.max(-1, ...units.map((u:any) => typeof u.setId === 'number' ? u.setId : -1))
+                    const maxSid = Math.max(-1, ...units.map((u: any) => typeof u.setId === 'number' ? u.setId : -1))
                     const nextSid = maxSid + 1
                     setUnits(prev => [
                       ...prev,
@@ -639,20 +829,20 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                 </button>
               </div>
 
-              <div className="flex items-center"><input type="checkbox" id="installation" checked={formData.installation} onChange={(e)=>handleInputChange("installation", e.target.checked)} className="w-4 h-4"/><label htmlFor="installation" className="ml-2 text-sm font-medium text-foreground">Include Professional Installation</label></div>
+              <div className="flex items-center"><input type="checkbox" id="installation" checked={formData.installation} onChange={(e) => handleInputChange("installation", e.target.checked)} className="w-4 h-4" /><label htmlFor="installation" className="ml-2 text-sm font-medium text-foreground">Include Professional Installation</label></div>
 
               <button onClick={calculateEstimate} className="w-full bg-primary text-white py-3 px-6 rounded-md font-medium hover:bg-primary/90 transition-colors">Calculate Estimate</button>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
-                <div><label className="block text-sm font-medium text-foreground mb-2">Discount (0–1)</label><input type="number" min="0" max="1" step="0.01" value={discount} onChange={(e)=>setDiscount(parseFloat(e.target.value)||0)} className="w-full p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20" /></div>
-                <div><label className="block text-sm font-medium text-foreground mb-2">Tax Rate</label><input type="number" min="0" max="1" step="0.01" value={taxRate} onChange={(e)=>setTaxRate(parseFloat(e.target.value)||0)} className="w-full p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20" /></div>
-                <label className="flex items-center gap-2 text-sm mt-6 text-foreground"><input type="checkbox" checked={applyTax} onChange={(e)=>setApplyTax(e.target.checked)} /> Apply Tax</label>
+                <div><label className="block text-sm font-medium text-foreground mb-2">Discount (0–1)</label><input type="number" min="0" max="1" step="0.01" value={discount} onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)} className="w-full p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20" /></div>
+                <div><label className="block text-sm font-medium text-foreground mb-2">Tax Rate</label><input type="number" min="0" max="1" step="0.01" value={taxRate} onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)} className="w-full p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20" /></div>
+                <label className="flex items-center gap-2 text-sm mt-6 text-foreground"><input type="checkbox" checked={applyTax} onChange={(e) => setApplyTax(e.target.checked)} /> Apply Tax</label>
               </div>
               <div className="mt-4 flex gap-2">
-                <button onClick={()=>{localStorage.setItem("calculator_config", JSON.stringify({ formData, units, applyTax, taxRate, discount, cabinetCategory, tier, includeFees, importSurcharge, downgradeMFC })); toast.success("Configuration saved")}} className="px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Save Config</button>
-                <button onClick={()=>{try{const raw=localStorage.getItem("calculator_config"); if(!raw){toast.error("No saved config");return} const cfg=JSON.parse(raw); setFormData(cfg.formData); const loadedUnits = Array.isArray(cfg.units)? cfg.units : []; const normalized = loadedUnits.map((u:any, idx:number)=> ({ ...u, setId: typeof u.setId === 'number' ? u.setId : 0 })); setUnits(normalized); setApplyTax(cfg.applyTax); setTaxRate(cfg.taxRate); setDiscount(cfg.discount); setCabinetCategory(cfg.cabinetCategory); setTier(cfg.tier); setIncludeFees(Boolean(cfg.includeFees)); setImportSurcharge(Boolean(cfg.importSurcharge)); setDowngradeMFC(Boolean(cfg.downgradeMFC)); const firstUnit = normalized.length ? normalized[0] : {}; setRoomTypeSelection(String((firstUnit as any).roomType || "kitchen")); setCustomRoomName(String((firstUnit as any).customRoomName || "")); toast.success("Configuration loaded")}catch{toast.error("Failed to load config")}}} className="px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Load Config</button>
-                <button onClick={()=>window.print()} className="px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Print / PDF</button>
-                 <button onClick={()=>setConfigOpen(true)} className="ml-auto px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Pricing Configuration</button>
+                <button onClick={() => { localStorage.setItem("calculator_config", JSON.stringify({ formData, units, applyTax, taxRate, discount, cabinetCategory, tier, includeFees, importSurcharge, downgradeMFC })); toast.success("Configuration saved") }} className="px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Save Config</button>
+                <button onClick={() => { try { const raw = localStorage.getItem("calculator_config"); if (!raw) { toast.error("No saved config"); return } const cfg = JSON.parse(raw); setFormData(cfg.formData); const loadedUnits = Array.isArray(cfg.units) ? cfg.units : []; const normalized = loadedUnits.map((u: any, idx: number) => ({ ...u, setId: typeof u.setId === 'number' ? u.setId : 0 })); setUnits(normalized); setApplyTax(cfg.applyTax); setTaxRate(cfg.taxRate); setDiscount(cfg.discount); setCabinetCategory(cfg.cabinetCategory); setTier(cfg.tier); setIncludeFees(Boolean(cfg.includeFees)); setImportSurcharge(Boolean(cfg.importSurcharge)); setDowngradeMFC(Boolean(cfg.downgradeMFC)); const firstUnit = normalized.length ? normalized[0] : {}; setRoomTypeSelection(String((firstUnit as any).roomType || "kitchen")); setCustomRoomName(String((firstUnit as any).customRoomName || "")); toast.success("Configuration loaded") } catch { toast.error("Failed to load config") } }} className="px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Load Config</button>
+                <button onClick={() => window.print()} className="px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Print / PDF</button>
+                <button onClick={() => setConfigOpen(true)} className="ml-auto px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Pricing Configuration</button>
               </div>
             </div>
           </div>
@@ -669,8 +859,8 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                   <p className="text-sm text-muted-foreground">Estimated Project Cost</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="p-3 rounded border"><div className="font-medium text-foreground">Subtotal</div><div className="text-foreground">₱{(subtotal||0).toLocaleString()}</div></div>
-                  <div className="p-3 rounded border"><div className="font-medium text-foreground">Tax</div><div className="text-foreground">₱{(tax||0).toLocaleString()}</div></div>
+                  <div className="p-3 rounded border"><div className="font-medium text-foreground">Subtotal</div><div className="text-foreground">₱{(subtotal || 0).toLocaleString()}</div></div>
+                  <div className="p-3 rounded border"><div className="font-medium text-foreground">Tax</div><div className="text-foreground">₱{(tax || 0).toLocaleString()}</div></div>
                 </div>
                 {lines.length > 0 && (
                   <div className="text-xs border rounded">
@@ -694,12 +884,12 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                         </thead>
                         <tbody>
                           {lines.map((row, idx) => {
-                            const metaList = units.filter((u:any) => u.enabled && Number(u.meters) > 0)
+                            const metaList = units.filter((u: any) => u.enabled && Number(u.meters) > 0)
                             const meta = metaList[idx] || {}
                             const sid = typeof (meta as any).setId === 'number' ? (meta as any).setId : undefined
                             const rt = (meta as any).roomType as string | undefined
                             const cn = (meta as any).customRoomName as string | undefined
-                            const roomLabel = rt === 'custom' ? (cn || 'Custom') : (rt ? rt[0].toUpperCase()+rt.slice(1) : '')
+                            const roomLabel = rt === 'custom' ? (cn || 'Custom') : (rt ? rt[0].toUpperCase() + rt.slice(1) : '')
                             const setLabel = typeof sid === 'number' ? String(sid + 1) : ''
                             return (
                               <tr key={idx} className="border-t">
@@ -707,13 +897,13 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                                 <td className="p-2">{setLabel}</td>
                                 <td className="p-2">{roomLabel}</td>
                                 <td className="p-2">{row.meters}</td>
-                                <td className="p-2">₱{Number(row.baseRate||0).toLocaleString()}/m</td>
+                                <td className="p-2">₱{Number(row.baseRate || 0).toLocaleString()}/m</td>
                                 <td className="p-2">×{row.tierFactor}</td>
                                 <td className="p-2">×{row.materialFactor}</td>
                                 <td className="p-2">×{row.finishFactor}</td>
                                 <td className="p-2">×{row.hardwareFactor}</td>
-                                <td className="p-2">₱{Number(row.installationAdd||0).toLocaleString()}</td>
-                                <td className="p-2 text-right">₱{Number(row.lineTotal||0).toLocaleString()}</td>
+                                <td className="p-2">₱{Number(row.installationAdd || 0).toLocaleString()}</td>
+                                <td className="p-2 text-right">₱{Number(row.lineTotal || 0).toLocaleString()}</td>
                               </tr>
                             )
                           })}
@@ -723,7 +913,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                   </div>
                 )}
                 <div className="text-xs border rounded">
-                  <div className="p-2 font-semibold">Specification • {tier[0].toUpperCase()+tier.slice(1)}</div>
+                  <div className="p-2 font-semibold">Specification • {tier[0].toUpperCase() + tier.slice(1)}</div>
                   <div className="p-2 grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <div className="font-medium mb-1">Included</div>
@@ -756,7 +946,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                           className="w-full md:w-auto px-3 py-2 rounded-md border text-sm flex items-center justify-between gap-2"
                         >
                           <span className="truncate">
-                            {selectedClient ? `${selectedClient.name} (${selectedClient.email||""})` : "Select a client"}
+                            {selectedClient ? `${selectedClient.name} (${selectedClient.email || ""})` : "Select a client"}
                           </span>
                           <svg className="w-4 h-4 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6" /></svg>
                         </button>
@@ -766,41 +956,41 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                           <input
                             autoFocus
                             value={clientQuery}
-                            onChange={(e)=>{
+                            onChange={(e) => {
                               const q = e.target.value.toLowerCase()
                               setClientQuery(e.target.value)
                               const db = contactsAll as any[]
-                              const filtered = db.filter((c)=>{
-                                const tags = Array.isArray(c.tags)?c.tags:[]
-                                return String(c.name||"").toLowerCase().includes(q)
-                                  || String(c.email||"").toLowerCase().includes(q)
-                                  || String(c.phone||"").toLowerCase().includes(q)
-                                  || String(c.company||"").toLowerCase().includes(q)
-                                  || tags.some((t:string)=>String(t||"").toLowerCase().includes(q))
+                              const filtered = db.filter((c) => {
+                                const tags = Array.isArray(c.tags) ? c.tags : []
+                                return String(c.name || "").toLowerCase().includes(q)
+                                  || String(c.email || "").toLowerCase().includes(q)
+                                  || String(c.phone || "").toLowerCase().includes(q)
+                                  || String(c.company || "").toLowerCase().includes(q)
+                                  || tags.some((t: string) => String(t || "").toLowerCase().includes(q))
                               })
-                              setContacts(q?filtered:contactsAll)
+                              setContacts(q ? filtered : contactsAll)
                             }}
                             placeholder="Search contacts"
                             className="w-full p-2 border rounded-md text-sm"
                             aria-label="Search contacts"
                           />
-                          <button type="button" onClick={()=>loadContacts()} disabled={loadingContacts} aria-busy={loadingContacts?"true":"false"} className="px-2 py-1 rounded-md border text-xs">
+                          <button type="button" onClick={() => loadContacts()} disabled={loadingContacts} aria-busy={loadingContacts ? "true" : "false"} className="px-2 py-1 rounded-md border text-xs">
                             {loadingContacts ? "Refreshing…" : "Refresh"}
                           </button>
                         </div>
                         <div role="listbox" aria-label="Contacts list" className="max-h-64 overflow-auto">
                           {contacts.length > 0 ? (
-                            contacts.map((c)=> (
+                            contacts.map((c) => (
                               <button
                                 key={c.id}
                                 type="button"
                                 role="option"
-                                aria-selected={selectedClient?.id===c.id ? "true" : "false"}
-                                onClick={()=>{ setSelectedClient(c); setIsClientPickerOpen(false); }}
-                                className={`w-full text-left px-3 py-2 rounded-md border mb-2 text-sm ${selectedClient?.id===c.id?"bg-primary text-white border-primary":"hover:bg-muted/50"}`}
+                                aria-selected={selectedClient?.id === c.id ? "true" : "false"}
+                                onClick={() => { setSelectedClient(c); setIsClientPickerOpen(false); }}
+                                className={`w-full text-left px-3 py-2 rounded-md border mb-2 text-sm ${selectedClient?.id === c.id ? "bg-primary text-white border-primary" : "hover:bg-muted/50"}`}
                               >
                                 <div className="font-medium truncate">{c.name}</div>
-                                <div className="text-xs opacity-80 truncate">{c.email}{c.phone?` • ${c.phone}`:""}{c.company?` • ${c.company}`:""}</div>
+                                <div className="text-xs opacity-80 truncate">{c.email}{c.phone ? ` • ${c.phone}` : ""}{c.company ? ` • ${c.company}` : ""}</div>
                               </button>
                             ))
                           ) : (
@@ -814,9 +1004,9 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                     )}
                   </div>
                   <button
-                    className={`w-full py-3 px-6 rounded-md font-medium transition-colors ${selectedClient?"bg-secondary text-white hover:bg-secondary/90":"bg-muted text-muted-foreground cursor-not-allowed"}`}
+                    className={`w-full py-3 px-6 rounded-md font-medium transition-colors ${selectedClient ? "bg-secondary text-white hover:bg-secondary/90" : "bg-muted text-muted-foreground cursor-not-allowed"}`}
                     disabled={!selectedClient}
-                    onClick={async ()=>{
+                    onClick={async () => {
                       if (!selectedClient || !estimate) return
                       const legacyLm = parseFloat(formData.linearMeter)
                       const activeUnits = units
@@ -842,41 +1032,41 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                         applyImportSurcharge: importSurcharge,
                         downgradeToMFC: downgradeMFC,
                       })
-                      const metaList = units.filter((uu:any)=>uu.enabled && Number(uu.meters)>0)
-                      const items = (calc?.breakdown?.units||[]).map((u:any, idx:number)=>{
-                        const meta:any = metaList[idx] || {}
+                      const metaList = units.filter((uu: any) => uu.enabled && Number(uu.meters) > 0)
+                      const items = (calc?.breakdown?.units || []).map((u: any, idx: number) => {
+                        const meta: any = metaList[idx] || {}
                         const sid = typeof meta.setId === 'number' ? meta.setId : undefined
-                        const setLabel = typeof sid === 'number' ? `Set ${sid+1}` : ''
+                        const setLabel = typeof sid === 'number' ? `Set ${sid + 1}` : ''
                         const rt = String(meta.roomType || '')
-                        const roomLabel = rt === 'custom' ? String(meta.customRoomName||'Custom') : (rt ? rt[0].toUpperCase()+rt.slice(1) : '')
-                        const materialTxt = String(meta.material||'').replace(/_/g,' ')
-                        const finishTxt = String(meta.finish||'').replace(/_/g,' ')
-                        const hardwareTxt = String(meta.hardware||'').replace(/_/g,' ')
+                        const roomLabel = rt === 'custom' ? String(meta.customRoomName || 'Custom') : (rt ? rt[0].toUpperCase() + rt.slice(1) : '')
+                        const materialTxt = String(meta.material || '').replace(/_/g, ' ')
+                        const finishTxt = String(meta.finish || '').replace(/_/g, ' ')
+                        const hardwareTxt = String(meta.hardware || '').replace(/_/g, ' ')
                         const details = [
                           setLabel ? setLabel : null,
                           roomLabel ? `Room: ${roomLabel}` : null,
-                          `Tier: ${String(u.tier||tier)}`,
+                          `Tier: ${String(u.tier || tier)}`,
                           materialTxt ? `Material: ${materialTxt}` : null,
                           finishTxt ? `Finish: ${finishTxt}` : null,
                           hardwareTxt ? `Hardware: ${hardwareTxt}` : null,
-                          `Meters: ${Number(u.meters||0)}`,
-                          `Rate: ₱${Number(u.baseRate||0).toLocaleString()}/m`,
-                          `Factors: ×${Number(u.tierFactor||1)} ×${Number(u.materialFactor||1)} ×${Number(u.finishFactor||1)} ×${Number(u.hardwareFactor||1)}`,
-                          Number(u.installationAdd||0) ? `Install add: ₱${Number(u.installationAdd||0).toLocaleString()}` : null,
+                          `Meters: ${Number(u.meters || 0)}`,
+                          `Rate: ₱${Number(u.baseRate || 0).toLocaleString()}/m`,
+                          `Factors: ×${Number(u.tierFactor || 1)} ×${Number(u.materialFactor || 1)} ×${Number(u.finishFactor || 1)} ×${Number(u.hardwareFactor || 1)}`,
+                          Number(u.installationAdd || 0) ? `Install add: ₱${Number(u.installationAdd || 0).toLocaleString()}` : null,
                         ].filter(Boolean).join(' • ')
                         return {
                           description: `${u.category} cabinets (${formData.cabinetType})`,
-                          quantity: Number(u.meters||0),
-                          unitPrice: Math.round(Number(u.lineTotal||0)/Math.max(1, Number(u.meters||1))),
+                          quantity: Number(u.meters || 0),
+                          unitPrice: Math.round(Number(u.lineTotal || 0) / Math.max(1, Number(u.meters || 1))),
                           details,
                         }
                       })
                       const payload = {
-                        client: { name: selectedClient.name||"", email: selectedClient.email||"", company: selectedClient.company||"" },
-                        title: `${formData.projectType||"Project"} Proposal`,
+                        client: { name: selectedClient.name || "", email: selectedClient.email || "", company: selectedClient.company || "" },
+                        title: `${formData.projectType || "Project"} Proposal`,
                         items,
-                        taxRate: applyTax ? taxRate*100 : 0,
-                        discount: Math.round((discount||0)* (calc?.breakdown?.subtotal||0)),
+                        taxRate: applyTax ? taxRate * 100 : 0,
+                        discount: Math.round((discount || 0) * (calc?.breakdown?.subtotal || 0)),
                         notes: "Auto-generated from calculator (Admin)",
                         pricingSnapshot: {
                           baseRates: baseRates || undefined,
@@ -899,11 +1089,11 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                       }
                       try {
                         const res = await fetch("/api/proposals/create", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
-                        const data = await res.json().catch(()=>({}))
+                        const data = await res.json().catch(() => ({}))
                         if (data?.id) {
                           window.location.href = `/admin/proposals?id=${encodeURIComponent(data.id)}`
                         }
-                      } catch {}
+                      } catch { }
                     }}
                   >
                     Request Detailed Quote
@@ -925,15 +1115,15 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <label className="text-xs text-muted-foreground block mb-1">Base Rate (Base)</label>
-                    <input type="number" value={editor.baseRates.base} onChange={(e)=>setEditor({...editor, baseRates:{...editor.baseRates, base:Number(e.target.value)||0}})} className="w-full p-2 border border-border/40 rounded" />
+                    <input type="number" value={editor.baseRates.base} onChange={(e) => setEditor({ ...editor, baseRates: { ...editor.baseRates, base: Number(e.target.value) || 0 } })} className="w-full p-2 border border-border/40 rounded" />
                   </div>
                   <div>
                     <label className="text-xs text-muted-foreground block mb-1">Base Rate (Hanging)</label>
-                    <input type="number" value={editor.baseRates.hanging} onChange={(e)=>setEditor({...editor, baseRates:{...editor.baseRates, hanging:Number(e.target.value)||0}})} className="w-full p-2 border border-border/40 rounded" />
+                    <input type="number" value={editor.baseRates.hanging} onChange={(e) => setEditor({ ...editor, baseRates: { ...editor.baseRates, hanging: Number(e.target.value) || 0 } })} className="w-full p-2 border border-border/40 rounded" />
                   </div>
                   <div>
                     <label className="text-xs text-muted-foreground block mb-1">Base Rate (Tall)</label>
-                    <input type="number" value={editor.baseRates.tall} onChange={(e)=>setEditor({...editor, baseRates:{...editor.baseRates, tall:Number(e.target.value)||0}})} className="w-full p-2 border border-border/40 rounded" />
+                    <input type="number" value={editor.baseRates.tall} onChange={(e) => setEditor({ ...editor, baseRates: { ...editor.baseRates, tall: Number(e.target.value) || 0 } })} className="w-full p-2 border border-border/40 rounded" />
                   </div>
                 </div>
                 <div>
@@ -941,27 +1131,27 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
                       <label className="text-xs text-muted-foreground block mb-1">Base w/o Fees</label>
-                      <input type="number" value={editor.sheetRates.base.withoutFees} onChange={(e)=>setEditor({...editor, sheetRates:{...editor.sheetRates, base:{...editor.sheetRates.base, withoutFees:Number(e.target.value)||0}}})} className="w-full p-2 border border-border/40 rounded" />
+                      <input type="number" value={editor.sheetRates.base.withoutFees} onChange={(e) => setEditor({ ...editor, sheetRates: { ...editor.sheetRates, base: { ...editor.sheetRates.base, withoutFees: Number(e.target.value) || 0 } } })} className="w-full p-2 border border-border/40 rounded" />
                     </div>
                     <div>
                       <label className="text-xs text-muted-foreground block mb-1">Base with Fees</label>
-                      <input type="number" value={editor.sheetRates.base.withFees} onChange={(e)=>setEditor({...editor, sheetRates:{...editor.sheetRates, base:{...editor.sheetRates.base, withFees:Number(e.target.value)||0}}})} className="w-full p-2 border border-border/40 rounded" />
+                      <input type="number" value={editor.sheetRates.base.withFees} onChange={(e) => setEditor({ ...editor, sheetRates: { ...editor.sheetRates, base: { ...editor.sheetRates.base, withFees: Number(e.target.value) || 0 } } })} className="w-full p-2 border border-border/40 rounded" />
                     </div>
                     <div>
                       <label className="text-xs text-muted-foreground block mb-1">Hanging w/o Fees</label>
-                      <input type="number" value={editor.sheetRates.hanging.withoutFees} onChange={(e)=>setEditor({...editor, sheetRates:{...editor.sheetRates, hanging:{...editor.sheetRates.hanging, withoutFees:Number(e.target.value)||0}}})} className="w-full p-2 border border-border/40 rounded" />
+                      <input type="number" value={editor.sheetRates.hanging.withoutFees} onChange={(e) => setEditor({ ...editor, sheetRates: { ...editor.sheetRates, hanging: { ...editor.sheetRates.hanging, withoutFees: Number(e.target.value) || 0 } } })} className="w-full p-2 border border-border/40 rounded" />
                     </div>
                     <div>
                       <label className="text-xs text-muted-foreground block mb-1">Hanging with Fees</label>
-                      <input type="number" value={editor.sheetRates.hanging.withFees} onChange={(e)=>setEditor({...editor, sheetRates:{...editor.sheetRates, hanging:{...editor.sheetRates.hanging, withFees:Number(e.target.value)||0}}})} className="w-full p-2 border border-border/40 rounded" />
+                      <input type="number" value={editor.sheetRates.hanging.withFees} onChange={(e) => setEditor({ ...editor, sheetRates: { ...editor.sheetRates, hanging: { ...editor.sheetRates.hanging, withFees: Number(e.target.value) || 0 } } })} className="w-full p-2 border border-border/40 rounded" />
                     </div>
                     <div>
                       <label className="text-xs text-muted-foreground block mb-1">Tall w/o Fees</label>
-                      <input type="number" value={editor.sheetRates.tall.withoutFees} onChange={(e)=>setEditor({...editor, sheetRates:{...editor.sheetRates, tall:{...editor.sheetRates.tall, withoutFees:Number(e.target.value)||0}}})} className="w-full p-2 border border-border/40 rounded" />
+                      <input type="number" value={editor.sheetRates.tall.withoutFees} onChange={(e) => setEditor({ ...editor, sheetRates: { ...editor.sheetRates, tall: { ...editor.sheetRates.tall, withoutFees: Number(e.target.value) || 0 } } })} className="w-full p-2 border border-border/40 rounded" />
                     </div>
                     <div>
                       <label className="text-xs text-muted-foreground block mb-1">Tall with Fees</label>
-                      <input type="number" value={editor.sheetRates.tall.withFees} onChange={(e)=>setEditor({...editor, sheetRates:{...editor.sheetRates, tall:{...editor.sheetRates.tall, withFees:Number(e.target.value)||0}}})} className="w-full p-2 border border-border/40 rounded" />
+                      <input type="number" value={editor.sheetRates.tall.withFees} onChange={(e) => setEditor({ ...editor, sheetRates: { ...editor.sheetRates, tall: { ...editor.sheetRates.tall, withFees: Number(e.target.value) || 0 } } })} className="w-full p-2 border border-border/40 rounded" />
                     </div>
                   </div>
                 </div>
@@ -970,33 +1160,33 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
                       <label className="text-xs text-muted-foreground block mb-1">Tier Luxury</label>
-                      <input type="number" step="0.01" value={editor.tierMultipliers.luxury} onChange={(e)=>setEditor({...editor, tierMultipliers:{...editor.tierMultipliers, luxury:Number(e.target.value)||1}})} className="w-full p-2 border border-border/40 rounded" />
+                      <input type="number" step="0.01" value={editor.tierMultipliers.luxury} onChange={(e) => setEditor({ ...editor, tierMultipliers: { ...editor.tierMultipliers, luxury: Number(e.target.value) || 1 } })} className="w-full p-2 border border-border/40 rounded" />
                     </div>
                     <div>
                       <label className="text-xs text-muted-foreground block mb-1">Tier Premium</label>
-                      <input type="number" step="0.01" value={editor.tierMultipliers.premium} onChange={(e)=>setEditor({...editor, tierMultipliers:{...editor.tierMultipliers, premium:Number(e.target.value)||1}})} className="w-full p-2 border border-border/40 rounded" />
+                      <input type="number" step="0.01" value={editor.tierMultipliers.premium} onChange={(e) => setEditor({ ...editor, tierMultipliers: { ...editor.tierMultipliers, premium: Number(e.target.value) || 1 } })} className="w-full p-2 border border-border/40 rounded" />
                     </div>
                     <div>
                       <label className="text-xs text-muted-foreground block mb-1">Tier Standard</label>
-                      <input type="number" step="0.01" value={editor.tierMultipliers.standard} onChange={(e)=>setEditor({...editor, tierMultipliers:{...editor.tierMultipliers, standard:Number(e.target.value)||1}})} className="w-full p-2 border border-border/40 rounded" />
+                      <input type="number" step="0.01" value={editor.tierMultipliers.standard} onChange={(e) => setEditor({ ...editor, tierMultipliers: { ...editor.tierMultipliers, standard: Number(e.target.value) || 1 } })} className="w-full p-2 border border-border/40 rounded" />
                     </div>
                     <div>
                       <label className="text-xs text-muted-foreground block mb-1">Type Luxury</label>
-                      <input type="number" step="0.01" value={editor.cabinetTypeMultipliers.luxury} onChange={(e)=>setEditor({...editor, cabinetTypeMultipliers:{...editor.cabinetTypeMultipliers, luxury:Number(e.target.value)||1}})} className="w-full p-2 border border-border/40 rounded" />
+                      <input type="number" step="0.01" value={editor.cabinetTypeMultipliers.luxury} onChange={(e) => setEditor({ ...editor, cabinetTypeMultipliers: { ...editor.cabinetTypeMultipliers, luxury: Number(e.target.value) || 1 } })} className="w-full p-2 border border-border/40 rounded" />
                     </div>
                     <div>
                       <label className="text-xs text-muted-foreground block mb-1">Type Premium</label>
-                      <input type="number" step="0.01" value={editor.cabinetTypeMultipliers.premium} onChange={(e)=>setEditor({...editor, cabinetTypeMultipliers:{...editor.cabinetTypeMultipliers, premium:Number(e.target.value)||1}})} className="w-full p-2 border border-border/40 rounded" />
+                      <input type="number" step="0.01" value={editor.cabinetTypeMultipliers.premium} onChange={(e) => setEditor({ ...editor, cabinetTypeMultipliers: { ...editor.cabinetTypeMultipliers, premium: Number(e.target.value) || 1 } })} className="w-full p-2 border border-border/40 rounded" />
                     </div>
                     <div>
                       <label className="text-xs text-muted-foreground block mb-1">Type Basic</label>
-                      <input type="number" step="0.01" value={editor.cabinetTypeMultipliers.basic} onChange={(e)=>setEditor({...editor, cabinetTypeMultipliers:{...editor.cabinetTypeMultipliers, basic:Number(e.target.value)||1}})} className="w-full p-2 border border-border/40 rounded" />
+                      <input type="number" step="0.01" value={editor.cabinetTypeMultipliers.basic} onChange={(e) => setEditor({ ...editor, cabinetTypeMultipliers: { ...editor.cabinetTypeMultipliers, basic: Number(e.target.value) || 1 } })} className="w-full p-2 border border-border/40 rounded" />
                     </div>
                   </div>
                 </div>
                 <div className="flex gap-2 pt-2">
-                  <button onClick={()=>savePricingConfig()} className="px-3 py-2 rounded-md border bg-primary text-white">Save</button>
-                  <button onClick={()=>setConfigOpen(false)} className="px-3 py-2 rounded-md border">Cancel</button>
+                  <button onClick={() => savePricingConfig()} className="px-3 py-2 rounded-md border bg-primary text-white">Save</button>
+                  <button onClick={() => setConfigOpen(false)} className="px-3 py-2 rounded-md border">Cancel</button>
                 </div>
               </div>
             )}
