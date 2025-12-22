@@ -4,7 +4,7 @@ import { readFile, writeFile, mkdir } from "fs/promises"
 import { Calendar, Pencil, Trash2, Search, Plus, Wand2, Image as ImageIcon } from "lucide-react"
 import Link from "next/link"
 import { AddModal } from "@/components/admin/add-modal"
-import { SaveForm } from "@/components/admin/save-form"
+import { SaveForm, SubmitButton } from "@/components/admin/save-form"
 import { SelectOnFocusInput, SelectOnFocusTextarea } from "@/components/select-on-focus"
 import { BlogAiTools } from "@/components/admin/blog-ai-tools"
 import { supabaseServer } from "@/lib/supabase-server"
@@ -61,7 +61,7 @@ async function updatePost(prevState: any, formData: FormData) {
   if (!id || !title) return { ok: false }
   const supabase = supabaseServer()
   const { data: prev } = await supabase.from("blog_posts").select("*").eq("id", id).single()
-  if (prev) { try { await supabase.from("blog_post_versions").insert({ id, ts: Date.now(), data: prev }) } catch {} }
+  if (prev) { try { await supabase.from("blog_post_versions").insert({ id, ts: Date.now(), data: prev }) } catch { } }
   await supabase.from("blog_posts").update({ title, excerpt, description, image, author, date, read_time: readTime, category }).eq("id", id)
   const raw = await readFile(blogPath, "utf-8").catch(() => "[]")
   const list = JSON.parse(raw || "[]")
@@ -151,21 +151,21 @@ export default async function AdminBlogPage() {
   }
   return (
     <div className="max-w-4xl mx-auto px-4">
-        <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold">Blog</h1>
-            <p className="text-sm text-muted-foreground">Manage articles displayed on the site</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <SaveForm action={seedBlog}>
-              <button className="px-3 py-2 rounded-md border border-border/40 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Restore Sample Data</button>
-            </SaveForm>
-            <SaveForm action={importBlog}>
-              <input type="file" name="backupFile" accept="application/json" className="px-3 py-2 rounded-md border border-border/40 text-sm" />
-              <button className="px-3 py-2 rounded-md border border-border/40 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Import JSON</button>
-            </SaveForm>
-            <AddModal trigger={<><Plus className="w-4 h-4" /> Add New</>} title="Add Post" description="Create a new article">
-              <SaveForm action={addPost} className="space-y-3">
+      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold">Blog</h1>
+          <p className="text-sm text-muted-foreground">Manage articles displayed on the site</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <SaveForm action={seedBlog}>
+            <SubmitButton confirm="Are you sure you want to restore sample data? This will overwrite existing blog posts." className="px-3 py-2 rounded-md border border-border/40 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Restore Sample Data</SubmitButton>
+          </SaveForm>
+          <SaveForm action={importBlog}>
+            <input type="file" name="backupFile" accept="application/json" className="px-3 py-2 rounded-md border border-border/40 text-sm" />
+            <SubmitButton confirm="Import this JSON backup? This will add or update blog posts." className="px-3 py-2 rounded-md border border-border/40 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Import JSON</SubmitButton>
+          </SaveForm>
+          <AddModal trigger={<><Plus className="w-4 h-4" /> Add New</>} title="Add Post" description="Create a new article">
+            <SaveForm action={addPost} className="space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <SelectOnFocusInput name="id" placeholder="id" className="w-full p-2 border border-border/40 rounded" />
                 <SelectOnFocusInput name="title" placeholder="title" className="w-full p-2 border border-border/40 rounded" />
@@ -185,72 +185,76 @@ export default async function AdminBlogPage() {
               </div>
               <SelectOnFocusInput name="image" placeholder="image url" className="w-full p-2 border border-border/40 rounded" />
               <BlogAiTools descriptionName="description" imageName="image" />
-              <button className="w-full bg-primary text-white py-2 rounded transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Add</button>
-              </SaveForm>
-            </AddModal>
-          </div>
+              <SubmitButton className="w-full bg-primary text-white py-2 rounded transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Add</SubmitButton>
+            </SaveForm>
+          </AddModal>
         </div>
+      </div>
 
-        <div className="flex items-center gap-3 mb-6 flex-wrap">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <SelectOnFocusInput
-              placeholder="Search by title"
-              className="w-full pl-10 pr-3 py-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
+      <div className="flex items-center gap-3 mb-6 flex-wrap">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <SelectOnFocusInput
+            placeholder="Search by title"
+            className="w-full pl-10 pr-3 py-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {posts.map((p) => (
-            <div key={p.id} className="bg-card border border-border rounded-xl overflow-hidden">
-              <div className="aspect-[4/3] relative overflow-hidden flex items-center justify-center">
-                <img src={p.image || "/placeholder.svg"} alt={p.title} className="w-full h-full object-cover object-center" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                <div className="absolute bottom-3 left-3 text-white inline-flex items-center gap-1 bg-white/15 backdrop-blur px-2 py-1 rounded text-xs">
-                  <Calendar className="w-3 h-3" />
-                  {p.date ? new Date(p.date).toLocaleDateString() : "—"}
-                </div>
-              </div>
-              <div className="p-4">
-                <div className="font-semibold text-foreground mb-1">{p.title}</div>
-                <p className="text-sm text-muted-foreground mb-4">{p.excerpt}</p>
-                <div className="flex items-center gap-2">
-                  <AddModal trigger={<><Pencil className="w-4 h-4" /> Edit</>} title="Edit Post" description="Update article">
-                    <SaveForm action={updatePost} className="space-y-3">
-                      <input type="hidden" name="id" defaultValue={p.id} />
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <SelectOnFocusInput name="title" defaultValue={p.title} className="w-full p-2 border border-border/40 rounded" />
-                        <SelectOnFocusInput name="category" defaultValue={p.category || ""} className="w-full p-2 border border-border/40 rounded" />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <SelectOnFocusInput name="readTime" defaultValue={String((p as any).read_time || (p as any).readTime || "")} className="w-full p-2 border border-border/40 rounded" />
-                        <SelectOnFocusInput name="author" defaultValue={p.author || ""} className="w-full p-2 border border-border/40 rounded" />
-                      </div>
-                      <SelectOnFocusInput name="date" defaultValue={p.date || ""} className="w-full p-2 border border-border/40 rounded" />
-                      <SelectOnFocusInput name="excerpt" defaultValue={p.excerpt || ""} className="w-full p-2 border border-border/40 rounded" />
-                      <div>
-                        <label className="text-xs text-muted-foreground block mb-1">Description</label>
-                        <SelectOnFocusTextarea name="description" defaultValue={p.description || ""} className="w-full p-2 border border-border/40 rounded min-h-32" />
-                      </div>
-                      <SelectOnFocusInput name="image" defaultValue={p.image || ""} className="w-full p-2 border border-border/40 rounded" />
-                      <BlogAiTools descriptionName="description" imageName="image" />
-                      <button className="w-full bg-primary text-white py-2 rounded transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Save Changes</button>
-                    </SaveForm>
-                  </AddModal>
-                  <SaveForm action={deletePost}>
-                    <input type="hidden" name="id" value={p.id} />
-                    <button className="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-border/50 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">
-                      <Trash2 className="w-4 h-4" />
-                      Delete
-                    </button>
-                  </SaveForm>
-                </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {posts.map((p) => (
+          <div key={p.id} className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="aspect-[4/3] relative overflow-hidden flex items-center justify-center">
+              <img src={p.image || "/placeholder.svg"} alt={p.title} className="w-full h-full object-cover object-center" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-3 left-3 text-white inline-flex items-center gap-1 bg-white/15 backdrop-blur px-2 py-1 rounded text-xs">
+                <Calendar className="w-3 h-3" />
+                {p.date ? new Date(p.date).toLocaleDateString() : "—"}
               </div>
             </div>
-          ))}
-        </div>
-      
+            <div className="p-4">
+              <div className="font-semibold text-foreground mb-1">{p.title}</div>
+              <p className="text-sm text-muted-foreground mb-4">{p.excerpt}</p>
+              <div className="flex items-center gap-2">
+                <AddModal trigger={<><Pencil className="w-4 h-4" /> Edit</>} title="Edit Post" description="Update article">
+                  <SaveForm action={updatePost} className="space-y-3">
+                    <input type="hidden" name="id" defaultValue={p.id} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <SelectOnFocusInput name="title" defaultValue={p.title} className="w-full p-2 border border-border/40 rounded" />
+                      <SelectOnFocusInput name="category" defaultValue={p.category || ""} className="w-full p-2 border border-border/40 rounded" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <SelectOnFocusInput name="readTime" defaultValue={String((p as any).read_time || (p as any).readTime || "")} className="w-full p-2 border border-border/40 rounded" />
+                      <SelectOnFocusInput name="author" defaultValue={p.author || ""} className="w-full p-2 border border-border/40 rounded" />
+                    </div>
+                    <SelectOnFocusInput name="date" defaultValue={p.date || ""} className="w-full p-2 border border-border/40 rounded" />
+                    <SelectOnFocusInput name="excerpt" defaultValue={p.excerpt || ""} className="w-full p-2 border border-border/40 rounded" />
+                    <div>
+                      <label className="text-xs text-muted-foreground block mb-1">Description</label>
+                      <SelectOnFocusTextarea name="description" defaultValue={p.description || ""} className="w-full p-2 border border-border/40 rounded min-h-32" />
+                    </div>
+                    <SelectOnFocusInput name="image" defaultValue={p.image || ""} className="w-full p-2 border border-border/40 rounded" />
+                    <BlogAiTools descriptionName="description" imageName="image" />
+                    <SubmitButton confirm="Save changes to this post?" className="w-full bg-primary text-white py-2 rounded transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Save Changes</SubmitButton>
+                  </SaveForm>
+                </AddModal>
+                <SaveForm action={deletePost}>
+                  <input type="hidden" name="id" value={p.id} />
+                  <SubmitButton
+                    type="danger"
+                    confirm={`Are you sure you want to delete "${p.title}"? This action cannot be undone.`}
+                    className="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-border/50 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </SubmitButton>
+                </SaveForm>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
     </div>
   )
 }

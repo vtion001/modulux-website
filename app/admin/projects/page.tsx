@@ -120,7 +120,7 @@ async function updateProject(formData: FormData) {
   const supabase = supabaseServer()
   const { data: curr } = await supabase.from("projects").select("*").eq("id", id).single()
   if (!curr) return { ok: false }
-  try { await supabase.from("project_versions").insert({ id, ts: Date.now(), data: curr }) } catch {}
+  try { await supabase.from("project_versions").insert({ id, ts: Date.now(), data: curr }) } catch { }
   const file = formData.get("imageFile") as File | null
   if (file && typeof file === "object" && file.size > 0) {
     await mkdir(uploadsDir, { recursive: true })
@@ -137,12 +137,12 @@ async function updateProject(formData: FormData) {
   const prev = JSON.parse(raw || "[]")
   const next = Array.isArray(prev)
     ? [
-        { id, title, location, year, type, description, image, images, services },
-        ...prev.filter((p: any) => p.id !== id),
-      ]
+      { id, title, location, year, type, description, image, images, services },
+      ...prev.filter((p: any) => p.id !== id),
+    ]
     : [
-        { id, title, location, year, type, description, image, images, services },
-      ]
+      { id, title, location, year, type, description, image, images, services },
+    ]
   await mkdir(dataDir, { recursive: true })
   await writeFile(projectsPath, JSON.stringify(next, null, 2))
   revalidatePath("/admin/projects")
@@ -258,27 +258,27 @@ export default async function AdminProjectsPage() {
   }
   return (
     <div className="max-w-4xl mx-auto px-4">
-        <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold">Projects</h1>
-            <p className="text-sm text-muted-foreground">Manage portfolio entries displayed on the site</p>
-          </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <SaveForm action={seedProjects}>
-              <button className="px-3 py-2 rounded-md border border-border/40 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Restore Sample Data</button>
-            </SaveForm>
-            <SaveForm action={importProjects}>
-              <input type="file" name="backupFile" accept="application/json" className="px-3 py-2 rounded-md border border-border/40 text-sm" />
-              <button className="px-3 py-2 rounded-md border border-border/40 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Import JSON</button>
-            </SaveForm>
-            <SaveForm action={syncProjectsToSupabase}>
-              <button className="px-3 py-2 rounded-md border border-border/40 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Sync to Supabase</button>
-            </SaveForm>
-            <AddModal
-              trigger={<><Plus className="w-4 h-4" /> Add New</>}
-              title="Add Project"
-              description="Create a new portfolio entry"
-            >
+      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold">Projects</h1>
+          <p className="text-sm text-muted-foreground">Manage portfolio entries displayed on the site</p>
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          <SaveForm action={seedProjects}>
+            <SubmitButton confirm="Are you sure you want to restore sample data? This might overwrite existing entries." className="px-3 py-2 rounded-md border border-border/40 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Restore Sample Data</SubmitButton>
+          </SaveForm>
+          <SaveForm action={importProjects}>
+            <input type="file" name="backupFile" accept="application/json" className="px-3 py-2 rounded-md border border-border/40 text-sm" />
+            <SubmitButton confirm="Import this JSON backup? This will add or update projects." className="px-3 py-2 rounded-md border border-border/40 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Import JSON</SubmitButton>
+          </SaveForm>
+          <SaveForm action={syncProjectsToSupabase}>
+            <SubmitButton confirm="Sync local projects to Supabase? This will overwrite data in the database with local files." className="px-3 py-2 rounded-md border border-border/40 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Sync to Supabase</SubmitButton>
+          </SaveForm>
+          <AddModal
+            trigger={<><Plus className="w-4 h-4" /> Add New</>}
+            title="Add Project"
+            description="Create a new portfolio entry"
+          >
             <SaveForm action={addProject} className="space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
@@ -330,139 +330,143 @@ export default async function AdminProjectsPage() {
                 <label className="text-xs text-muted-foreground block mb-1">Services</label>
                 <SelectOnFocusInput name="services" placeholder="Comma-separated" className="w-full p-2 border border-border/40 rounded" />
               </div>
-              <button className="w-full bg-primary text-white py-2 rounded-md inline-flex items-center justify-center gap-2 transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">
+              <SubmitButton className="w-full bg-primary text-white py-2 rounded-md inline-flex items-center justify-center gap-2 transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">
                 <Plus className="w-4 h-4" />
                 Add Project
-              </button>
+              </SubmitButton>
             </SaveForm>
-            </AddModal>
-          </div>
+          </AddModal>
         </div>
+      </div>
 
-        <div className="flex items-center gap-3 mb-6 flex-wrap">
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              placeholder="Search by title or location"
-              className="w-full pl-10 pr-3 py-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-          <div className="hidden md:flex items-center gap-2 flex-wrap">
-            <button className="px-3 py-2 rounded-md border border-border/40 text-sm hover:border-primary/60 transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">All</button>
-            <button className="px-3 py-2 rounded-md border border-border/40 text-sm hover:border-primary/60 transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Residential</button>
-            <button className="px-3 py-2 rounded-md border border-border/40 text-sm hover:border-primary/60 transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Commercial</button>
-          </div>
+      <div className="flex items-center gap-3 mb-6 flex-wrap">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            placeholder="Search by title or location"
+            className="w-full pl-10 pr-3 py-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
         </div>
+        <div className="hidden md:flex items-center gap-2 flex-wrap">
+          <button className="px-3 py-2 rounded-md border border-border/40 text-sm hover:border-primary/60 transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">All</button>
+          <button className="px-3 py-2 rounded-md border border-border/40 text-sm hover:border-primary/60 transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Residential</button>
+          <button className="px-3 py-2 rounded-md border border-border/40 text-sm hover:border-primary/60 transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">Commercial</button>
+        </div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {projects.map((p) => (
-            <div key={p.id} className="bg-card border border-border rounded-xl overflow-hidden">
-              <div className="aspect-[4/3] relative overflow-hidden flex items-center justify-center">
-                <img
-                  src={p.image || "/placeholder.svg"}
-                  alt={p.title}
-                  className="w-full h-full object-cover object-center"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                <div className="absolute bottom-3 left-3 text-white flex items-center gap-3">
-                  <div className="inline-flex items-center gap-1 bg-white/15 backdrop-blur px-2 py-1 rounded text-xs">
-                    <Calendar className="w-3 h-3" />
-                    {p.year}
-                  </div>
-                  <div className="inline-flex items-center gap-1 bg-white/15 backdrop-blur px-2 py-1 rounded text-xs">
-                    {p.type}
-                  </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {projects.map((p) => (
+          <div key={p.id} className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="aspect-[4/3] relative overflow-hidden flex items-center justify-center">
+              <img
+                src={p.image || "/placeholder.svg"}
+                alt={p.title}
+                className="w-full h-full object-cover object-center"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-3 left-3 text-white flex items-center gap-3">
+                <div className="inline-flex items-center gap-1 bg-white/15 backdrop-blur px-2 py-1 rounded text-xs">
+                  <Calendar className="w-3 h-3" />
+                  {p.year}
                 </div>
-              </div>
-              <div className="p-4">
-                <div className="font-semibold text-foreground mb-1">{p.title}</div>
-                <div className="flex items-center text-sm text-muted-foreground mb-3">
-                  <MapPin className="w-4 h-4 mr-1" />
-                  {p.location}
-                </div>
-                {Array.isArray(p.services) && p.services.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {p.services.map((s: string) => (
-                      <span key={s} className="px-2 py-1 bg-accent/10 text-accent text-xs rounded-full">
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <AddModal
-                    trigger={<><Pencil className="w-4 h-4" /> Edit</>}
-                    title="Edit Project"
-                    description="Update portfolio entry"
-                  >
-                    <SaveForm action={updateProject} successMessage="Project saved" className="space-y-3">
-                      <input type="hidden" name="id" defaultValue={p.id} />
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-xs text-muted-foreground block mb-1">Title</label>
-                          <SelectOnFocusInput name="title" defaultValue={p.title} className="w-full p-2 border border-border/40 rounded" />
-                        </div>
-                        <div>
-                          <label className="text-xs text-muted-foreground block mb-1">Year</label>
-                          <SelectOnFocusInput name="year" defaultValue={p.year} className="w-full p-2 border border-border/40 rounded" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-xs text-muted-foreground block mb-1">Location</label>
-                          <SelectOnFocusInput name="location" defaultValue={p.location} className="w-full p-2 border border-border/40 rounded" />
-                        </div>
-                        <div>
-                          <label className="text-xs text-muted-foreground block mb-1">Type</label>
-                          <SelectOnFocusInput name="type" defaultValue={p.type} className="w-full p-2 border border-border/40 rounded" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-xs text-muted-foreground block mb-1">Image URL</label>
-                          <SelectOnFocusInput name="image" defaultValue={p.image} className="w-full p-2 border border-border/40 rounded" />
-                        </div>
-                        <div>
-                          <label className="text-xs text-muted-foreground block mb-1">Upload Image</label>
-                          <input type="file" name="imageFile" accept="image/*" className="w-full p-2 border border-border/40 rounded" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-xs text-muted-foreground block mb-1">Additional Images (URLs)</label>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <SelectOnFocusInput name="images" defaultValue={Array.isArray(p.images) ? p.images[0] || "" : ""} className="w-full p-2 border border-border/40 rounded" />
-                          <SelectOnFocusInput name="images" defaultValue={Array.isArray(p.images) ? p.images[1] || "" : ""} className="w-full p-2 border border-border/40 rounded" />
-                          <SelectOnFocusInput name="images" defaultValue={Array.isArray(p.images) ? p.images[2] || "" : ""} className="w-full p-2 border border-border/40 rounded" />
-                          <SelectOnFocusInput name="images" defaultValue={Array.isArray(p.images) ? p.images[3] || "" : ""} className="w-full p-2 border border-border/40 rounded" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-xs text-muted-foreground block mb-1">Description</label>
-                        <SelectOnFocusTextarea name="description" defaultValue={p.description} className="w-full p-2 border border-border/40 rounded" />
-                      </div>
-                      <BlogAiTools descriptionName="description" imageName="image" />
-                      <div>
-                        <label className="text-xs text-muted-foreground block mb-1">Services</label>
-                        <SelectOnFocusInput name="services" defaultValue={Array.isArray(p.services) ? p.services.join(", ") : ""} className="w-full p-2 border border-border/40 rounded" />
-                      </div>
-                      <SubmitButton confirm="Save project?" className="w-full bg-primary text-white py-2 rounded-md inline-flex items-center justify-center gap-2 transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">
-                        Save Changes
-                      </SubmitButton>
-                    </SaveForm>
-                  </AddModal>
-                  <SaveForm action={deleteProject}>
-                    <input type="hidden" name="id" value={p.id} />
-                    <button className="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-border/50 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">
-                      <Trash2 className="w-4 h-4" />
-                      Delete
-                    </button>
-                  </SaveForm>
+                <div className="inline-flex items-center gap-1 bg-white/15 backdrop-blur px-2 py-1 rounded text-xs">
+                  {p.type}
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      
+            <div className="p-4">
+              <div className="font-semibold text-foreground mb-1">{p.title}</div>
+              <div className="flex items-center text-sm text-muted-foreground mb-3">
+                <MapPin className="w-4 h-4 mr-1" />
+                {p.location}
+              </div>
+              {Array.isArray(p.services) && p.services.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {p.services.map((s: string) => (
+                    <span key={s} className="px-2 py-1 bg-accent/10 text-accent text-xs rounded-full">
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <AddModal
+                  trigger={<><Pencil className="w-4 h-4" /> Edit</>}
+                  title="Edit Project"
+                  description="Update portfolio entry"
+                >
+                  <SaveForm action={updateProject} successMessage="Project saved" className="space-y-3">
+                    <input type="hidden" name="id" defaultValue={p.id} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-muted-foreground block mb-1">Title</label>
+                        <SelectOnFocusInput name="title" defaultValue={p.title} className="w-full p-2 border border-border/40 rounded" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground block mb-1">Year</label>
+                        <SelectOnFocusInput name="year" defaultValue={p.year} className="w-full p-2 border border-border/40 rounded" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-muted-foreground block mb-1">Location</label>
+                        <SelectOnFocusInput name="location" defaultValue={p.location} className="w-full p-2 border border-border/40 rounded" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground block mb-1">Type</label>
+                        <SelectOnFocusInput name="type" defaultValue={p.type} className="w-full p-2 border border-border/40 rounded" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-muted-foreground block mb-1">Image URL</label>
+                        <SelectOnFocusInput name="image" defaultValue={p.image} className="w-full p-2 border border-border/40 rounded" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground block mb-1">Upload Image</label>
+                        <input type="file" name="imageFile" accept="image/*" className="w-full p-2 border border-border/40 rounded" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground block mb-1">Additional Images (URLs)</label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <SelectOnFocusInput name="images" defaultValue={Array.isArray(p.images) ? p.images[0] || "" : ""} className="w-full p-2 border border-border/40 rounded" />
+                        <SelectOnFocusInput name="images" defaultValue={Array.isArray(p.images) ? p.images[1] || "" : ""} className="w-full p-2 border border-border/40 rounded" />
+                        <SelectOnFocusInput name="images" defaultValue={Array.isArray(p.images) ? p.images[2] || "" : ""} className="w-full p-2 border border-border/40 rounded" />
+                        <SelectOnFocusInput name="images" defaultValue={Array.isArray(p.images) ? p.images[3] || "" : ""} className="w-full p-2 border border-border/40 rounded" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground block mb-1">Description</label>
+                      <SelectOnFocusTextarea name="description" defaultValue={p.description} className="w-full p-2 border border-border/40 rounded" />
+                    </div>
+                    <BlogAiTools descriptionName="description" imageName="image" />
+                    <div>
+                      <label className="text-xs text-muted-foreground block mb-1">Services</label>
+                      <SelectOnFocusInput name="services" defaultValue={Array.isArray(p.services) ? p.services.join(", ") : ""} className="w-full p-2 border border-border/40 rounded" />
+                    </div>
+                    <SubmitButton confirm="Save project?" className="w-full bg-primary text-white py-2 rounded-md inline-flex items-center justify-center gap-2 transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]">
+                      Save Changes
+                    </SubmitButton>
+                  </SaveForm>
+                </AddModal>
+                <SaveForm action={deleteProject}>
+                  <input type="hidden" name="id" value={p.id} />
+                  <SubmitButton
+                    type="danger"
+                    confirm={`Are you sure you want to delete "${p.title}"? This action cannot be undone.`}
+                    className="inline-flex items-center gap-1 px-3 py-2 rounded-md border border-border/50 text-sm transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px]"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </SubmitButton>
+                </SaveForm>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
     </div>
   )
 }

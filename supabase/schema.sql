@@ -23,7 +23,11 @@ create table if not exists public.fabricators (
   id text primary key,
   name text not null,
   email text,
+  phone text,
+  category text,
+  notes text,
   rates jsonb not null,
+  units jsonb,
   history jsonb,
   created_at timestamptz default now(),
   updated_at timestamptz

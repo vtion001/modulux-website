@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { Mail, Phone, Clock, Paperclip, Tag as TagIcon, Save as SaveIcon, Reply as ReplyIcon, X, Send, CheckCircle, Hourglass, Circle, Wand2, Bot, UserPlus } from "lucide-react"
 import { toast } from "sonner"
+import { SubmitButton, SaveForm } from "./save-form"
 
 export function InquiryItem({ inquiry }: { inquiry: any }): React.ReactElement {
   const [status, setStatus] = useState(inquiry.status || "new")
@@ -58,14 +59,14 @@ export function InquiryItem({ inquiry }: { inquiry: any }): React.ReactElement {
     const base = (text || "").trim()
     if (!base) return
     try {
-      const res = await fetch("/api/ai/rewrite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "rewrite", text: base, keywords: `${inquiry?.name||""} inquiry`, length: "medium" }) })
+      const res = await fetch("/api/ai/rewrite", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "rewrite", text: base, keywords: `${inquiry?.name || ""} inquiry`, length: "medium" }) })
       if (res.ok) {
         const data = await res.json()
         const v = (Array.isArray(data?.variants) ? data.variants[0] : (data?.text || base)) || base
         setText(v)
         return
       }
-    } catch {}
+    } catch { }
     setText(base)
   }
 
@@ -85,7 +86,7 @@ export function InquiryItem({ inquiry }: { inquiry: any }): React.ReactElement {
           return
         }
       }
-    } catch {}
+    } catch { }
     const body = `Hi ${name},\n\nThanks for reaching out${msg ? ` about: \"${msg}\"` : ""}. We’d be happy to provide a detailed quotation. Could you share:\n\n• Approximate dimensions and materials\n• Budget range and preferred timeline\n• Any reference photos or plans\n\nWe can also hop on a quick call to align requirements and next steps.\n\nLooking forward to your reply.\n\nBest regards,\n`
     setSubject(subject || `Re: ${msg.slice(0, 60)}`)
     setText(body)
@@ -167,7 +168,16 @@ export function InquiryItem({ inquiry }: { inquiry: any }): React.ReactElement {
         </div>
         <div className="flex items-center gap-2">
           <div className="text-xs text-muted-foreground inline-flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(inquiry.date).toLocaleString()}</div>
-          <button type="button" onClick={captureToCRM} disabled={crmBusy} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border text-xs transition-all hover:shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"><UserPlus className="w-3.5 h-3.5" />Capture to CRM</button>
+          <SaveForm action={captureToCRM}>
+            <SubmitButton
+              type="primary"
+              confirm="Capture this inquiry as a lead in the CRM?"
+              disabled={crmBusy}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border text-xs transition-all hover:shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <UserPlus className="w-3.5 h-3.5" />Capture to CRM
+            </SubmitButton>
+          </SaveForm>
         </div>
       </div>
       <div className="relative mt-3 whitespace-pre-wrap text-sm text-foreground/90">{inquiry.message}</div>
@@ -201,11 +211,19 @@ export function InquiryItem({ inquiry }: { inquiry: any }): React.ReactElement {
         </div>
       </div>
       <div className="mt-3 flex gap-2">
-        <button type="button" onClick={saveMeta} disabled={busy} className="inline-flex items-center gap-2 px-3 py-2 rounded-md border transition-all hover:shadow-md"><SaveIcon className="w-4 h-4" />Save</button>
+        <SaveForm action={saveMeta}>
+          <SubmitButton
+            confirm="Save changes to status and tags?"
+            disabled={busy}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-md border transition-all hover:shadow-md"
+          >
+            <SaveIcon className="w-4 h-4" />Save
+          </SubmitButton>
+        </SaveForm>
         <button type="button" onClick={() => setOpenReply(true)} className="inline-flex items-center gap-2 px-3 py-2 rounded-md border transition-all hover:shadow-md" aria-label="Reply to inquiry"><ReplyIcon className="w-4 h-4" />Reply</button>
       </div>
       {openReply && createPortal(
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby={`reply-title-${inquiry.id}`}> 
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby={`reply-title-${inquiry.id}`}>
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setOpenReply(false)} aria-hidden="true" />
           <div ref={modalRef} className="relative z-[1001] w-[95%] max-w-4xl animate-in fade-in slide-in-from-bottom-1 duration-300">
             <div className="rounded-t-2xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-6 py-4 flex items-center justify-between">
@@ -239,7 +257,16 @@ export function InquiryItem({ inquiry }: { inquiry: any }): React.ReactElement {
                     </div>
                     <div className="flex gap-2">
                       <button type="button" onClick={() => setOpenReply(false)} className="inline-flex items-center gap-2 px-3 py-2 rounded-md border transition-all hover:shadow-md"><X className="w-4 h-4" />Cancel</button>
-                      <button type="button" onClick={sendReply} disabled={busy} className="inline-flex items-center gap-2 px-3 py-2 rounded-md border bg-primary text-white transition-all hover:shadow-md disabled:opacity-70 disabled:cursor-not-allowed">{busy ? "Sending…" : <><Send className="w-4 h-4" />Send</>}</button>
+                      <SaveForm action={sendReply}>
+                        <SubmitButton
+                          type="primary"
+                          confirm={`Send this email reply to ${inquiry.name}?`}
+                          disabled={busy}
+                          className="inline-flex items-center gap-2 px-3 py-2 rounded-md border bg-primary text-white transition-all hover:shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                          {busy ? "Sending…" : <><Send className="w-4 h-4" />Send</>}
+                        </SubmitButton>
+                      </SaveForm>
                     </div>
                   </div>
                 </div>
@@ -249,7 +276,7 @@ export function InquiryItem({ inquiry }: { inquiry: any }): React.ReactElement {
                       <div className="flex items-center justify-between mb-2">
                         <div className="text-sm font-medium text-foreground">Preview</div>
                         <div className="flex items-center gap-2">
-                          <button type="button" onClick={aiRewrite} disabled={!String(text||"").trim()} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border text-xs transition-all hover:shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"><Wand2 className="w-3.5 h-3.5" />AI Rewrite</button>
+                          <button type="button" onClick={aiRewrite} disabled={!String(text || "").trim()} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border text-xs transition-all hover:shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"><Wand2 className="w-3.5 h-3.5" />AI Rewrite</button>
                           <button type="button" onClick={aiReply} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border text-xs transition-all hover:shadow-sm"><Bot className="w-3.5 h-3.5" />AI Reply</button>
                         </div>
                       </div>

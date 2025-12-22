@@ -50,7 +50,7 @@ export function AdminSidePanel(): JSX.Element {
       title: "TOOLS",
       items: [
         { title: "Calculator Pricing", href: "/admin/calculator-pricing", iconName: "calculator" },
-        { title: "Fabricators", href: "/admin/fabricators", iconName: "wrench" },
+        { title: "Subcontractors", href: "/admin/subcontractors", iconName: "wrench" },
         { title: "Proposal Creator", href: "/admin/proposals", iconName: "file" },
         { title: "Cutlist Generator", href: "/admin/cutlist-generator", iconName: "scissors" },
       ],

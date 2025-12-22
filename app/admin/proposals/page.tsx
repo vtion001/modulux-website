@@ -7,6 +7,7 @@ import { FileText, Plus, Trash2 } from "lucide-react"
 import { estimateCabinetCost } from "@/lib/estimator"
 import { toast } from "sonner"
 import * as Dialog from "@radix-ui/react-dialog"
+import { SaveForm, SubmitButton } from "@/components/admin/save-form"
 const tierSpecs: Record<string, { items: string[]; exclusive: string[] }> = {
   standard: {
     items: [
@@ -117,6 +118,8 @@ export default function AdminProposalsPage() {
   const [attachHtml, setAttachHtml] = useState(false)
   const [sendToSelf, setSendToSelf] = useState(false)
   const [adminEmail, setAdminEmail] = useState<string>("")
+  const [draftsOpen, setDraftsOpen] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
   useAdminDraftsShortcuts(searchInputRef, page, totalPages, (p: number) => setPage(p))
 
   useEffect(() => {
@@ -612,7 +615,7 @@ export default function AdminProposalsPage() {
   useEffect(() => {
     ; (async () => {
       try {
-        const res = await fetch('/data/email.json', { cache: 'no-store' })
+        const res = await fetch('/api/admin/email-config', { cache: 'no-store' })
         const cfg = await res.json().catch(() => ({}))
         const admin = String(cfg?.reply_to || cfg?.from_email || '')
         if (admin) setAdminEmail(admin)
@@ -633,8 +636,12 @@ export default function AdminProposalsPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => saveDraft()} disabled={savingDraft} aria-busy={savingDraft}>{savingDraft ? "Saving…" : "Save Draft"}</Button>
-              <Button onClick={async () => {
+              <SaveForm action={saveDraft}>
+                <SubmitButton variant="outline" confirm="Save this proposal as a draft?" disabled={savingDraft} aria-busy={savingDraft} className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+                  {savingDraft ? "Saving…" : "Save Draft"}
+                </SubmitButton>
+              </SaveForm>
+              <SaveForm action={async () => {
                 const payload = {
                   client: { name: clientName, email: clientEmail, company: clientCompany, phone: clientPhone },
                   crmId: crmSelectedId,
@@ -701,7 +708,16 @@ export default function AdminProposalsPage() {
                 finally {
                   setSubmitting(false)
                 }
-              }} disabled={submitting} aria-busy={submitting}>{submitting ? "Submitting…" : "Submit"}</Button>
+              }}>
+                <SubmitButton
+                  confirm="Are you sure you want to submit this proposal? This will also create a Deal/Lead in the CRM."
+                  disabled={submitting}
+                  aria-busy={submitting}
+                  className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+                >
+                  {submitting ? "Submitting…" : "Submit"}
+                </SubmitButton>
+              </SaveForm>
               <Button variant="outline" onClick={() => {
                 if (!clientEmail || !clientEmail.trim()) { toast.error("Add a client email first"); return }
                 const subject = `Proposal Preview: ${String(title || "Proposal")}`
@@ -711,11 +727,159 @@ export default function AdminProposalsPage() {
                 setEmailPreviewOpen(true)
               }}>Email Preview</Button>
               <Button variant="outline" onClick={() => setAiOpen(true)}>AI Fill</Button>
+              <Button variant="outline" onClick={() => setDraftsOpen(true)}>View Drafts</Button>
             </div>
           </div>
         </div>
       </div>
-      <div className="bg-card border border-border/40 rounded-xl p-4 shadow-sm">
+      {draftsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setDraftsOpen(false)} />
+          <div className="relative w-full max-w-5xl max-h-[90vh] overflow-auto bg-card border border-border/40 rounded-xl shadow-2xl p-6 space-y-6 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between sticky top-0 bg-card/95 backdrop-blur-sm pb-4 border-b z-10">
+              <div>
+                <h3 className="text-xl font-bold">Proposal Drafts</h3>
+                <p className="text-xs text-muted-foreground">Manage your saved proposal drafts</p>
+              </div>
+              <button onClick={() => setDraftsOpen(false)} className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                <input
+                  value={draftQuery}
+                  onChange={(e) => setDraftQuery(e.target.value)}
+                  placeholder="Search drafts by title, client, or email"
+                  className="flex-1 min-w-[200px] p-2 border rounded-md bg-background text-foreground text-sm"
+                  ref={searchInputRef}
+                />
+                <select
+                  value={sortKey}
+                  onChange={(e) => { setSortKey(e.target.value); setPage(1) }}
+                  className="p-2 border rounded-md bg-background text-foreground text-sm"
+                >
+                  <option value="updated_desc">Newest</option>
+                  <option value="updated_asc">Oldest</option>
+                  <option value="title_asc">Title</option>
+                  <option value="client_asc">Client</option>
+                </select>
+                <select
+                  value={String(pageSize)}
+                  onChange={(e) => { const v = Number(e.target.value) || 10; setPageSize(v); setPage(1) }}
+                  className="p-2 border rounded-md bg-background text-foreground text-sm"
+                >
+                  <option value="5">5</option>
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                </select>
+              </div>
+              <div className="text-xs text-muted-foreground">Press / to focus search, ←/→ to paginate</div>
+              {draftsLoading ? (
+                <div className="text-center py-8 text-muted-foreground">Loading drafts...</div>
+              ) : (
+                <div className="space-y-3">
+                  {drafts.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">No drafts found.</div>
+                  ) : (
+                    drafts.map((d: any) => (
+                      <div key={d.id} className="flex items-center justify-between gap-3 border rounded-lg p-4 hover:bg-muted/30 transition-colors">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-semibold text-sm truncate">{String(d.title || "Untitled Proposal")}</div>
+                          <div className="text-xs text-muted-foreground truncate mt-1">
+                            {String(d?.client?.name || "No client")} • {new Date(d.updated_at || d.created_at || Date.now()).toLocaleString()}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Button variant="outline" size="sm" onClick={() => {
+                            setClientName(String(d?.client?.name || ""))
+                            setClientEmail(String(d?.client?.email || ""))
+                            setClientCompany(String(d?.client?.company || ""))
+                            setClientPhone(String(d?.client?.phone || ""))
+                            setCrmSelectedId(String(d?.crmId || ""))
+                            setTitle(String(d?.title || "Proposal"))
+                            setItems((Array.isArray(d?.items) ? d.items : []).map((x: any) => ({
+                              id: crypto.randomUUID(),
+                              description: String(x?.description || ""),
+                              quantity: Number(x?.quantity || 0),
+                              unitPrice: Number(x?.unitPrice || 0),
+                              details: String(x?.details || ""),
+                              category: x?.category,
+                              setId: x?.setId,
+                              room: x?.room,
+                              baseRate: x?.baseRate,
+                              tierFactor: x?.tierFactor,
+                              materialFactor: x?.materialFactor,
+                              finishFactor: x?.finishFactor,
+                              hardwareFactor: x?.hardwareFactor,
+                              installationAdd: x?.installationAdd
+                            })))
+                            setTaxRate(Number(d?.taxRate || 0))
+                            setDiscount(Number(d?.discount || 0))
+                            setNotes(String(d?.notes || ""))
+                            setDraftsOpen(false)
+                            toast.success("Draft loaded")
+                          }}>Load</Button>
+                          <Button variant="outline" size="sm" onClick={async () => {
+                            const name = window.prompt("Rename draft", String(d?.title || "Untitled Proposal"))
+                            if (!name) return
+                            try {
+                              const res = await fetch("/api/proposals/drafts", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: d.id, title: name }) })
+                              const json = await res.json().catch(() => ({}))
+                              if (res.ok && json?.ok) {
+                                toast.success("Draft renamed")
+                                await loadDrafts()
+                              } else {
+                                toast.error(String(json?.error || "Rename failed"))
+                              }
+                            } catch { }
+                          }}>Rename</Button>
+                          <Button variant="outline" size="sm" onClick={async () => {
+                            try {
+                              const payload = { client: d.client, crmId: d.crmId, title: String(d.title || "") + " (copy)", items: d.items, taxRate: d.taxRate, discount: d.discount, notes: d.notes }
+                              const res = await fetch("/api/proposals/drafts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+                              const json = await res.json().catch(() => ({}))
+                              if (res.ok && json?.ok) {
+                                toast.success("Draft duplicated")
+                                await loadDrafts()
+                              } else {
+                                toast.error(String(json?.error || "Duplicate failed"))
+                              }
+                            } catch { }
+                          }}>Duplicate</Button>
+                          <Button variant="outline" size="sm" onClick={async () => {
+
+                            try {
+                              const res = await fetch("/api/proposals/drafts", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: d.id }) })
+                              const json = await res.json().catch(() => ({}))
+                              if (res.ok && json?.ok) {
+                                toast.success("Draft deleted")
+                                await loadDrafts()
+                              } else {
+                                toast.error(String(json?.error || "Delete failed"))
+                              }
+                            } catch { }
+                          }}>Delete</Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  {draftTotal > 0 && (
+                    <div className="flex items-center justify-between gap-3 pt-4 border-t">
+                      <div className="text-sm text-muted-foreground">Page {page} of {totalPages} • {draftTotal} total drafts</div>
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setPage(Math.max(1, page - 1))} disabled={page <= 1}>Prev</Button>
+                        <Button variant="outline" size="sm" onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page >= totalPages}>Next</Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="bg-card border border-border/40 rounded-xl p-4 shadow-sm" style={{ display: "none" }}>
         <div className="text-sm font-semibold text-foreground mb-3">Drafts</div>
         <div className="mb-3 flex items-center gap-2">
           <input
@@ -814,7 +978,7 @@ export default function AdminProposalsPage() {
                         }
                       } catch { }
                     }}>Duplicate</Button>
-                    <Button variant="outline" size="sm" onClick={async () => {
+                    <SaveForm action={async () => {
                       try {
                         const res = await fetch("/api/proposals/drafts", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: d.id }) })
                         const json = await res.json().catch(() => ({}))
@@ -825,7 +989,15 @@ export default function AdminProposalsPage() {
                           toast.error(String(json?.error || "Delete failed"))
                         }
                       } catch { }
-                    }}>Delete</Button>
+                    }}>
+                      <SubmitButton
+                        type="danger"
+                        confirm={`Are you sure you want to delete the draft "${d.title || "Untitled Proposal"}"?`}
+                        className="inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3"
+                      >
+                        Delete
+                      </SubmitButton>
+                    </SaveForm>
                   </div>
                 </div>
               ))
@@ -924,64 +1096,68 @@ export default function AdminProposalsPage() {
               />
               {!crmSelectedId && (clientName.trim() || clientEmail.trim()) && (
                 <div className="md:col-span-2 flex items-center justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={async () => {
-                      try {
-                        const res = await fetch("/api/crm/contacts", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ name: clientName, email: clientEmail, phone: clientPhone, company: clientCompany }),
-                        })
-                        const json = await res.json().catch(() => ({}))
-                        if (res.ok && json?.ok && json?.id) {
-                          setCrmSelectedId(String(json.id))
-                          toast.success("Added to CRM")
-                        } else {
-                          toast.error(String(json?.error || "Failed to add to CRM"))
-                        }
-                      } catch { }
-                    }}
-                  >
-                    Add to CRM
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={async () => {
-                      try {
-                        const res = await fetch("/api/crm/leads", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ name: clientName, email: clientEmail, phone: clientPhone, company: clientCompany, source: "Proposal", notes: title }),
-                        })
-                        const json = await res.json().catch(() => ({}))
-                        if (res.ok && json?.ok && json?.id) {
-                          setCreatedLeadId(String(json.id))
-                          toast.success(
-                            <span>
-                              Lead created: {String(json.id)} •{" "}
-                              <a href={`/admin/crm?lead=${encodeURIComponent(String(json.id))}`} className="underline">Open</a>
-                            </span>,
-                            {
-                              action: {
-                                label: "Copy Link",
-                                onClick: () => {
-                                  const url = `${window.location.origin}/admin/crm?lead=${encodeURIComponent(String(json.id))}`
-                                  navigator.clipboard.writeText(url)
-                                },
+                  <SaveForm action={async () => {
+                    try {
+                      const res = await fetch("/api/crm/contacts", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name: clientName, email: clientEmail, phone: clientPhone, company: clientCompany }),
+                      })
+                      const json = await res.json().catch(() => ({}))
+                      if (res.ok && json?.ok && json?.id) {
+                        setCrmSelectedId(String(json.id))
+                        toast.success("Added to CRM")
+                      } else {
+                        toast.error(String(json?.error || "Failed to add to CRM"))
+                      }
+                    } catch { }
+                  }}>
+                    <SubmitButton
+                      variant="outline"
+                      confirm="Add this client to your CRM contacts?"
+                      className="inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3"
+                    >
+                      Add to CRM
+                    </SubmitButton>
+                  </SaveForm>
+                  <SaveForm action={async () => {
+                    try {
+                      const res = await fetch("/api/crm/leads", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name: clientName, email: clientEmail, phone: clientPhone, company: clientCompany, source: "Proposal", notes: title }),
+                      })
+                      const json = await res.json().catch(() => ({}))
+                      if (res.ok && json?.ok && json?.id) {
+                        setCreatedLeadId(String(json.id))
+                        toast.success(
+                          <span>
+                            Lead created: {String(json.id)} •{" "}
+                            <a href={`/admin/crm?lead=${encodeURIComponent(String(json.id))}`} className="underline">Open</a>
+                          </span>,
+                          {
+                            action: {
+                              label: "Copy Link",
+                              onClick: () => {
+                                const url = `${window.location.origin}/admin/crm?lead=${encodeURIComponent(String(json.id))}`
+                                navigator.clipboard.writeText(url)
                               },
-                            }
-                          )
-                        } else {
-                          toast.error(String(json?.error || "Failed to create lead"))
-                        }
-                      } catch { }
-                    }}
-                  >
-                    Create Lead
-                  </Button>
+                            },
+                          }
+                        )
+                      } else {
+                        toast.error(String(json?.error || "Failed to create lead"))
+                      }
+                    } catch { }
+                  }}>
+                    <SubmitButton
+                      variant="outline"
+                      confirm="Create a new CRM lead for this client?"
+                      className="inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3"
+                    >
+                      Create Lead
+                    </SubmitButton>
+                  </SaveForm>
                   {createdLeadId && (
                     <a href={`/admin/crm?lead=${encodeURIComponent(createdLeadId)}`} className="text-xs underline text-muted-foreground hover:text-foreground">
                       Open lead in CRM
@@ -991,39 +1167,41 @@ export default function AdminProposalsPage() {
               )}
               {crmSelectedId && (
                 <div className="md:col-span-2 flex items-center justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={async () => {
-                      try {
-                        const payload = { title, contact_id: crmSelectedId, value: total, next_activity: "Proposal created", due_date: validUntil }
-                        const res = await fetch("/api/crm/deals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
-                        const json = await res.json().catch(() => ({}))
-                        if (res.ok && json?.ok && json?.id) {
-                          setCreatedDealId(String(json.id))
-                          toast.success(
-                            <span>
-                              Deal created: {String(json.id)} •{" "}
-                              <a href={`/admin/crm?deal=${encodeURIComponent(String(json.id))}`} className="underline">Open</a>
-                            </span>,
-                            {
-                              action: {
-                                label: "Copy Link",
-                                onClick: () => {
-                                  const url = `${window.location.origin}/admin/crm?deal=${encodeURIComponent(String(json.id))}`
-                                  navigator.clipboard.writeText(url)
-                                },
+                  <SaveForm action={async () => {
+                    try {
+                      const payload = { title, contact_id: crmSelectedId, value: total, next_activity: "Proposal created", due_date: validUntil }
+                      const res = await fetch("/api/crm/deals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+                      const json = await res.json().catch(() => ({}))
+                      if (res.ok && json?.ok && json?.id) {
+                        setCreatedDealId(String(json.id))
+                        toast.success(
+                          <span>
+                            Deal created: {String(json.id)} •{" "}
+                            <a href={`/admin/crm?deal=${encodeURIComponent(String(json.id))}`} className="underline">Open</a>
+                          </span>,
+                          {
+                            action: {
+                              label: "Copy Link",
+                              onClick: () => {
+                                const url = `${window.location.origin}/admin/crm?deal=${encodeURIComponent(String(json.id))}`
+                                navigator.clipboard.writeText(url)
                               },
-                            }
-                          )
-                        } else {
-                          toast.error(String(json?.error || "Failed to create deal"))
-                        }
-                      } catch { }
-                    }}
-                  >
-                    Create Deal
-                  </Button>
+                            },
+                          }
+                        )
+                      } else {
+                        toast.error(String(json?.error || "Failed to create deal"))
+                      }
+                    } catch { }
+                  }}>
+                    <SubmitButton
+                      variant="outline"
+                      confirm="Create a new CRM deal for this proposal?"
+                      className="inline-flex items-center justify-center rounded-md text-xs font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3"
+                    >
+                      Create Deal
+                    </SubmitButton>
+                  </SaveForm>
                   {createdDealId && (
                     <a href={`/admin/crm?deal=${encodeURIComponent(createdDealId)}`} className="text-xs underline text-muted-foreground hover:text-foreground">
                       Open deal in CRM
@@ -1239,9 +1417,9 @@ export default function AdminProposalsPage() {
           <div className="bg-card border border-border/40 rounded-xl shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
               <div className="font-semibold">Preview</div>
-              <div className="text-sm text-muted-foreground">Just now</div>
+              <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>Full Preview</Button>
             </div>
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-6 max-h-[800px] overflow-y-auto">
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-4">
 
@@ -1332,6 +1510,114 @@ export default function AdminProposalsPage() {
           </div>
         </div>
       </div>
+      {previewOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setPreviewOpen(false)} />
+          <div className="relative w-full max-w-6xl max-h-[95vh] overflow-auto bg-card border border-border/40 rounded-xl shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm border-b border-border/40 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold">Proposal Preview</h3>
+                <p className="text-xs text-muted-foreground">Full document view</p>
+              </div>
+              <button onClick={() => setPreviewOpen(false)} className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-8 space-y-8">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-6">
+                  <img
+                    src="https://res.cloudinary.com/dbviya1rj/image/upload/v1757004631/nlir90vrzv0qywleruvv.png"
+                    alt="ModuLux Logo"
+                    className="w-72 h-24 rounded-lg border border-border/40 object-cover"
+                  />
+                  <div>
+                    <div className="text-3xl font-bold text-foreground mb-2">{title || "Untitled Proposal"}</div>
+                    <div className="text-base text-muted-foreground">Issue date: {issueDate || "—"}</div>
+                    <div className="text-base text-muted-foreground">Valid until: {validUntil || "—"}</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-base font-semibold text-foreground">ModuLux</div>
+                  <div className="text-base text-muted-foreground">sales@modulux.ph</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div className="rounded-lg border border-border/40 p-5 bg-muted/20">
+                  <div className="text-sm font-semibold text-muted-foreground mb-3">Client Information</div>
+                  <div className="text-lg font-bold text-foreground">{clientName || "—"}</div>
+                  <div className="text-base text-muted-foreground mt-1">{clientEmail || ""}</div>
+                  <div className="text-base text-muted-foreground">{clientPhone || ""}</div>
+                  <div className="text-base text-muted-foreground">{clientCompany || ""}</div>
+                </div>
+                <div className="rounded-lg border border-border/40 p-5 bg-muted/20">
+                  <div className="text-sm font-semibold text-muted-foreground mb-3">Project Summary</div>
+                  <div className="text-base text-muted-foreground">{notes || "No notes provided."}</div>
+                </div>
+              </div>
+
+              <div>
+                <div className="text-lg font-bold mb-4">Line Items</div>
+                <div className="border border-border/40 rounded-lg overflow-hidden">
+                  <table className="w-full text-base">
+                    <thead className="bg-muted/50">
+                      <tr className="border-b border-border/40">
+                        <th className="text-left font-semibold p-4">Category</th>
+                        <th className="text-left font-semibold p-4">Set</th>
+                        <th className="text-left font-semibold p-4">Room</th>
+                        <th className="text-left font-semibold p-4">Meters</th>
+                        <th className="text-left font-semibold p-4">Rate</th>
+                        <th className="text-left font-semibold p-4">Details</th>
+                        <th className="text-left font-semibold p-4">Install</th>
+                        <th className="text-right font-semibold p-4">Line Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/40">
+                      {previewBreakdown.map((r) => (
+                        <tr key={r.id} className="hover:bg-muted/20 transition-colors">
+                          <td className="p-4 capitalize font-medium">{r.category || "—"}</td>
+                          <td className="p-4">{r.set}</td>
+                          <td className="p-4">{r.room}</td>
+                          <td className="p-4">{r.meters}m</td>
+                          <td className="p-4">₱{r.rate.toLocaleString()}/m</td>
+                          <td className="p-4 text-sm text-muted-foreground max-w-xs">{r.details || "—"}</td>
+                          <td className="p-4">{r.installTxt}</td>
+                          <td className="p-4 text-right font-semibold">₱{r.totalLine.toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="bg-muted/30 border-t-2 border-border/40">
+                      <tr>
+                        <td colSpan={7} className="text-right p-4 font-medium">Subtotal</td>
+                        <td className="text-right p-4 font-semibold">₱{subtotal.toLocaleString()}</td>
+                      </tr>
+                      <tr>
+                        <td colSpan={7} className="text-right p-4 font-medium">Tax ({taxRate}%)</td>
+                        <td className="text-right p-4 font-semibold">₱{tax.toLocaleString()}</td>
+                      </tr>
+                      {discount > 0 && (
+                        <tr>
+                          <td colSpan={7} className="text-right p-4 font-medium text-green-600">Discount</td>
+                          <td className="text-right p-4 font-semibold text-green-600">-₱{discount.toLocaleString()}</td>
+                        </tr>
+                      )}
+                      <tr className="border-t-2 border-border/40">
+                        <td colSpan={7} className="text-right p-4 text-lg font-bold">Total</td>
+                        <td className="text-right p-4 text-lg font-bold text-primary">₱{total.toLocaleString()}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+
+              <div className="text-sm text-muted-foreground bg-muted/20 p-4 rounded-lg border border-border/40">
+                This is a proposal document generated for review purposes. Final scope and pricing may vary based on site survey and material selection.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {aiOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="w-full max-w-2xl bg-card rounded-lg shadow-lg border border-border/40 p-6">

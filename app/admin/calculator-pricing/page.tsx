@@ -6,6 +6,8 @@ import path from "path"
 
 import nextDynamic from "next/dynamic"
 
+import { AddModal } from "@/components/admin/add-modal"
+import { SaveForm, SubmitButton } from "@/components/admin/save-form"
 const AdminCalculatorEmbed = nextDynamic(
   () => import("@/components/admin/admin-calculator-embed").then((mod) => mod.AdminCalculatorEmbed),
   { ssr: false, loading: () => <div className="p-12 text-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed">Loading Calculator...</div> }
@@ -166,11 +168,15 @@ export default async function AdminCalculatorPricingPage({ searchParams }: { sea
         <div className="flex items-center justify-between mb-3">
           <div className="text-sm font-semibold">Pricing Versions</div>
           {mergedVersions.length > 0 && (
-            <form action={clearAllVersions}>
-              <button type="submit" className="text-[10px] font-bold uppercase tracking-tight text-red-600 hover:bg-red-50 px-2 py-1 rounded border border-red-200 transition-colors">
+            <SaveForm action={clearAllVersions}>
+              <SubmitButton
+                type="danger"
+                confirm="Are you sure you want to clear ALL pricing versions? This action cannot be undone."
+                className="text-[10px] font-bold uppercase tracking-tight text-red-600 hover:bg-red-50 px-2 py-1 rounded border border-red-200 transition-colors"
+              >
                 Clear All
-              </button>
-            </form>
+              </SubmitButton>
+            </SaveForm>
           )}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
@@ -186,14 +192,20 @@ export default async function AdminCalculatorPricingPage({ searchParams }: { sea
               </div>
               <div className="flex gap-1 justify-end">
                 <Link href={`?view=${v.ts}`} scroll={false} className="px-2 py-1 rounded border text-[10px] font-medium hover:bg-muted/50 transition-colors">View</Link>
-                <form action={restorePricing}>
+                <SaveForm action={restorePricing}>
                   <input type="hidden" name="ts" value={String(v.ts)} />
-                  <button type="submit" className="px-2 py-1 rounded border text-[10px] font-medium hover:bg-muted/50 transition-colors">Restore</button>
-                </form>
-                <form action={deleteVersion}>
+                  <SubmitButton confirm={`Restore pricing version from ${new Date(v.ts).toLocaleString()}?`} className="px-2 py-1 rounded border text-[10px] font-medium hover:bg-muted/50 transition-colors">Restore</SubmitButton>
+                </SaveForm>
+                <SaveForm action={deleteVersion}>
                   <input type="hidden" name="ts" value={String(v.ts)} />
-                  <button type="submit" className="px-2 py-1 rounded border text-[10px] font-medium text-red-600 hover:bg-red-50 transition-colors">Delete</button>
-                </form>
+                  <SubmitButton
+                    type="danger"
+                    confirm="Delete this pricing version?"
+                    className="px-2 py-1 rounded border text-[10px] font-medium text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    Delete
+                  </SubmitButton>
+                </SaveForm>
               </div>
             </div>
           ))}
@@ -210,10 +222,10 @@ export default async function AdminCalculatorPricingPage({ searchParams }: { sea
                 <p className="text-xs text-muted-foreground">{new Date(viewData.ts).toLocaleString()}</p>
               </div>
               <div className="flex items-center gap-3">
-                <form action={restorePricing}>
+                <SaveForm action={restorePricing}>
                   <input type="hidden" name="ts" value={String(viewData.ts)} />
-                  <button type="submit" className="px-3 py-1.5 rounded-md bg-primary text-white text-xs font-semibold hover:bg-primary/90 transition-all shadow-sm">Restore this Version</button>
-                </form>
+                  <SubmitButton confirm="Restore this version as the active pricing?" className="px-3 py-1.5 rounded-md bg-primary text-white text-xs font-semibold hover:bg-primary/90 transition-all shadow-sm">Restore this Version</SubmitButton>
+                </SaveForm>
                 <Link
                   href={`/admin/proposals?aiTs=${viewData.ts}`}
                   className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px] active:translate-y-0 disabled:pointer-events-none disabled:opacity-50 border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 px-4 py-2"

@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { Plus, Trash2, Calculator, Download, RotateCcw, Settings, ChevronDown, ChevronUp, GripVertical, Pencil, X, Eye } from "lucide-react"
+import { Plus, Trash2, Calculator, Download, RotateCcw, Settings, ChevronDown, ChevronUp, GripVertical, Pencil, X, Eye, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { AIPlanParser } from "@/components/admin/ai-plan-parser"
 
 interface Panel {
     id: string
@@ -100,6 +101,7 @@ export default function CutlistGeneratorPage() {
     // Cabinet type defaults (configurable, persisted to localStorage)
     const [cabinetTypeDefaults, setCabinetTypeDefaults] = useState<Record<"base" | "hanging" | "tall", CabinetTypeDefaults>>(CABINET_DEFAULTS)
     const [settingsModalType, setSettingsModalType] = useState<"base" | "hanging" | "tall" | null>(null)
+    const [aiParserOpen, setAiParserOpen] = useState(false)
 
     // Load defaults from localStorage on mount
     useEffect(() => {
@@ -169,6 +171,36 @@ export default function CutlistGeneratorPage() {
         setStockSheets((prev) =>
             prev.map((s) => (s.id === id ? { ...s, [field]: value } : s))
         )
+    }
+
+    // Cabinet Builder functions
+    // Handle AI extracted cabinets
+    const handleApplyExtractedCabinets = (extracted: Array<{
+        id: string
+        type: "base" | "hanging" | "tall"
+        height: number
+        depth: number
+        width: number
+        quantity: number
+        confidence: number
+        location?: string
+    }>) => {
+        const newConfigs = extracted.map((cab, idx) => ({
+            id: crypto.randomUUID(),
+            type: cab.type,
+            linearMeters: (cab.width * cab.quantity) / 1000, // convert to meters
+            unitWidth: cab.width,
+            height: cab.height,
+            depth: cab.depth,
+            doorsPerUnit: cabinetTypeDefaults[cab.type].doorsPerUnit,
+            shelves: cabinetTypeDefaults[cab.type].shelves,
+            drawers: cabinetTypeDefaults[cab.type].drawers,
+            order: cabinetConfigs.length + idx
+        }))
+
+        setCabinetConfigs(prev => [...prev, ...newConfigs])
+        setAiParserOpen(false)
+        toast.success(`Added ${newConfigs.length} cabinet${newConfigs.length > 1 ? 's' : ''} from plan`)
     }
 
     // Cabinet Builder functions
@@ -614,6 +646,19 @@ export default function CutlistGeneratorPage() {
                         </div>
                         {showCabinetBuilder && (
                             <div className="space-y-3">
+                                {/* Upload Plan Button */}
+                                <div className="mb-2">
+                                    <Button
+                                        onClick={() => setAiParserOpen(true)}
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full text-xs"
+                                    >
+                                        <Upload className="w-3 h-3 mr-1" />
+                                        Upload Architectural Plan
+                                    </Button>
+                                </div>
+
                                 {/* Add Cabinet Buttons with Settings */}
                                 <div className="flex gap-1">
                                     {(["base", "hanging", "tall"] as const).map((type) => {
@@ -1669,6 +1714,25 @@ export default function CutlistGeneratorPage() {
                                 Done
                             </Button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* AI Plan Parser Modal */}
+            {aiParserOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setAiParserOpen(false)} />
+                    <div className="relative w-full max-w-4xl max-h-[90vh] overflow-auto bg-card border border-border/40 rounded-xl shadow-2xl p-6">
+                        <div className="mb-6">
+                            <h2 className="text-2xl font-bold mb-2">AI Plan Parser</h2>
+                            <p className="text-sm text-muted-foreground">
+                                Upload an architectural floor plan to automatically extract cabinet specifications
+                            </p>
+                        </div>
+                        <AIPlanParser
+                            onApply={handleApplyExtractedCabinets}
+                            onClose={() => setAiParserOpen(false)}
+                        />
                     </div>
                 </div>
             )}
