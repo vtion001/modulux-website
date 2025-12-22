@@ -35,8 +35,8 @@ interface Unit {
   notes?: string
 }
 
-export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }): JSX.Element {
-  const [formData, setFormData] = useState<CalculatorState>({
+export function AdminCalculatorEmbed({ initialData }: { initialData?: any }): JSX.Element {
+  const [formData, setFormData] = useState<CalculatorState>(initialData?.prefill?.formData || {
     projectType: "kitchen",
     roomSize: "",
     cabinetType: "luxury",
@@ -48,11 +48,11 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
     kitchenScope: "",
   })
 
-  const [estimate, setEstimate] = useState<number | null>(null)
-  const [subtotal, setSubtotal] = useState<number | null>(null)
-  const [tax, setTax] = useState<number | null>(null)
+  const [estimate, setEstimate] = useState<number | null>(initialData?.prefill?.estimate || null)
+  const [subtotal, setSubtotal] = useState<number | null>(initialData?.prefill?.subtotal || null)
+  const [tax, setTax] = useState<number | null>(initialData?.prefill?.tax || null)
   const [lines, setLines] = useState<any[]>([])
-  const [tierSpecs, setTierSpecs] = useState<Record<string, { items: string[]; exclusive: string[] }>>({
+  const [tierSpecs, setTierSpecs] = useState<Record<string, { items: string[]; exclusive: string[] }>>(initialData?.tierSpecs || {
     standard: {
       items: [
         "Carcass: 18mm MR MFC Melamine Board",
@@ -84,26 +84,26 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
       exclusive: ["Special Mechanism", "Lighting", "Appliances"],
     },
   })
-  const [baseRates, setBaseRates] = useState<{ base: number; hanging: number; tall: number } | null>(null)
-  const [tiers, setTiers] = useState<{ luxury: number; premium: number; standard: number } | null>(null)
-  const [cabinetCategory, setCabinetCategory] = useState<string>("base")
-  const [tier, setTier] = useState<string>("luxury")
-  const [sheetRates, setSheetRates] = useState<any>(null)
-  const [ctMultipliers, setCtMultipliers] = useState<{ luxury: number; premium: number; basic: number } | null>(null)
+  const [baseRates, setBaseRates] = useState<{ base: number; hanging: number; tall: number } | null>(initialData?.baseRates || null)
+  const [tiers, setTiers] = useState<{ luxury: number; premium: number; standard: number } | null>(initialData?.tierMultipliers || null)
+  const [cabinetCategory, setCabinetCategory] = useState<string>(initialData?.prefill?.cabinetCategory || "base")
+  const [tier, setTier] = useState<string>(initialData?.prefill?.tier || "luxury")
+  const [sheetRates, setSheetRates] = useState<any>(initialData?.sheetRates || null)
+  const [ctMultipliers, setCtMultipliers] = useState<{ luxury: number; premium: number; basic: number } | null>(initialData?.cabinetTypeMultipliers || null)
 
-  const [units, setUnits] = useState<Unit[]>([
+  const [units, setUnits] = useState<Unit[]>(initialData?.prefill?.units || [
     { enabled: true, category: "base", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType: "kitchen", customRoomName: "", setId: 0 },
     { enabled: false, category: "hanging", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType: "kitchen", customRoomName: "", setId: 0 },
     { enabled: false, category: "tall", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType: "kitchen", customRoomName: "", setId: 0 },
   ])
-  const [roomTypeSelection, setRoomTypeSelection] = useState<string>("kitchen")
-  const [customRoomName, setCustomRoomName] = useState<string>("")
-  const [applyTax, setApplyTax] = useState(true)
-  const [taxRate, setTaxRate] = useState(0.12)
-  const [discount, setDiscount] = useState(0)
-  const [includeFees, setIncludeFees] = useState(true)
-  const [importSurcharge, setImportSurcharge] = useState(false)
-  const [downgradeMFC, setDowngradeMFC] = useState(false)
+  const [roomTypeSelection, setRoomTypeSelection] = useState<string>(initialData?.prefill?.units?.[0]?.roomType || "kitchen")
+  const [customRoomName, setCustomRoomName] = useState<string>(initialData?.prefill?.units?.[0]?.customRoomName || "")
+  const [applyTax, setApplyTax] = useState(initialData?.prefill?.applyTax ?? true)
+  const [taxRate, setTaxRate] = useState(initialData?.prefill?.taxRate ?? 0.12)
+  const [discount, setDiscount] = useState(initialData?.prefill?.discount ?? 0)
+  const [includeFees, setIncludeFees] = useState(initialData?.prefill?.includeFees ?? true)
+  const [importSurcharge, setImportSurcharge] = useState(initialData?.prefill?.importSurcharge ?? false)
+  const [downgradeMFC, setDowngradeMFC] = useState(initialData?.prefill?.downgradeMFC ?? false)
   const [configOpen, setConfigOpen] = useState(false)
   const [editor, setEditor] = useState<any>(null)
   const [contactsAll, setContactsAll] = useState<any[]>([])
@@ -112,14 +112,18 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
   const [isClientPickerOpen, setIsClientPickerOpen] = useState(false)
   const [clientQuery, setClientQuery] = useState("")
   const [loadingContacts, setLoadingContacts] = useState(false)
-  const [shouldAutoCalc, setShouldAutoCalc] = useState(false)
+  const [shouldAutoCalc, setShouldAutoCalc] = useState(!!initialData?.prefill)
   const [expandedUnitId, setExpandedUnitId] = useState<string | null>(null)
 
   useEffect(() => {
-    ; (async () => {
+    (async () => {
       try {
-        const res = await fetch("/api/pricing/get")
-        const cfg = await res.json()
+        let cfg = initialData
+        if (!cfg) {
+          const res = await fetch("/api/pricing/get", { cache: "no-store" })
+          cfg = await res.json()
+        }
+
         if (cfg?.baseRates) setBaseRates(cfg.baseRates)
         if (cfg?.tierMultipliers) setTiers(cfg.tierMultipliers)
         if (cfg?.sheetRates) setSheetRates(cfg.sheetRates)
@@ -130,44 +134,32 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
         })
         if (cfg?.cabinetTypeMultipliers) setCtMultipliers(cfg.cabinetTypeMultipliers)
         if (cfg?.tierSpecs) setTierSpecs(cfg.tierSpecs)
+
+        // Auto-populate calculator state if prefill data exists
         if (cfg?.prefill) {
-          const p = cfg.prefill as any
-          if (p?.formData) setFormData(p.formData)
-          if (Array.isArray(p?.units)) setUnits(p.units)
-          if (typeof p?.applyTax === "boolean") setApplyTax(p.applyTax)
-          if (typeof p?.taxRate === "number") setTaxRate(p.taxRate)
-          if (typeof p?.discount === "number") setDiscount(p.discount)
-          if (typeof p?.cabinetCategory === "string") setCabinetCategory(p.cabinetCategory)
-          if (typeof p?.tier === "string") setTier(p.tier)
-          if (typeof p?.includeFees === "boolean") setIncludeFees(p.includeFees)
-          if (typeof p?.importSurcharge === "boolean") setImportSurcharge(p.importSurcharge)
-          if (typeof p?.downgradeMFC === "boolean") setDowngradeMFC(p.downgradeMFC)
-          setShouldAutoCalc(true)
-        } else {
-          try {
-            const resV = await fetch("/api/pricing/versions")
-            const vjson = await resV.json().catch(() => ({}))
-            const latest = Array.isArray(vjson?.versions) && vjson.versions.length > 0 ? vjson.versions[0] : null
-            const prefill = latest?.data?.prefill
-            if (prefill) {
-              const p = prefill as any
-              if (p?.formData) setFormData(p.formData)
-              if (Array.isArray(p?.units)) setUnits(p.units)
-              if (typeof p?.applyTax === "boolean") setApplyTax(p.applyTax)
-              if (typeof p?.taxRate === "number") setTaxRate(p.taxRate)
-              if (typeof p?.discount === "number") setDiscount(p.discount)
-              if (typeof p?.cabinetCategory === "string") setCabinetCategory(p.cabinetCategory)
-              if (typeof p?.tier === "string") setTier(p.tier)
-              if (typeof p?.includeFees === "boolean") setIncludeFees(p.includeFees)
-              if (typeof p?.importSurcharge === "boolean") setImportSurcharge(p.importSurcharge)
-              if (typeof p?.downgradeMFC === "boolean") setDowngradeMFC(p.downgradeMFC)
-              setShouldAutoCalc(true)
-            }
-          } catch { }
+          const p = cfg.prefill
+          if (p.formData) setFormData(p.formData)
+          if (p.units) {
+            const normalized = p.units.map((u: any) => ({
+              ...u,
+              setId: typeof u.setId === 'number' ? u.setId : 0
+            }))
+            setUnits(normalized)
+          }
+          if (typeof p.applyTax === 'boolean') setApplyTax(p.applyTax)
+          if (typeof p.taxRate === 'number') setTaxRate(p.taxRate)
+          if (typeof p.discount === 'number') setDiscount(p.discount)
+          if (p.cabinetCategory) setCabinetCategory(p.cabinetCategory)
+          if (p.tier) setTier(p.tier)
+          if (typeof p.includeFees === 'boolean') setIncludeFees(p.includeFees)
+          if (typeof p.importSurcharge === 'boolean') setImportSurcharge(p.importSurcharge)
+          if (typeof p.downgradeMFC === 'boolean') setDowngradeMFC(p.downgradeMFC)
         }
+        // Trigger a calculation once rates are loaded
+        setShouldAutoCalc(true)
       } catch { }
     })()
-  }, [versionKey])
+  }, [initialData])
 
   useEffect(() => {
     if (!shouldAutoCalc) return
@@ -193,7 +185,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
         const clientsRaw = Array.isArray(db?.clients) ? db.clients : []
         const arrL = leadsRaw.map((l: any) => ({ id: l.id, name: l.name, email: l.email, phone: l.phone, company: l.company, tags: Array.isArray(l.tags) ? l.tags : ["Lead"], created_at: l.created_at }))
         const arrCli = clientsRaw.map((c: any) => ({ id: c.id, name: c.name, email: c.email || "", phone: c.phone || "", company: c.company || "", tags: ["Client", c.status || ""].filter(Boolean), created_at: c.created_at }))
-        merged = [...arrC, ...arrL, ...arrCli]
+        merged = [...arrC, ...arrL, ...arrCli].filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i)
       } else {
         throw new Error("api_failed")
       }
@@ -325,6 +317,81 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  const recordVersion = async () => {
+    try {
+      // Ensure we save a perfectly synchronized snapshot by running the estimator logic here
+      const activeUnits = units
+        .filter((u) => u.enabled && Number(u.meters) > 0)
+        .map((u) => ({
+          category: u.category,
+          meters: Number(u.meters),
+          material: u.material || undefined,
+          finish: u.finish || undefined,
+          hardware: u.hardware || undefined,
+          tier: u.tier || tier,
+          items: u.items,
+          exclusive: u.exclusive,
+        }))
+      const legacyLm = parseFloat(formData.linearMeter)
+      const useLegacy = !activeUnits.length && !isNaN(legacyLm) && legacyLm > 0
+
+      const calcResult = estimateCabinetCost({
+        projectType: formData.projectType,
+        cabinetType: formData.cabinetType,
+        linearMeter: useLegacy ? legacyLm : undefined,
+        installation: formData.installation,
+        cabinetCategory,
+        tier,
+        baseRates: baseRates || undefined,
+        tierMultipliers: tiers || undefined,
+        cabinetTypeMultipliers: ctMultipliers || undefined,
+        units: activeUnits,
+        discount,
+        applyTax,
+        taxRate,
+        sheetRates: sheetRates || undefined,
+        includeFees,
+        applyImportSurcharge: importSurcharge,
+        downgradeToMFC: downgradeMFC,
+      })
+
+      const payload = {
+        baseRates,
+        tierMultipliers: tiers,
+        sheetRates,
+        cabinetTypeMultipliers: ctMultipliers,
+        prefill: {
+          formData,
+          units,
+          applyTax,
+          taxRate,
+          discount,
+          cabinetCategory,
+          tier,
+          includeFees,
+          importSurcharge,
+          downgradeMFC,
+          estimate: calcResult.total,
+          subtotal: calcResult.breakdown?.subtotal || 0,
+          tax: calcResult.breakdown?.tax || 0
+        }
+      }
+      const res = await fetch("/api/pricing/versions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      if (res.ok) {
+        toast.success("Pricing version recorded")
+        window.location.reload()
+      } else {
+        throw new Error()
+      }
+    } catch {
+      toast.error("Failed to record version")
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -336,76 +403,70 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
           <div className="bg-card rounded-lg shadow-sm border border-border/40 p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-foreground">Project Details</h2>
-              <button
-                onClick={() => {
-                  setFormData({
-                    projectType: "kitchen",
-                    roomSize: "",
-                    cabinetType: "luxury",
-                    material: "",
-                    finish: "",
-                    hardware: "",
-                    installation: false,
-                    linearMeter: "",
-                    kitchenScope: "",
-                  })
-                  setUnits([
-                    { enabled: true, category: "base", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType: "kitchen", customRoomName: "", setId: 0 },
-                    { enabled: false, category: "hanging", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType: "kitchen", customRoomName: "", setId: 0 },
-                    { enabled: false, category: "tall", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType: "kitchen", customRoomName: "", setId: 0 },
-                  ])
-                  setRoomTypeSelection("kitchen")
-                  setCustomRoomName("")
-                  setCabinetCategory("base")
-                  setTier("luxury")
-                  setApplyTax(true)
-                  setTaxRate(0.12)
-                  setDiscount(0)
-                  setIncludeFees(true)
-                  setImportSurcharge(false)
-                  setDowngradeMFC(false)
-                  setEstimate(null)
-                  setSubtotal(null)
-                  setTax(null)
-                  setLines([])
-                  toast.success("Calculator cleared")
-                }}
-                className="px-3 py-1.5 rounded-md border text-sm text-foreground hover:bg-muted/30"
-              >
-                Clear
-              </button>
+              <div className="flex items-center gap-2">
+                {estimate !== null && (
+                  <button type="button"
+                    onClick={recordVersion}
+                    className="px-3 py-1.5 rounded-md bg-primary/10 text-primary border border-primary/20 text-sm font-medium hover:bg-primary/20 transition-colors"
+                  >
+                    Record Version
+                  </button>
+                )}
+                <button type="button"
+                  onClick={() => {
+                    setFormData({
+                      projectType: "kitchen",
+                      roomSize: "",
+                      cabinetType: "luxury",
+                      material: "",
+                      finish: "",
+                      hardware: "",
+                      installation: false,
+                      linearMeter: "",
+                      kitchenScope: "",
+                    })
+                    setUnits([
+                      { enabled: true, category: "base", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType: "kitchen", customRoomName: "", setId: 0 },
+                      { enabled: false, category: "hanging", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType: "kitchen", customRoomName: "", setId: 0 },
+                      { enabled: false, category: "tall", meters: 0, material: "", finish: "", hardware: "", tier: "", roomType: "kitchen", customRoomName: "", setId: 0 },
+                    ])
+                    setRoomTypeSelection("kitchen")
+                    setCustomRoomName("")
+                    setCabinetCategory("base")
+                    setTier("luxury")
+                    setApplyTax(true)
+                    setTaxRate(0.12)
+                    setDiscount(0)
+                    setIncludeFees(true)
+                    setImportSurcharge(false)
+                    setDowngradeMFC(false)
+                    setEstimate(null)
+                    setSubtotal(null)
+                    setTax(null)
+                    setLines([])
+                    toast.success("Calculator cleared")
+                  }}
+                  className="px-3 py-1.5 rounded-md border text-sm text-foreground hover:bg-muted/30"
+                >
+                  Clear
+                </button>
+              </div>
             </div>
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-3">Project Type</label>
                 <div className="grid grid-cols-2 gap-3">
                   {["kitchen", "bathroom", "bedroom", "office"].map((value) => (
-                    <button key={value} onClick={() => handleInputChange("projectType", value)} className={`p-3 rounded-md border text-sm font-medium transition-all ${formData.projectType === value ? "bg-primary text-white border-primary" : "bg-background text-foreground border-border/40 hover:border-primary/50"}`}>{value[0].toUpperCase() + value.slice(1)}</button>
+                    <button type="button" key={value} onClick={() => handleInputChange("projectType", value)} className={`p-3 rounded-md border text-sm font-medium transition-all ${formData.projectType === value ? "bg-primary text-white border-primary" : "bg-background text-foreground border-border/40 hover:border-primary/50"}`}>{value[0].toUpperCase() + value.slice(1)}</button>
                   ))}
                 </div>
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-3">Cabinet Type</label>
-                    <select value={cabinetCategory} onChange={(e) => setCabinetCategory(e.target.value)} className="w-full p-3 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
-                      <option value="base">Base Cabinet</option>
-                      <option value="hanging">Hanging Cabinet</option>
-                      <option value="tall">Tall Units</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-3">Quality Tier</label>
-                    <select value={tier} onChange={(e) => setTier(e.target.value)} className="w-full p-3 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
-                      <option value="luxury">Luxury</option>
-                      <option value="premium">Premium</option>
-                      <option value="standard">Standard</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-3">Linear Meters (fallback)</label>
-                    <input type="number" min="0" step="0.1" value={formData.linearMeter} onChange={(e) => handleInputChange("linearMeter", e.target.value)} className="w-full p-3 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20" />
-                  </div>
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-foreground mb-3">Quality Tier</label>
+                  <select value={tier} onChange={(e) => setTier(e.target.value)} className="w-full p-3 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20">
+                    <option value="luxury">Luxury</option>
+                    <option value="premium">Premium</option>
+                    <option value="standard">Standard</option>
+                  </select>
                 </div>
                 <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
                   <label className="flex items-center gap-2 text-sm text-foreground"><input type="checkbox" checked={includeFees} onChange={(e) => setIncludeFees(e.target.checked)} /> Include VAT & Legal Fees</label>
@@ -459,7 +520,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                     return (
                       <div key={`set-${sid}`} className="border border-border/40 rounded-md p-3">
                         <div className="flex items-center justify-between mb-2">
-                          <div className="font-medium text-foreground">Unit Set #{sid}</div>
+                          <div className="font-medium text-foreground">Unit Set #{sid + 1}</div>
                           <div className="flex items-center gap-2">
                             <label className="block text-xs font-medium text-muted-foreground">Room Type</label>
                             <select
@@ -477,8 +538,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                               <option value="office">Office</option>
                               <option value="custom">Custom / Other</option>
                             </select>
-                            <button
-                              type="button"
+                            <button type="button"
                               onClick={() => setUnits(prev => prev.filter(x => (typeof (x as any).setId === 'number' ? (x as any).setId : 0) !== sid))}
                               className="px-2 py-1 rounded-md border text-xs text-foreground hover:bg-destructive hover:text-white transition-colors"
                             >
@@ -528,15 +588,13 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                                       />
                                       Enable
                                     </label>
-                                    <button
-                                      type="button"
+                                    <button type="button"
                                       onClick={() => setExpandedUnitId(expandedUnitId === unitId ? null : unitId)}
                                       className={`px-2 py-1 rounded-md border text-xs transition-colors ${expandedUnitId === unitId ? "bg-primary text-white border-primary" : "text-foreground hover:bg-primary/10"}`}
                                     >
                                       {expandedUnitId === unitId ? "Close Config" : "Configure"}
                                     </button>
-                                    <button
-                                      type="button"
+                                    <button type="button"
                                       onClick={() => setUnits(prev => {
                                         let count = -1
                                         const result: any[] = []
@@ -676,8 +734,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                                     <div className="text-xs border rounded bg-muted/5 overflow-hidden">
                                       <div className="p-2 font-semibold bg-primary/5 border-b flex items-center justify-between">
                                         <span>Specification • {(u.tier || tier).charAt(0).toUpperCase() + (u.tier || tier).slice(1)}</span>
-                                        <button
-                                          type="button"
+                                        <button type="button"
                                           onClick={() => setExpandedUnitId(null)}
                                           className="p-1 hover:bg-muted rounded-full transition-colors"
                                         >
@@ -688,8 +745,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                                         <div>
                                           <div className="flex items-center justify-between mb-1">
                                             <div className="font-medium">Included</div>
-                                            <button
-                                              type="button"
+                                            <button type="button"
                                               onClick={() => {
                                                 const newItem = window.prompt("Add included item:");
                                                 if (!newItem) return;
@@ -710,7 +766,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                                             {(u.items || tierSpecs[u.tier || tier]?.items || []).map((it: string, idx: number) => (
                                               <li key={idx} className="group relative">
                                                 {it}
-                                                <button
+                                                <button type="button"
                                                   onClick={() => {
                                                     setUnits(prev => prev.map((x, xidx) => {
                                                       if (xidx === units.indexOf(u)) {
@@ -731,8 +787,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                                         <div>
                                           <div className="flex items-center justify-between mb-1">
                                             <div className="font-medium">Exclusive</div>
-                                            <button
-                                              type="button"
+                                            <button type="button"
                                               onClick={() => {
                                                 const newItem = window.prompt("Add exclusive item:");
                                                 if (!newItem) return;
@@ -753,7 +808,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                                             {(u.exclusive || tierSpecs[u.tier || tier]?.exclusive || []).map((it: string, idx: number) => (
                                               <li key={idx} className="group relative">
                                                 {it}
-                                                <button
+                                                <button type="button"
                                                   onClick={() => {
                                                     setUnits(prev => prev.map((x, xidx) => {
                                                       if (xidx === units.indexOf(u)) {
@@ -788,8 +843,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                                         />
                                       </div>
                                       <div className="p-2 border-t bg-primary/5 flex justify-end">
-                                        <button
-                                          type="button"
+                                        <button type="button"
                                           onClick={() => {
                                             setExpandedUnitId(null);
                                             toast.success("Unit configuration saved");
@@ -810,7 +864,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                     )
                   })}
                 </div>
-                <button
+                <button type="button"
                   onClick={() => {
                     const roomType = roomTypeSelection || "kitchen"
                     const customRoomNameLocal = customRoomName || ""
@@ -831,7 +885,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
 
               <div className="flex items-center"><input type="checkbox" id="installation" checked={formData.installation} onChange={(e) => handleInputChange("installation", e.target.checked)} className="w-4 h-4" /><label htmlFor="installation" className="ml-2 text-sm font-medium text-foreground">Include Professional Installation</label></div>
 
-              <button onClick={calculateEstimate} className="w-full bg-primary text-white py-3 px-6 rounded-md font-medium hover:bg-primary/90 transition-colors">Calculate Estimate</button>
+              <button type="button" onClick={calculateEstimate} className="w-full bg-primary text-white py-3 px-6 rounded-md font-medium hover:bg-primary/90 transition-colors">Calculate Estimate</button>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
                 <div><label className="block text-sm font-medium text-foreground mb-2">Discount (0–1)</label><input type="number" min="0" max="1" step="0.01" value={discount} onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)} className="w-full p-2 border border-border/40 rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20" /></div>
@@ -839,10 +893,10 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                 <label className="flex items-center gap-2 text-sm mt-6 text-foreground"><input type="checkbox" checked={applyTax} onChange={(e) => setApplyTax(e.target.checked)} /> Apply Tax</label>
               </div>
               <div className="mt-4 flex gap-2">
-                <button onClick={() => { localStorage.setItem("calculator_config", JSON.stringify({ formData, units, applyTax, taxRate, discount, cabinetCategory, tier, includeFees, importSurcharge, downgradeMFC })); toast.success("Configuration saved") }} className="px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Save Config</button>
-                <button onClick={() => { try { const raw = localStorage.getItem("calculator_config"); if (!raw) { toast.error("No saved config"); return } const cfg = JSON.parse(raw); setFormData(cfg.formData); const loadedUnits = Array.isArray(cfg.units) ? cfg.units : []; const normalized = loadedUnits.map((u: any, idx: number) => ({ ...u, setId: typeof u.setId === 'number' ? u.setId : 0 })); setUnits(normalized); setApplyTax(cfg.applyTax); setTaxRate(cfg.taxRate); setDiscount(cfg.discount); setCabinetCategory(cfg.cabinetCategory); setTier(cfg.tier); setIncludeFees(Boolean(cfg.includeFees)); setImportSurcharge(Boolean(cfg.importSurcharge)); setDowngradeMFC(Boolean(cfg.downgradeMFC)); const firstUnit = normalized.length ? normalized[0] : {}; setRoomTypeSelection(String((firstUnit as any).roomType || "kitchen")); setCustomRoomName(String((firstUnit as any).customRoomName || "")); toast.success("Configuration loaded") } catch { toast.error("Failed to load config") } }} className="px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Load Config</button>
-                <button onClick={() => window.print()} className="px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Print / PDF</button>
-                <button onClick={() => setConfigOpen(true)} className="ml-auto px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Pricing Configuration</button>
+                <button type="button" onClick={() => { localStorage.setItem("calculator_config", JSON.stringify({ formData, units, applyTax, taxRate, discount, cabinetCategory, tier, includeFees, importSurcharge, downgradeMFC })); toast.success("Configuration saved") }} className="px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Save Config</button>
+                <button type="button" onClick={() => { try { const raw = localStorage.getItem("calculator_config"); if (!raw) { toast.error("No saved config"); return } const cfg = JSON.parse(raw); setFormData(cfg.formData); const loadedUnits = Array.isArray(cfg.units) ? cfg.units : []; const normalized = loadedUnits.map((u: any, idx: number) => ({ ...u, setId: typeof u.setId === 'number' ? u.setId : 0 })); setUnits(normalized); setApplyTax(cfg.applyTax); setTaxRate(cfg.taxRate); setDiscount(cfg.discount); setCabinetCategory(cfg.cabinetCategory); setTier(cfg.tier); setIncludeFees(Boolean(cfg.includeFees)); setImportSurcharge(Boolean(cfg.importSurcharge)); setDowngradeMFC(Boolean(cfg.downgradeMFC)); const firstUnit = normalized.length ? normalized[0] : {}; setRoomTypeSelection(String((firstUnit as any).roomType || "kitchen")); setCustomRoomName(String((firstUnit as any).customRoomName || "")); toast.success("Configuration loaded") } catch { toast.error("Failed to load config") } }} className="px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Load Config</button>
+                <button type="button" onClick={() => window.print()} className="px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Print / PDF</button>
+                <button type="button" onClick={() => setConfigOpen(true)} className="ml-auto px-3 py-2 rounded-md border text-foreground hover:bg-muted/30">Pricing Configuration</button>
               </div>
             </div>
           </div>
@@ -850,7 +904,14 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
           <div className="bg-card rounded-lg shadow-sm border border-border/40 p-6">
             <h2 className="text-xl font-semibold text-foreground mb-4">Your Estimate</h2>
             <div className="mb-6">
-              <LazyImage src={cabinetCategory === "base" ? "/placeholder.svg?height=200&width=400&text=Base+Cabinet" : cabinetCategory === "hanging" ? "/placeholder.svg?height=200&width=400&text=Hanging+Cabinet" : "/placeholder.svg?height=200&width=400&text=Tall+Unit"} alt="Cabinet preview" width={400} height={200} className="rounded-md border" />
+              <LazyImage
+                src={cabinetCategory === "base" ? "/placeholder.svg?height=200&width=400&text=Base+Cabinet" : cabinetCategory === "hanging" ? "/placeholder.svg?height=200&width=400&text=Hanging+Cabinet" : "/placeholder.svg?height=200&width=400&text=Tall+Unit"}
+                alt="Cabinet preview"
+                width={400}
+                height={200}
+                className="rounded-md border"
+                priority
+              />
             </div>
             {estimate ? (
               <div className="space-y-6">
@@ -939,8 +1000,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                     <div className="text-sm font-semibold">Select Client</div>
                     <Popover.Root open={isClientPickerOpen} onOpenChange={setIsClientPickerOpen}>
                       <Popover.Trigger asChild>
-                        <button
-                          type="button"
+                        <button type="button"
                           aria-haspopup="listbox"
                           aria-expanded={isClientPickerOpen ? "true" : "false"}
                           className="w-full md:w-auto px-3 py-2 rounded-md border text-sm flex items-center justify-between gap-2"
@@ -981,9 +1041,8 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                         <div role="listbox" aria-label="Contacts list" className="max-h-64 overflow-auto">
                           {contacts.length > 0 ? (
                             contacts.map((c) => (
-                              <button
-                                key={c.id}
-                                type="button"
+                              <button type="button"
+                                key={c.id || `contact-${c.email}-${c.phone}`}
                                 role="option"
                                 aria-selected={selectedClient?.id === c.id ? "true" : "false"}
                                 onClick={() => { setSelectedClient(c); setIsClientPickerOpen(false); }}
@@ -1003,7 +1062,7 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                       <div className="text-xs text-muted-foreground">Selected: {selectedClient.name} ({selectedClient.email})</div>
                     )}
                   </div>
-                  <button
+                  <button type="button"
                     className={`w-full py-3 px-6 rounded-md font-medium transition-colors ${selectedClient ? "bg-secondary text-white hover:bg-secondary/90" : "bg-muted text-muted-foreground cursor-not-allowed"}`}
                     disabled={!selectedClient}
                     onClick={async () => {
@@ -1185,8 +1244,8 @@ export function AdminCalculatorEmbed({ versionKey = 0 }: { versionKey?: number }
                   </div>
                 </div>
                 <div className="flex gap-2 pt-2">
-                  <button onClick={() => savePricingConfig()} className="px-3 py-2 rounded-md border bg-primary text-white">Save</button>
-                  <button onClick={() => setConfigOpen(false)} className="px-3 py-2 rounded-md border">Cancel</button>
+                  <button type="button" onClick={() => savePricingConfig()} className="px-3 py-2 rounded-md border bg-primary text-white">Save</button>
+                  <button type="button" onClick={() => setConfigOpen(false)} className="px-3 py-2 rounded-md border">Cancel</button>
                 </div>
               </div>
             )}

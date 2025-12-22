@@ -198,6 +198,14 @@ export default function AdminProposalsPage() {
   }
 
   useEffect(() => {
+    const aiTs = searchParams.get("aiTs")
+    if (aiTs && !aiOpen) {
+      setAiOpen(true)
+      setSelectedVersionTs(aiTs)
+    }
+  }, [searchParams, aiOpen])
+
+  useEffect(() => {
     if (!aiOpen) return
       ; (async () => {
         try {
@@ -205,9 +213,13 @@ export default function AdminProposalsPage() {
           const json = await res.json().catch(() => ({}))
           const arr = Array.isArray(json?.versions) ? json.versions : []
           setVersions(arr)
+          if (selectedVersionTs) {
+            const hit = arr.find((v: any) => String(v.ts) === selectedVersionTs)
+            if (hit) buildPreviewFromVersion(hit)
+          }
         } catch { }
       })()
-  }, [aiOpen])
+  }, [aiOpen, selectedVersionTs])
 
   const buildPreviewFromVersion = (ver: any) => {
     try {

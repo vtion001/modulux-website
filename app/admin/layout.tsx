@@ -3,9 +3,15 @@ import { cookies } from "next/headers"
 import { verifySession } from "@/lib/auth"
 import { ToastOnParam } from "@/components/admin/toast-on-param"
 import { redirect } from "next/navigation"
-import { AdminEstimatorPanel } from "@/components/admin/admin-estimator-panel"
-import { AdminSidePanel } from "@/components/admin/admin-side-panel"
- 
+import nextDynamic from "next/dynamic"
+const AdminEstimatorPanel = nextDynamic(
+  () => import("@/components/admin/admin-estimator-panel").then((mod) => mod.AdminEstimatorPanel),
+  { ssr: false }
+)
+const AdminSidePanel = nextDynamic(
+  () => import("@/components/admin/admin-side-panel").then((mod) => mod.AdminSidePanel),
+  { ssr: false }
+)
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const sessionCookie = cookies().get("admin_session")?.value

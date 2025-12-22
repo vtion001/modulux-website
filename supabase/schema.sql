@@ -110,6 +110,88 @@ create table if not exists public.project_versions (
 create index if not exists idx_project_versions_ts on public.project_versions (ts desc);
 create index if not exists idx_project_versions_id on public.project_versions (id);
 
+-- Estimates generated from the calculator
+create table if not exists public.calculator_estimates (
+  id text primary key,
+  project_type text, -- kitchen, bathroom, bedroom, office
+  quality_tier text, -- luxury, premium, standard
+  linear_meters numeric, -- legacy or total meters
+  vat_included boolean default true,
+  import_surcharge boolean default false,
+  mfc_downgrade boolean default false,
+  installation_included boolean default false,
+  room_type_selection text,
+  custom_room_name text,
+  discount_rate numeric default 0,
+  tax_rate numeric default 0.12,
+  apply_tax boolean default true,
+  subtotal numeric,
+  tax_amount numeric,
+  total_price numeric,
+  unit_data jsonb, -- array of units with meters, material, etc.
+  client_info jsonb, -- snapshot of name, email, company
+  pricing_config jsonb, -- snapshot of rates/multipliers used
+  created_at timestamptz default now()
+);
+
+-- CRM: Contacts (People who have contacted or been saved)
+create table if not exists public.contacts (
+  id text primary key,
+  name text,
+  email text,
+  phone text,
+  company text,
+  tags text[] default '{}',
+  created_at timestamptz default now(),
+  updated_at timestamptz
+);
+
+-- CRM: Leads (Potential deals)
+create table if not exists public.leads (
+  id text primary key,
+  name text,
+  email text,
+  phone text,
+  company text,
+  source text,
+  status text default 'new',
+  created_at timestamptz default now(),
+  updated_at timestamptz
+);
+
+-- CRM: Clients (Confirmed customers)
+create table if not exists public.clients (
+  id text primary key,
+  name text,
+  email text,
+  phone text,
+  company text,
+  status text default 'active',
+  service text,
+  source text,
+  created_at timestamptz default now(),
+  updated_at timestamptz
+);
+
+-- General Inquiries from website form
+create table if not exists public.inquiries (
+  id text primary key,
+  name text,
+  email text,
+  phone text,
+  message text,
+  attachments jsonb,
+  status text default 'new',
+  tags text[] default '{}',
+  created_at timestamptz default now(),
+  updated_at timestamptz
+);
+
+create index if not exists idx_calculator_estimates_created on public.calculator_estimates (created_at desc);
+create index if not exists idx_contacts_email on public.contacts (email);
+create index if not exists idx_leads_status on public.leads (status);
+create index if not exists idx_inquiries_created on public.inquiries (created_at desc);
+
 -- Stores global specification templates for different quality tiers
 create table if not exists public.specification_templates (
   id uuid primary key default gen_random_uuid(),
@@ -129,3 +211,91 @@ on conflict (tier) do update set
   items = excluded.items, 
   exclusive = excluded.exclusive, 
   updated_at = now();
+
+-- Enable RLS on all tables
+alter table public.calculator_pricing enable row level security;
+alter table public.calculator_pricing_versions enable row level security;
+alter table public.proposal_drafts enable row level security;
+alter table public.fabricators enable row level security;
+alter table public.fabricator_rfqs enable row level security;
+alter table public.project_tasks enable row level security;
+alter table public.analytics_events enable row level security;
+alter table public.projects enable row level security;
+alter table public.project_versions enable row level security;
+alter table public.specification_templates enable row level security;
+alter table public.calculator_estimates enable row level security;
+alter table public.contacts enable row level security;
+alter table public.leads enable row level security;
+alter table public.clients enable row level security;
+alter table public.inquiries enable row level security;
+
+-- Policies for calculator_pricing
+drop policy if exists "Public can read pricing" on public.calculator_pricing;
+create policy "Public can read pricing" on public.calculator_pricing for select using (true);
+
+drop policy if exists "Admins can manage pricing" on public.calculator_pricing;
+create policy "Admins can manage pricing" on public.calculator_pricing for all to authenticated using (true) with check (true);
+
+-- Policies for calculator_pricing_versions
+drop policy if exists "Admins can manage pricing versions" on public.calculator_pricing_versions;
+create policy "Admins can manage pricing versions" on public.calculator_pricing_versions for all to authenticated using (true) with check (true);
+
+-- Policies for proposal_drafts
+drop policy if exists "Admins can manage proposal drafts" on public.proposal_drafts;
+create policy "Admins can manage proposal drafts" on public.proposal_drafts for all to authenticated using (true) with check (true);
+
+-- Policies for fabricators
+drop policy if exists "Admins can manage fabricators" on public.fabricators;
+create policy "Admins can manage fabricators" on public.fabricators for all to authenticated using (true) with check (true);
+
+-- Policies for fabricator_rfqs
+drop policy if exists "Admins can manage fabricator rfqs" on public.fabricator_rfqs;
+create policy "Admins can manage fabricator rfqs" on public.fabricator_rfqs for all to authenticated using (true) with check (true);
+
+-- Policies for project_tasks
+drop policy if exists "Admins can manage project tasks" on public.project_tasks;
+create policy "Admins can manage project tasks" on public.project_tasks for all to authenticated using (true) with check (true);
+
+-- Policies for analytics_events
+drop policy if exists "Public can insert analytics" on public.analytics_events;
+create policy "Public can insert analytics" on public.analytics_events for insert with check (true);
+
+drop policy if exists "Admins can read analytics" on public.analytics_events;
+create policy "Admins can read analytics" on public.analytics_events for select to authenticated using (true);
+
+-- Policies for projects
+drop policy if exists "Public can read projects" on public.projects;
+create policy "Public can read projects" on public.projects for select using (true);
+
+drop policy if exists "Admins can manage projects" on public.projects;
+create policy "Admins can manage projects" on public.projects for all to authenticated using (true) with check (true);
+
+-- Policies for project_versions
+drop policy if exists "Admins can manage project versions" on public.project_versions;
+create policy "Admins can manage project versions" on public.project_versions for all to authenticated using (true) with check (true);
+
+-- Policies for specification_templates
+drop policy if exists "Public can read specifications" on public.specification_templates;
+create policy "Public can read specifications" on public.specification_templates for select using (true);
+
+drop policy if exists "Admins can manage specifications" on public.specification_templates;
+create policy "Admins can manage specifications" on public.specification_templates for all to authenticated using (true) with check (true);
+
+-- Policies for new calculator and CRM tables
+drop policy if exists "Admins can manage calculator estimates" on public.calculator_estimates;
+create policy "Admins can manage calculator estimates" on public.calculator_estimates for all to authenticated using (true) with check (true);
+
+drop policy if exists "Admins can manage contacts" on public.contacts;
+create policy "Admins can manage contacts" on public.contacts for all to authenticated using (true) with check (true);
+
+drop policy if exists "Admins can manage leads" on public.leads;
+create policy "Admins can manage leads" on public.leads for all to authenticated using (true) with check (true);
+
+drop policy if exists "Admins can manage clients" on public.clients;
+create policy "Admins can manage clients" on public.clients for all to authenticated using (true) with check (true);
+
+drop policy if exists "Admins can manage inquiries" on public.inquiries;
+create policy "Admins can manage inquiries" on public.inquiries for all to authenticated using (true) with check (true);
+
+drop policy if exists "Public can insert inquiries" on public.inquiries;
+create policy "Public can insert inquiries" on public.inquiries for insert with check (true);
