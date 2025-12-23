@@ -93,6 +93,8 @@ async function deleteSubcontractor(formData: FormData) {
   revalidatePath("/admin/subcontractors")
 }
 
+import { sendGmail } from "@/lib/gmail"
+
 async function sendRFQ(formData: FormData) {
   "use server"
   const fabricator_id = String(formData.get("fabricator_id") || "").trim()
@@ -116,9 +118,9 @@ async function sendRFQ(formData: FormData) {
   const attachments: any[] = []
   const archivedPaths: string[] = []
 
-  async function uploadToStorage(key: string, bytes: Uint8Array): Promise<string | null> {
+  async function uploadToStorage(key: string, bytes: Uint8Array, mime: string): Promise<string | null> {
     try {
-      const { error } = await supabase.storage.from("rfq").upload(key, bytes, { contentType: "application/pdf", upsert: false })
+      const { error } = await supabase.storage.from("rfq").upload(key, bytes, { contentType: mime, upsert: false })
       if (error) return null
       const { data } = supabase.storage.from("rfq").getPublicUrl(key)
       return String(data?.publicUrl || "") || null
@@ -130,10 +132,17 @@ async function sendRFQ(formData: FormData) {
     const ab = await f.arrayBuffer()
     const content_base64 = Buffer.from(ab).toString("base64")
     const filename = f.name || fallbackName
-    attachments.push({ filename, content_base64, mime: "application/pdf" })
+    const mime = f.type || "application/pdf"
+
+    // Determine extension
+    let ext = ".pdf"
+    if (mime === "image/png") ext = ".png"
+    if (mime === "image/jpeg" || mime === "image/jpg") ext = ".jpg"
+
+    attachments.push({ filename, content_base64, mime })
     try {
-      const safe = `${fabricator_id || "rfq"}-${Date.now()}-${Math.random().toString(36).slice(2)}.pdf`
-      const storageUrl = await uploadToStorage(safe, new Uint8Array(ab))
+      const safe = `${fabricator_id || "rfq"}-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`
+      const storageUrl = await uploadToStorage(safe, new Uint8Array(ab), mime)
       if (storageUrl) archivedPaths.push(storageUrl)
     } catch { }
   }
@@ -142,19 +151,10 @@ async function sendRFQ(formData: FormData) {
   await pushFile(profile, "subcontractor-profile.pdf")
 
   const subject = "Request for Quotation — Cabinet Plan"
-  const cfgRaw = await readFile(emailCfgPath, "utf-8").catch(() => "{}")
-  const cfg = JSON.parse(cfgRaw || "{}")
-  const text = message || String(cfg?.rfq_template_text || "") || "Please find the attached cabinet plan and profile."
 
   try {
-    const base = process.env.NEXT_PUBLIC_BASE_URL || ""
-    const res = await fetch(`${base}/api/gmail/send`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ to: email, subject, text, attachments }),
-    })
-    const ok = res.ok
-    const data = await res.json().catch(() => ({}))
+    const data = await sendGmail({ to: email, subject, text: message, attachments })
+    const ok = true
     const event = { ts: Date.now(), ok, fabricator_id, to: email, name: fname, subject, gmail_id: String(data?.id || ""), attachments: attachments.map(a => a.filename), files: archivedPaths }
     const raw = await readFile(rfqHistoryPath, "utf-8").catch(() => "[]")
     const prev = JSON.parse(raw || "[]")
@@ -167,7 +167,7 @@ async function sendRFQ(formData: FormData) {
       to_email: email,
       name: fname,
       subject,
-      message: text,
+      message: message,
       ok,
       gmail_id: String(data?.id || ""),
       attachments: attachments.map(a => a.filename),
@@ -177,7 +177,10 @@ async function sendRFQ(formData: FormData) {
 
     revalidatePath("/admin/subcontractors")
     return { ok }
-  } catch { return { ok: false } }
+  } catch (err: any) {
+    console.error("RFQ Send Failed:", err)
+    return { ok: false }
+  }
 }
 
 async function resendRFQ(formData: FormData) {
@@ -211,15 +214,13 @@ async function resendRFQ(formData: FormData) {
   }
 
   try {
-    const base = process.env.NEXT_PUBLIC_BASE_URL || ""
-    const res = await fetch(`${base}/api/gmail/send`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ to, subject: record.subject, text: record.message, attachments }),
-    })
+    await sendGmail({ to, subject: record.subject, text: record.message, attachments })
     revalidatePath("/admin/subcontractors")
-    return { ok: res.ok }
-  } catch { return { ok: false } }
+    return { ok: true }
+  } catch (err: any) {
+    console.error("RFQ Resend Failed:", err)
+    return { ok: false }
+  }
 }
 
 async function saveSubcontractor(formData: FormData) {
@@ -249,17 +250,20 @@ async function saveSubcontractor(formData: FormData) {
 
   const supabase = supabaseServer()
   const { data: prev } = await supabase.from("fabricators").select("*").eq("id", id).single()
-  if (!prev) return
 
-  const history = [...(prev.history || []), { ts: Date.now(), rates, units }]
-  await supabase.from("fabricators").update({ name, email, phone, category, notes, rates, units, history }).eq("id", id)
+  const history = [...(prev?.history || []), { ts: Date.now(), rates, units }]
+  const item = { id, name, email, phone, category, notes, rates, units, history }
+
+  const { error } = await supabase.from("fabricators").upsert(item, { onConflict: "id" })
+  if (error) console.error("Supabase Save Error:", error)
 
   try {
     const raw = await readFile(subcontractorsJsonPath, "utf-8").catch(() => "[]")
     const local = JSON.parse(raw || "[]")
-    const next = local.map((f: any) => f.id === id ? { ...f, name, email, phone, category, notes, rates, units, history } : f)
+    const next = local.map((f: any) => f.id === id ? { ...f, ...item } : f)
+    if (!next.find((f: any) => f.id === id)) next.push(item)
     await writeFile(subcontractorsJsonPath, JSON.stringify(next, null, 2))
-  } catch { }
+  } catch (err) { console.error("Local Save Error:", err) }
   revalidatePath("/admin/subcontractors")
 }
 
@@ -285,12 +289,17 @@ export default async function AdminSubcontractorsPage() {
 
   list = list.map((f: any) => {
     const l = localMap.get(f.id) as any
-    if (l) return {
-      ...l,
-      ...f,
-      rates: { ...(l.rates || {}), ...(f.rates || {}) },
-      units: { ...(l.units || {}), ...(f.units || {}) }
-    } as any
+    if (l) {
+      return {
+        ...l,
+        ...f,
+        phone: f.phone || l.phone || "",
+        category: f.category || l.category || "",
+        notes: f.notes || l.notes || "",
+        rates: { ...(l.rates || {}), ...(f.rates || {}) },
+        units: { ...(l.units || {}), ...(f.units || {}) }
+      } as any
+    }
     return f
   })
 

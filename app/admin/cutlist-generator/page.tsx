@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { Plus, Trash2, Calculator, Download, RotateCcw, Settings, ChevronDown, ChevronUp, GripVertical, Pencil, X, Eye, Upload } from "lucide-react"
+import { Plus, Trash2, Calculator, Download, RotateCcw, Settings, ChevronDown, ChevronUp, GripVertical, Pencil, X, Eye, Upload, Printer, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -13,6 +13,8 @@ interface Panel {
     width: number
     quantity: number
     label?: string
+    materialGroup?: "carcass" | "doors" | "backing"
+    stockSheetId?: string
 }
 
 interface StockSheet {
@@ -20,6 +22,9 @@ interface StockSheet {
     length: number
     width: number
     quantity: number
+    thickness?: number
+    label?: string
+    materialGroup?: "carcass" | "doors" | "backing" | "general"
 }
 
 interface PlacedPanel {
@@ -30,12 +35,24 @@ interface PlacedPanel {
     length: number
     width: number
     rotated: boolean
+    materialGroup?: "carcass" | "doors" | "backing"
 }
 
 interface CutResult {
     panel: string
     cut: string
     result: string
+}
+
+interface MaterialConfig {
+    stockSheetId: string
+    label: string
+}
+
+interface CabinetMaterials {
+    carcass: MaterialConfig | null
+    doors: MaterialConfig | null
+    backing: MaterialConfig | null
 }
 
 interface CabinetConfig {
@@ -49,6 +66,7 @@ interface CabinetConfig {
     shelves: number
     drawers: number
     order: number
+    materials?: CabinetMaterials
 }
 
 interface CabinetTypeDefaults {
@@ -58,13 +76,14 @@ interface CabinetTypeDefaults {
     doorsPerUnit: 1 | 2
     shelves: number
     drawers: number
+    materials?: CabinetMaterials
 }
 
 // Default cabinet dimensions (mm)
 const CABINET_DEFAULTS: Record<"base" | "hanging" | "tall", CabinetTypeDefaults> = {
-    base: { height: 720, depth: 600, width: 600, doorsPerUnit: 2, shelves: 1, drawers: 0 },
-    hanging: { height: 720, depth: 350, width: 600, doorsPerUnit: 2, shelves: 2, drawers: 0 },
-    tall: { height: 2100, depth: 600, width: 600, doorsPerUnit: 2, shelves: 4, drawers: 0 },
+    base: { height: 720, depth: 600, width: 600, doorsPerUnit: 2, shelves: 1, drawers: 0, materials: { carcass: null, doors: null, backing: null } },
+    hanging: { height: 720, depth: 350, width: 600, doorsPerUnit: 2, shelves: 2, drawers: 0, materials: { carcass: null, doors: null, backing: null } },
+    tall: { height: 2100, depth: 600, width: 600, doorsPerUnit: 2, shelves: 4, drawers: 0, materials: { carcass: null, doors: null, backing: null } },
 }
 
 export default function CutlistGeneratorPage() {
@@ -82,9 +101,11 @@ export default function CutlistGeneratorPage() {
     const [grainDirection, setGrainDirection] = useState(true)
 
     const [calculated, setCalculated] = useState(false)
+    const [showReportPreview, setShowReportPreview] = useState(false)
     const [placements, setPlacements] = useState<PlacedPanel[]>([])
     const [usedSheets, setUsedSheets] = useState(0)
     const [sheetLevels, setSheetLevels] = useState<{ y: number; h: number; xUsed: number }[][]>([])
+    const [sheetsMetadata, setSheetsMetadata] = useState<{ width: number; height: number; materialGroup?: string; label?: string }[]>([])
 
     // Cabinet Builder state
     const [cabinetConfigs, setCabinetConfigs] = useState<CabinetConfig[]>([
@@ -97,6 +118,7 @@ export default function CutlistGeneratorPage() {
     const [isStockModalOpen, setIsStockModalOpen] = useState(false)
     const [isLayoutModalOpen, setIsLayoutModalOpen] = useState(false)
     const [editingCabinetId, setEditingCabinetId] = useState<string | null>(null)
+    const [showBOMModal, setShowBOMModal] = useState(false)
 
     // Cabinet type defaults (configurable, persisted to localStorage)
     const [cabinetTypeDefaults, setCabinetTypeDefaults] = useState<Record<"base" | "hanging" | "tall", CabinetTypeDefaults>>(CABINET_DEFAULTS)
@@ -115,7 +137,7 @@ export default function CutlistGeneratorPage() {
     }, [])
 
     // Save defaults to localStorage when changed
-    const updateTypeDefaults = (type: "base" | "hanging" | "tall", field: keyof CabinetTypeDefaults, value: number) => {
+    const updateTypeDefaults = (type: "base" | "hanging" | "tall", field: keyof CabinetTypeDefaults, value: any) => {
         setCabinetTypeDefaults((prev) => {
             const updated = { ...prev, [type]: { ...prev[type], [field]: value } }
             localStorage.setItem("cabinetTypeDefaults", JSON.stringify(updated))
@@ -167,7 +189,7 @@ export default function CutlistGeneratorPage() {
     }
 
     // Update stock sheet
-    const updateStockSheet = (id: string, field: keyof StockSheet, value: number) => {
+    const updateStockSheet = (id: string, field: keyof StockSheet, value: number | string) => {
         setStockSheets((prev) =>
             prev.map((s) => (s.id === id ? { ...s, [field]: value } : s))
         )
@@ -195,6 +217,7 @@ export default function CutlistGeneratorPage() {
             doorsPerUnit: cabinetTypeDefaults[cab.type].doorsPerUnit,
             shelves: cabinetTypeDefaults[cab.type].shelves,
             drawers: cabinetTypeDefaults[cab.type].drawers,
+            materials: cabinetTypeDefaults[cab.type].materials ? JSON.parse(JSON.stringify(cabinetTypeDefaults[cab.type].materials)) : { carcass: null, doors: null, backing: null },
             order: cabinetConfigs.length + idx
         }))
 
@@ -219,6 +242,7 @@ export default function CutlistGeneratorPage() {
                 doorsPerUnit: defaults.doorsPerUnit,
                 shelves: defaults.shelves,
                 drawers: defaults.drawers,
+                materials: defaults.materials ? JSON.parse(JSON.stringify(defaults.materials)) : { carcass: null, doors: null, backing: null },
                 order: maxOrder + 1
             },
         ])
@@ -228,7 +252,7 @@ export default function CutlistGeneratorPage() {
         setCabinetConfigs((prev) => prev.filter((c) => c.id !== id))
     }
 
-    const updateCabinetConfig = (id: string, field: keyof CabinetConfig, value: number | string) => {
+    const updateCabinetConfig = (id: string, field: keyof CabinetConfig, value: number | string | CabinetMaterials) => {
         setCabinetConfigs((prev) =>
             prev.map((c) => (c.id === id ? { ...c, [field]: value } : c))
         )
@@ -276,14 +300,14 @@ export default function CutlistGeneratorPage() {
 
         // Panel dimensions and quantities per unit
         const panels = [
-            { name: "Left Side", l: config.height, w: config.depth, qty: 1, edgeBand: (config.height + config.depth) * 2 / 1000 },
-            { name: "Right Side", l: config.height, w: config.depth, qty: 1, edgeBand: (config.height + config.depth) * 2 / 1000 },
-            { name: "Top", l: config.unitWidth, w: config.depth, qty: 1, edgeBand: config.unitWidth / 1000 },
-            { name: "Bottom", l: config.unitWidth, w: config.depth, qty: 1, edgeBand: config.unitWidth / 1000 },
-            { name: "Back", l: config.height, w: config.unitWidth, qty: 1, edgeBand: 0 },
-            ...(config.shelves > 0 ? [{ name: "Shelf", l: shelfWidth, w: shelfDepth, qty: config.shelves, edgeBand: (shelfWidth * config.shelves) / 1000 }] : []),
-            ...(config.doorsPerUnit > 0 ? [{ name: "Door", l: doorHeight, w: doorWidth, qty: config.doorsPerUnit, edgeBand: ((doorHeight + doorWidth) * 2 * config.doorsPerUnit) / 1000 }] : []),
-            ...(config.drawers > 0 ? [{ name: "Drawer Front", l: drawerFrontHeight, w: config.unitWidth, qty: config.drawers, edgeBand: ((drawerFrontHeight + config.unitWidth) * 2 * config.drawers) / 1000 }] : []),
+            { name: "Left Side", l: config.height, w: config.depth, qty: 1, edgeBand: (config.height + config.depth) * 2 / 1000, materialGroup: "carcass" },
+            { name: "Right Side", l: config.height, w: config.depth, qty: 1, edgeBand: (config.height + config.depth) * 2 / 1000, materialGroup: "carcass" },
+            { name: "Top", l: config.unitWidth, w: config.depth, qty: 1, edgeBand: config.unitWidth / 1000, materialGroup: "carcass" },
+            { name: "Bottom", l: config.unitWidth, w: config.depth, qty: 1, edgeBand: config.unitWidth / 1000, materialGroup: "carcass" },
+            { name: "Back", l: config.height, w: config.unitWidth, qty: 1, edgeBand: 0, materialGroup: "backing" },
+            ...(config.shelves > 0 ? [{ name: "Shelf", l: shelfWidth, w: shelfDepth, qty: config.shelves, edgeBand: (shelfWidth * config.shelves) / 1000, materialGroup: "carcass" }] : []),
+            ...(config.doorsPerUnit > 0 ? [{ name: "Door", l: doorHeight, w: doorWidth, qty: config.doorsPerUnit, edgeBand: ((doorHeight + doorWidth) * 2 * config.doorsPerUnit) / 1000, materialGroup: "doors" }] : []),
+            ...(config.drawers > 0 ? [{ name: "Drawer Front", l: drawerFrontHeight, w: config.unitWidth, qty: config.drawers, edgeBand: ((drawerFrontHeight + config.unitWidth) * 2 * config.drawers) / 1000, materialGroup: "doors" }] : []),
         ]
 
         const hardware = {
@@ -316,43 +340,55 @@ export default function CutlistGeneratorPage() {
 
             if (unitCount <= 0) continue
 
-            // Side Panels (Gables) - 2 per unit
+            const carcassMaterial = config.materials?.carcass
+            const doorsMaterial = config.materials?.doors
+            const backingMaterial = config.materials?.backing
+
+            // Side Panels (Gables) - 2 per unit - CARCASS
             newPanels.push({
                 id: crypto.randomUUID(),
                 length: config.height,
                 width: config.depth,
                 quantity: unitCount * 2,
                 label: `${config.type.charAt(0).toUpperCase() + config.type.slice(1)} Side`,
+                materialGroup: "carcass",
+                stockSheetId: carcassMaterial?.stockSheetId,
             })
 
-            // Top Panel - 1 per unit
+            // Top Panel - 1 per unit - CARCASS
             newPanels.push({
                 id: crypto.randomUUID(),
                 length: config.unitWidth,
                 width: config.depth,
                 quantity: unitCount,
                 label: `${config.type.charAt(0).toUpperCase() + config.type.slice(1)} Top`,
+                materialGroup: "carcass",
+                stockSheetId: carcassMaterial?.stockSheetId,
             })
 
-            // Bottom Panel - 1 per unit
+            // Bottom Panel - 1 per unit - CARCASS
             newPanels.push({
                 id: crypto.randomUUID(),
                 length: config.unitWidth,
                 width: config.depth,
                 quantity: unitCount,
                 label: `${config.type.charAt(0).toUpperCase() + config.type.slice(1)} Bottom`,
+                materialGroup: "carcass",
+                stockSheetId: carcassMaterial?.stockSheetId,
             })
 
-            // Back Panel - 1 per unit
+            // Back Panel - 1 per unit - BACKING
             newPanels.push({
                 id: crypto.randomUUID(),
                 length: config.height,
                 width: config.unitWidth,
                 quantity: unitCount,
                 label: `${config.type.charAt(0).toUpperCase() + config.type.slice(1)} Back`,
+                materialGroup: "backing",
+                stockSheetId: backingMaterial?.stockSheetId,
             })
 
-            // Shelves
+            // Shelves - CARCASS
             if (config.shelves > 0) {
                 newPanels.push({
                     id: crypto.randomUUID(),
@@ -360,10 +396,12 @@ export default function CutlistGeneratorPage() {
                     width: config.depth - 20, // Setback from front
                     quantity: unitCount * config.shelves,
                     label: `${config.type.charAt(0).toUpperCase() + config.type.slice(1)} Shelf`,
+                    materialGroup: "carcass",
+                    stockSheetId: carcassMaterial?.stockSheetId,
                 })
             }
 
-            // Doors
+            // Doors - DOORS
             const doorWidth = config.doorsPerUnit === 1 ? config.unitWidth : config.unitWidth / 2
             const doorHeight = config.type === "base" ? config.height - 100 : config.height // Base has kickboard
             newPanels.push({
@@ -372,9 +410,11 @@ export default function CutlistGeneratorPage() {
                 width: doorWidth,
                 quantity: unitCount * config.doorsPerUnit,
                 label: `${config.type.charAt(0).toUpperCase() + config.type.slice(1)} Door`,
+                materialGroup: "doors",
+                stockSheetId: doorsMaterial?.stockSheetId,
             })
 
-            // Drawer Fronts (for base and tall only)
+            // Drawer Fronts (for base and tall only) - DOORS
             if ((config.type === "base" || config.type === "tall") && config.drawers > 0) {
                 newPanels.push({
                     id: crypto.randomUUID(),
@@ -382,6 +422,8 @@ export default function CutlistGeneratorPage() {
                     width: config.unitWidth,
                     quantity: unitCount * config.drawers,
                     label: `${config.type.charAt(0).toUpperCase() + config.type.slice(1)} Drawer Front`,
+                    materialGroup: "doors",
+                    stockSheetId: doorsMaterial?.stockSheetId,
                 })
             }
         }
@@ -396,162 +438,175 @@ export default function CutlistGeneratorPage() {
         toast.success(`Generated ${newPanels.length} panel types from cabinet configurations`)
     }
 
-    // First-Fit Decreasing Height bin packing algorithm
     const calculate = () => {
         if (panels.length === 0 || stockSheets.length === 0) {
             toast.error("Add at least one panel and one stock sheet")
             return
         }
 
-        const stock = stockSheets[0]
-        if (!stock || stock.length <= 0 || stock.width <= 0) {
-            toast.error("Invalid stock sheet dimensions")
-            return
-        }
+        const allPlaced: PlacedPanel[] = []
+        const allSheetLevels: { y: number; h: number; xUsed: number }[][] = []
+        const allMetadata: { width: number; height: number; materialGroup?: string; label?: string }[] = []
+        let currentTotalSheets = 0
 
-        // Expand panels by quantity
-        const expandedPanels: { id: string; length: number; width: number; label: string }[] = []
-        panels.forEach((p, pIdx) => {
-            if (p.length <= 0 || p.width <= 0) return
-            for (let i = 0; i < p.quantity; i++) {
-                expandedPanels.push({
-                    id: `${p.id}-${i}`,
-                    length: p.length + kerfThickness,
-                    width: p.width + kerfThickness,
-                    label: p.label || `P${pIdx + 1}`,
-                })
-            }
+        // Group panels by stockSheetId
+        const panelGroups: Record<string, Panel[]> = {}
+        panels.forEach(p => {
+            const sid = (considerMaterial && p.stockSheetId) ? p.stockSheetId : 'default'
+            if (!panelGroups[sid]) panelGroups[sid] = []
+            panelGroups[sid].push(p)
         })
 
-        if (expandedPanels.length === 0) {
-            toast.error("No valid panels to place")
-            return
-        }
+        for (const sid in panelGroups) {
+            const groupPanels = panelGroups[sid]
+            const stock = (sid === 'default') ? stockSheets[0] : stockSheets.find(s => s.id === sid) || stockSheets[0]
 
-        // Sort by area descending (largest first)
-        expandedPanels.sort((a, b) => b.length * b.width - a.length * a.width)
+            if (!stock || stock.length <= 0 || stock.width <= 0) continue
 
-        const sheetW = stock.length
-        const sheetH = stock.width
-        const placed: PlacedPanel[] = []
-        const sheets: { levels: { y: number; h: number; xUsed: number }[] }[] = []
-
-        for (const panel of expandedPanels) {
-            let fitted = false
-            let pLen = panel.length
-            let pWid = panel.width
-            let rotated = false
-
-            // Try both orientations if grain direction is not considered
-            const tryRotations = grainDirection ? [false] : [false, true]
-
-            for (const rot of tryRotations) {
-                if (rot) {
-                    pLen = panel.width
-                    pWid = panel.length
-                    rotated = true
+            // Expand panels by quantity
+            const expandedPanels: (Panel & { expandedId: string })[] = []
+            groupPanels.forEach((p, pIdx) => {
+                if (p.length <= 0 || p.width <= 0) return
+                for (let i = 0; i < p.quantity; i++) {
+                    expandedPanels.push({
+                        ...p,
+                        expandedId: `${p.id}-${i}`,
+                        length: p.length + kerfThickness,
+                        width: p.width + kerfThickness,
+                        label: p.label || `P${pIdx + 1}`
+                    })
                 }
+            })
 
-                if (pLen > sheetW || pWid > sheetH) {
-                    if (!grainDirection && !rot) continue // Try the other rotation
-                    continue
-                }
+            if (expandedPanels.length === 0) continue
 
-                // Try to fit in existing sheets
-                for (let sIdx = 0; sIdx < sheets.length && !fitted; sIdx++) {
-                    const sheet = sheets[sIdx]
+            // Sort by area descending
+            expandedPanels.sort((a, b) => b.length * b.width - a.length * b.width)
 
-                    // Try existing levels
-                    for (let lIdx = 0; lIdx < sheet.levels.length && !fitted; lIdx++) {
-                        const level = sheet.levels[lIdx]
-                        if (pWid <= level.h && level.xUsed + pLen <= sheetW) {
-                            placed.push({
-                                panelId: panel.id,
-                                sheetIndex: sIdx,
-                                x: level.xUsed,
-                                y: level.y,
-                                length: pLen,
-                                width: pWid,
-                                rotated,
-                            })
-                            level.xUsed += pLen
-                            fitted = true
-                        }
+            const sheetW = stock.length
+            const sheetH = stock.width
+            const groupSheets: { levels: { y: number; h: number; xUsed: number }[] }[] = []
+
+            for (const panel of expandedPanels) {
+                let fitted = false
+                let pLen = panel.length
+                let pWid = panel.width
+                let rotated = false
+
+                const tryRotations = grainDirection ? [false] : [false, true]
+
+                for (const rot of tryRotations) {
+                    if (rot) {
+                        pLen = panel.width
+                        pWid = panel.length
+                        rotated = true
                     }
 
-                    // Try new level on this sheet
-                    if (!fitted) {
-                        const usedHeight = sheet.levels.reduce((sum, l) => Math.max(sum, l.y + l.h), 0)
-                        if (usedHeight + pWid <= sheetH && pLen <= sheetW) {
-                            sheet.levels.push({ y: usedHeight, h: pWid, xUsed: pLen })
-                            placed.push({
-                                panelId: panel.id,
-                                sheetIndex: sIdx,
-                                x: 0,
-                                y: usedHeight,
-                                length: pLen,
-                                width: pWid,
-                                rotated,
-                            })
-                            fitted = true
+                    if (pLen > sheetW || pWid > sheetH) continue
+
+                    // Try existing sheets in this group
+                    for (let sIdx = 0; sIdx < groupSheets.length && !fitted; sIdx++) {
+                        const sheet = groupSheets[sIdx]
+                        for (let lIdx = 0; lIdx < sheet.levels.length && !fitted; lIdx++) {
+                            const level = sheet.levels[lIdx]
+                            if (pWid <= level.h && level.xUsed + pLen <= sheetW) {
+                                allPlaced.push({
+                                    panelId: panel.id,
+                                    sheetIndex: currentTotalSheets + sIdx,
+                                    x: level.xUsed,
+                                    y: level.y,
+                                    length: pLen,
+                                    width: pWid,
+                                    rotated,
+                                    materialGroup: panel.materialGroup
+                                })
+                                level.xUsed += pLen
+                                fitted = true
+                            }
+                        }
+
+                        if (!fitted) {
+                            const usedHeight = sheet.levels.reduce((sum, l) => Math.max(sum, l.y + l.h), 0)
+                            if (usedHeight + pWid <= sheetH && pLen <= sheetW) {
+                                sheet.levels.push({ y: usedHeight, h: pWid, xUsed: pLen })
+                                allPlaced.push({
+                                    panelId: panel.id,
+                                    sheetIndex: currentTotalSheets + sIdx,
+                                    x: 0,
+                                    y: usedHeight,
+                                    length: pLen,
+                                    width: pWid,
+                                    rotated,
+                                    materialGroup: panel.materialGroup
+                                })
+                                fitted = true
+                            }
                         }
                     }
+                    if (fitted) break
                 }
 
-                if (fitted) break
+                if (!fitted) {
+                    if (pLen > sheetW || pWid > sheetH) {
+                        toast.error(`Panel ${panel.label} is too large for the stock sheet`)
+                        continue
+                    }
+                    const newSheetIdx = groupSheets.length
+                    groupSheets.push({ levels: [{ y: 0, h: pWid, xUsed: pLen }] })
+                    allPlaced.push({
+                        panelId: panel.id,
+                        sheetIndex: currentTotalSheets + newSheetIdx,
+                        x: 0,
+                        y: 0,
+                        length: pLen,
+                        width: pWid,
+                        rotated,
+                        materialGroup: panel.materialGroup
+                    })
+                }
             }
 
-            // Create new sheet if not fitted
-            if (!fitted) {
-                if (pLen > sheetW || pWid > sheetH) {
-                    toast.error(`Panel ${panel.label} is too large for the stock sheet`)
-                    continue
-                }
-                const newSheetIdx = sheets.length
-                sheets.push({ levels: [{ y: 0, h: pWid, xUsed: pLen }] })
-                placed.push({
-                    panelId: panel.id,
-                    sheetIndex: newSheetIdx,
-                    x: 0,
-                    y: 0,
-                    length: pLen,
-                    width: pWid,
-                    rotated,
+            allSheetLevels.push(...groupSheets.map(s => s.levels))
+            groupSheets.forEach(() => {
+                allMetadata.push({
+                    width: stock.length,
+                    height: stock.width,
+                    materialGroup: groupPanels[0]?.materialGroup,
+                    label: stock.label || `${stock.length}×${stock.width}mm`
                 })
-            }
+            })
+            currentTotalSheets += groupSheets.length
         }
 
-        setPlacements(placed)
-        setUsedSheets(sheets.length)
-        setSheetLevels(sheets.map(s => s.levels))
+        setPlacements(allPlaced)
+        setUsedSheets(currentTotalSheets)
+        setSheetLevels(allSheetLevels)
+        setSheetsMetadata(allMetadata)
         setCalculated(true)
-        toast.success(`Optimized layout: ${sheets.length} sheet(s) required`)
+        toast.success(`Optimized layout: ${currentTotalSheets} sheet(s) required across materials`)
     }
 
     // Statistics
     const stats = useMemo(() => {
-        if (!calculated || placements.length === 0) {
+        if (!calculated || placements.length === 0 || sheetsMetadata.length === 0) {
             return { usedSheets: 0, totalUsedArea: 0, totalWastedArea: 0, totalCuts: 0, cutLength: 0 }
         }
 
-        const stock = stockSheets[0]
-        const sheetArea = stock.length * stock.width
-        const totalSheetArea = usedSheets * sheetArea
+        const totalSheetArea = sheetsMetadata.reduce((sum, s) => sum + s.width * s.height, 0)
         const usedArea = placements.reduce((sum, p) => sum + p.length * p.width, 0)
         const wastedArea = totalSheetArea - usedArea
         const totalCuts = placements.length * 2
         const cutLength = placements.reduce((sum, p) => sum + (p.length + p.width) * 2, 0)
 
-        // Convert stats based on unit if needed, but for now we just show numbers
         return {
-            usedSheets,
+            usedSheets: sheetsMetadata.length,
             totalUsedArea: Math.round(usedArea * 100) / 100,
             totalWastedArea: Math.round(wastedArea * 100) / 100,
-            wastePercent: Math.round((wastedArea / totalSheetArea) * 100),
+            wastePercent: totalSheetArea > 0 ? Math.round((wastedArea / totalSheetArea) * 100) : 0,
             totalCuts,
             cutLength: Math.round(cutLength * 100) / 100,
         }
-    }, [calculated, placements, usedSheets, stockSheets])
+    }, [calculated, placements, sheetsMetadata])
 
     // Cuts table
     const cutsData = useMemo<CutResult[]>(() => {
@@ -620,6 +675,12 @@ export default function CutlistGeneratorPage() {
                     </Button>
                     <Button variant="outline" size="sm" onClick={exportJSON}>
                         <Download className="w-4 h-4 mr-1" /> Export
+                    </Button>
+                    <Button
+                        onClick={() => setShowBOMModal(true)}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white border-none shadow-lg shadow-emerald-500/20"
+                    >
+                        <Settings className="w-4 h-4 mr-2" /> Process BOM
                     </Button>
                     <Button onClick={calculate}>
                         <Calculator className="w-4 h-4 mr-1" /> Calculate
@@ -721,6 +782,69 @@ export default function CutlistGeneratorPage() {
                                             <div>
                                                 <label className="text-[9px] text-muted-foreground uppercase">Drawers</label>
                                                 <input type="number" min={0} max={4} className="w-full p-1.5 text-xs border rounded bg-background" value={cabinetTypeDefaults[settingsModalType].drawers} onChange={(e) => updateTypeDefaults(settingsModalType, "drawers", Number(e.target.value))} disabled={settingsModalType === "hanging"} />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-1.5 pt-2 border-t border-border/20">
+                                            <div className="flex items-center gap-1.5 mb-1">
+                                                <div className="w-1 h-2 bg-primary/40 rounded-full"></div>
+                                                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Default Materials</span>
+                                            </div>
+                                            <div className="grid grid-cols-1 gap-1.5">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+                                                    <select
+                                                        className="flex-1 p-1 text-[10px] border rounded bg-background outline-none focus:ring-1 focus:ring-primary/20"
+                                                        value={cabinetTypeDefaults[settingsModalType].materials?.carcass?.stockSheetId || ""}
+                                                        onChange={(e) => {
+                                                            const sheet = stockSheets.find(s => s.id === e.target.value)
+                                                            const currentMaterials = cabinetTypeDefaults[settingsModalType].materials || { carcass: null, doors: null, backing: null }
+                                                            updateTypeDefaults(settingsModalType, "materials", {
+                                                                ...currentMaterials,
+                                                                carcass: sheet ? { stockSheetId: sheet.id, label: sheet.label || `${sheet.length}×${sheet.width}mm` } : null
+                                                            })
+                                                        }}
+                                                    >
+                                                        <option value="">Carcass Material...</option>
+                                                        {stockSheets.map(s => <option key={s.id} value={s.id}>{s.label || `${s.length}×${s.width}mm`}{s.thickness ? ` (${s.thickness}mm)` : ""}</option>)}
+                                                    </select>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
+                                                    <select
+                                                        className="flex-1 p-1 text-[10px] border rounded bg-background outline-none focus:ring-1 focus:ring-primary/20"
+                                                        value={cabinetTypeDefaults[settingsModalType].materials?.doors?.stockSheetId || ""}
+                                                        onChange={(e) => {
+                                                            const sheet = stockSheets.find(s => s.id === e.target.value)
+                                                            const currentMaterials = cabinetTypeDefaults[settingsModalType].materials || { carcass: null, doors: null, backing: null }
+                                                            updateTypeDefaults(settingsModalType, "materials", {
+                                                                ...currentMaterials,
+                                                                doors: sheet ? { stockSheetId: sheet.id, label: sheet.label || `${sheet.length}×${sheet.width}mm` } : null
+                                                            })
+                                                        }}
+                                                    >
+                                                        <option value="">Doors Material...</option>
+                                                        {stockSheets.map(s => <option key={s.id} value={s.id}>{s.label || `${s.length}×${s.width}mm`}{s.thickness ? ` (${s.thickness}mm)` : ""}</option>)}
+                                                    </select>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span>
+                                                    <select
+                                                        className="flex-1 p-1 text-[10px] border rounded bg-background outline-none focus:ring-1 focus:ring-primary/20"
+                                                        value={cabinetTypeDefaults[settingsModalType].materials?.backing?.stockSheetId || ""}
+                                                        onChange={(e) => {
+                                                            const sheet = stockSheets.find(s => s.id === e.target.value)
+                                                            const currentMaterials = cabinetTypeDefaults[settingsModalType].materials || { carcass: null, doors: null, backing: null }
+                                                            updateTypeDefaults(settingsModalType, "materials", {
+                                                                ...currentMaterials,
+                                                                backing: sheet ? { stockSheetId: sheet.id, label: sheet.label || `${sheet.length}×${sheet.width}mm` } : null
+                                                            })
+                                                        }}
+                                                    >
+                                                        <option value="">Backing Material...</option>
+                                                        {stockSheets.map(s => <option key={s.id} value={s.id}>{s.label || `${s.length}×${s.width}mm`}{s.thickness ? ` (${s.thickness}mm)` : ""}</option>)}
+                                                    </select>
+                                                </div>
                                             </div>
                                         </div>
                                         <p className="text-[9px] text-muted-foreground">Settings saved to browser</p>
@@ -866,8 +990,13 @@ export default function CutlistGeneratorPage() {
                                 {panels.slice(0, 10).map((p) => (
                                     <div key={p.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/10 text-[10px]">
                                         <div className="flex flex-col">
-                                            <span className="font-bold truncate max-w-[100px]">{p.label || "Untitled Panel"}</span>
-                                            <span className="text-muted-foreground">{p.length} × {p.width} {unitLabel}</span>
+                                            <div className="flex items-center gap-1.5">
+                                                {p.materialGroup === "carcass" && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.4)]"></span>}
+                                                {p.materialGroup === "doors" && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_4px_rgba(59,130,246,0.4)]"></span>}
+                                                {p.materialGroup === "backing" && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_4px_rgba(245,158,11,0.4)]"></span>}
+                                                <span className="font-bold truncate max-w-[100px]">{p.label || "Untitled Panel"}</span>
+                                            </div>
+                                            <span className="text-muted-foreground ml-3">{p.length} × {p.width} {unitLabel}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <span className="font-mono bg-background px-1.5 py-0.5 rounded border border-border/20">×{p.quantity}</span>
@@ -1030,6 +1159,7 @@ export default function CutlistGeneratorPage() {
                                 <div className="flex-1 overflow-y-auto pr-1 space-y-2 custom-scrollbar">
                                     {Array.from({ length: usedSheets }).map((_, sheetIdx) => {
                                         const sheetPanels = placements.filter((p) => p.sheetIndex === sheetIdx)
+                                        const meta = sheetsMetadata[sheetIdx]
                                         return (
                                             <div
                                                 key={sheetIdx}
@@ -1038,8 +1168,16 @@ export default function CutlistGeneratorPage() {
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-[10px] font-black bg-primary text-primary-foreground px-2 py-0.5 rounded shadow-sm">Sheet {sheetIdx + 1}</span>
-                                                        <span className="text-[9px] font-bold text-muted-foreground uppercase">{sheetPanels.length} Panels</span>
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="text-[10px] font-black bg-primary text-primary-foreground px-2 py-0.5 rounded shadow-sm">Sheet {sheetIdx + 1}</span>
+                                                            {meta?.materialGroup === "carcass" && <span className="w-2 h-2 rounded-full bg-emerald-500"></span>}
+                                                            {meta?.materialGroup === "doors" && <span className="w-2 h-2 rounded-full bg-blue-500"></span>}
+                                                            {meta?.materialGroup === "backing" && <span className="w-2 h-2 rounded-full bg-amber-500"></span>}
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[9px] font-bold text-muted-foreground uppercase">{meta?.label || 'Standard Sheet'}</span>
+                                                            <span className="text-[8px] opacity-60 uppercase">{sheetPanels.length} Panels</span>
+                                                        </div>
                                                     </div>
                                                     <ChevronDown className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors opacity-40" />
                                                 </div>
@@ -1212,6 +1350,93 @@ export default function CutlistGeneratorPage() {
                                             </div>
                                         </div>
                                     </div>
+
+                                    <div>
+                                        <h3 className="text-sm font-bold uppercase text-muted-foreground mb-4 flex items-center gap-2">
+                                            <div className="w-1 h-3 bg-primary rounded-full"></div>
+                                            Materials
+                                        </h3>
+                                        <div className="space-y-3">
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-bold text-muted-foreground uppercase px-1 flex items-center gap-2">
+                                                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                                    Carcass (Sides, Top, Bottom, Shelves)
+                                                </label>
+                                                <select
+                                                    className="w-full h-10 px-3 border rounded-xl bg-muted/30 focus:bg-background transition-all outline-none focus:ring-2 focus:ring-primary/20 text-sm"
+                                                    value={config.materials?.carcass?.stockSheetId || ""}
+                                                    onChange={(e) => {
+                                                        const sheet = stockSheets.find(s => s.id === e.target.value)
+                                                        updateCabinetConfig(config.id, "materials", {
+                                                            ...config.materials,
+                                                            carcass: sheet ? { stockSheetId: sheet.id, label: sheet.label || `${sheet.length}×${sheet.width}mm` } : null,
+                                                            doors: config.materials?.doors || null,
+                                                            backing: config.materials?.backing || null,
+                                                        } as CabinetMaterials)
+                                                    }}
+                                                >
+                                                    <option value="">Select stock sheet...</option>
+                                                    {stockSheets.map(s => (
+                                                        <option key={s.id} value={s.id}>
+                                                            {s.label || `${s.length}×${s.width}mm`}{s.thickness ? ` (${s.thickness}mm)` : ""}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-bold text-muted-foreground uppercase px-1 flex items-center gap-2">
+                                                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                                    Doors & Drawer Fronts
+                                                </label>
+                                                <select
+                                                    className="w-full h-10 px-3 border rounded-xl bg-muted/30 focus:bg-background transition-all outline-none focus:ring-2 focus:ring-primary/20 text-sm"
+                                                    value={config.materials?.doors?.stockSheetId || ""}
+                                                    onChange={(e) => {
+                                                        const sheet = stockSheets.find(s => s.id === e.target.value)
+                                                        updateCabinetConfig(config.id, "materials", {
+                                                            ...config.materials,
+                                                            carcass: config.materials?.carcass || null,
+                                                            doors: sheet ? { stockSheetId: sheet.id, label: sheet.label || `${sheet.length}×${sheet.width}mm` } : null,
+                                                            backing: config.materials?.backing || null,
+                                                        } as CabinetMaterials)
+                                                    }}
+                                                >
+                                                    <option value="">Select stock sheet...</option>
+                                                    {stockSheets.map(s => (
+                                                        <option key={s.id} value={s.id}>
+                                                            {s.label || `${s.length}×${s.width}mm`}{s.thickness ? ` (${s.thickness}mm)` : ""}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <label className="text-[10px] font-bold text-muted-foreground uppercase px-1 flex items-center gap-2">
+                                                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                                                    Backing
+                                                </label>
+                                                <select
+                                                    className="w-full h-10 px-3 border rounded-xl bg-muted/30 focus:bg-background transition-all outline-none focus:ring-2 focus:ring-primary/20 text-sm"
+                                                    value={config.materials?.backing?.stockSheetId || ""}
+                                                    onChange={(e) => {
+                                                        const sheet = stockSheets.find(s => s.id === e.target.value)
+                                                        updateCabinetConfig(config.id, "materials", {
+                                                            ...config.materials,
+                                                            carcass: config.materials?.carcass || null,
+                                                            doors: config.materials?.doors || null,
+                                                            backing: sheet ? { stockSheetId: sheet.id, label: sheet.label || `${sheet.length}×${sheet.width}mm` } : null,
+                                                        } as CabinetMaterials)
+                                                    }}
+                                                >
+                                                    <option value="">Select stock sheet...</option>
+                                                    {stockSheets.map(s => (
+                                                        <option key={s.id} value={s.id}>
+                                                            {s.label || `${s.length}×${s.width}mm`}{s.thickness ? ` (${s.thickness}mm)` : ""}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* Right Side: Materials Breakdown */}
@@ -1304,6 +1529,8 @@ export default function CutlistGeneratorPage() {
                                             <th className="pb-3 px-2">Length ({unitLabel})</th>
                                             <th className="pb-3 px-2">Width ({unitLabel})</th>
                                             <th className="pb-3 px-2">Quantity</th>
+                                            <th className="pb-3 px-2">Group</th>
+                                            <th className="pb-3 px-2">Stock Sheet</th>
                                             <th className="pb-3 px-2 text-right">Actions</th>
                                         </tr>
                                     </thead>
@@ -1339,11 +1566,35 @@ export default function CutlistGeneratorPage() {
                                                 <td className="py-2 px-2">
                                                     <input
                                                         type="number"
-                                                        className="w-24 h-9 px-3 border rounded-lg bg-transparent focus:bg-background transition-all outline-none focus:ring-1 focus:ring-primary/30 text-xs font-bold"
+                                                        className="w-20 h-9 px-3 border rounded-lg bg-transparent focus:bg-background transition-all outline-none focus:ring-1 focus:ring-primary/30 text-xs font-bold"
                                                         value={p.quantity || ""}
                                                         onChange={(e) => updatePanel(p.id, "quantity", Number(e.target.value) || 1)}
                                                         min={1}
                                                     />
+                                                </td>
+                                                <td className="py-2 px-2">
+                                                    <select
+                                                        className="h-9 px-2 border rounded-lg bg-transparent outline-none focus:ring-1 focus:ring-primary/30 text-[10px] font-bold uppercase"
+                                                        value={p.materialGroup || ""}
+                                                        onChange={(e) => updatePanel(p.id, "materialGroup", e.target.value)}
+                                                    >
+                                                        <option value="">General</option>
+                                                        <option value="carcass">Carcass</option>
+                                                        <option value="doors">Doors</option>
+                                                        <option value="backing">Backing</option>
+                                                    </select>
+                                                </td>
+                                                <td className="py-2 px-2">
+                                                    <select
+                                                        className="w-full h-9 px-2 border rounded-lg bg-transparent outline-none focus:ring-1 focus:ring-primary/30 text-[10px]"
+                                                        value={p.stockSheetId || ""}
+                                                        onChange={(e) => updatePanel(p.id, "stockSheetId", e.target.value)}
+                                                    >
+                                                        <option value="">Default Sheet</option>
+                                                        {stockSheets.map(s => (
+                                                            <option key={s.id} value={s.id}>{s.label || `${s.length}×${s.width}mm`}</option>
+                                                        ))}
+                                                    </select>
                                                 </td>
                                                 <td className="py-2 px-2 text-right">
                                                     <button
@@ -1405,9 +1656,11 @@ export default function CutlistGeneratorPage() {
                                     <thead className="sticky top-0 bg-card z-10">
                                         <tr className="border-b border-border/20 text-[10px] text-muted-foreground uppercase font-bold text-left">
                                             <th className="pb-3 px-2 font-black">#</th>
+                                            <th className="pb-3 px-2">Label</th>
                                             <th className="pb-3 px-2">Length ({unitLabel})</th>
                                             <th className="pb-3 px-2">Width ({unitLabel})</th>
-                                            <th className="pb-3 px-2">Quantity</th>
+                                            <th className="pb-3 px-2">Thickness (mm)</th>
+                                            <th className="pb-3 px-2">Qty</th>
                                             <th className="pb-3 px-2 text-right">Actions</th>
                                         </tr>
                                     </thead>
@@ -1415,6 +1668,15 @@ export default function CutlistGeneratorPage() {
                                         {stockSheets.map((s, idx) => (
                                             <tr key={s.id} className="hover:bg-muted/30 transition-colors group">
                                                 <td className="py-2 px-2 text-[10px] font-bold text-muted-foreground">{idx + 1}</td>
+                                                <td className="py-2 px-2">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="e.g. 18mm MDF"
+                                                        className="w-full h-9 px-3 border rounded-lg bg-transparent focus:bg-background transition-all outline-none focus:ring-1 focus:ring-primary/30 text-xs"
+                                                        value={s.label || ""}
+                                                        onChange={(e) => updateStockSheet(s.id, "label", e.target.value)}
+                                                    />
+                                                </td>
                                                 <td className="py-2 px-2">
                                                     <input
                                                         type="number"
@@ -1434,7 +1696,16 @@ export default function CutlistGeneratorPage() {
                                                 <td className="py-2 px-2">
                                                     <input
                                                         type="number"
-                                                        className="w-24 h-9 px-3 border rounded-lg bg-transparent focus:bg-background transition-all outline-none focus:ring-1 focus:ring-primary/30 text-xs font-bold"
+                                                        placeholder="18"
+                                                        className="w-20 h-9 px-3 border rounded-lg bg-transparent focus:bg-background transition-all outline-none focus:ring-1 focus:ring-primary/30 text-xs font-mono"
+                                                        value={s.thickness || ""}
+                                                        onChange={(e) => updateStockSheet(s.id, "thickness", Number(e.target.value) || 0)}
+                                                    />
+                                                </td>
+                                                <td className="py-2 px-2">
+                                                    <input
+                                                        type="number"
+                                                        className="w-16 h-9 px-3 border rounded-lg bg-transparent focus:bg-background transition-all outline-none focus:ring-1 focus:ring-primary/30 text-xs font-bold"
                                                         value={s.quantity || ""}
                                                         onChange={(e) => updateStockSheet(s.id, "quantity", Number(e.target.value) || 1)}
                                                         min={1}
@@ -1487,9 +1758,26 @@ export default function CutlistGeneratorPage() {
                                 <div className="flex items-center gap-4 mt-1">
                                     <span className="text-xs font-bold text-muted-foreground uppercase opacity-70 flex items-center gap-1.5">
                                         <span className="w-1.5 h-1.5 bg-primary rounded-full"></span>
-                                        {usedSheets} Sheets Required
+                                        {usedSheets} Total Sheets
                                     </span>
-                                    <span className="text-xs font-bold text-muted-foreground uppercase opacity-70 flex items-center gap-1.5">
+                                    {Object.entries(
+                                        sheetsMetadata.reduce((acc, meta) => {
+                                            const group = meta.materialGroup || 'general';
+                                            acc[group] = (acc[group] || 0) + 1;
+                                            return acc;
+                                        }, {} as Record<string, number>)
+                                    ).map(([group, count]) => (
+                                        <span key={group} className="text-xs font-bold text-muted-foreground uppercase opacity-70 flex items-center gap-1.5 border-l border-border/10 pl-4">
+                                            <span className={cn(
+                                                "w-1.5 h-1.5 rounded-full",
+                                                group === "carcass" ? "bg-emerald-500" :
+                                                    group === "doors" ? "bg-blue-500" :
+                                                        group === "backing" ? "bg-amber-500" : "bg-muted-foreground"
+                                            )}></span>
+                                            {count} {group}
+                                        </span>
+                                    ))}
+                                    <span className="text-xs font-bold text-muted-foreground uppercase opacity-70 flex items-center gap-1.5 border-l border-border/10 pl-4">
                                         <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
                                         {100 - (stats.wastePercent || 0)}% Avg. Utilization
                                     </span>
@@ -1519,19 +1807,19 @@ export default function CutlistGeneratorPage() {
                         {/* Modal Body: Scrollable Diagrams */}
                         <div className="flex-1 overflow-y-auto p-8 space-y-16 custom-scrollbar bg-muted/5">
                             {Array.from({ length: usedSheets }).map((_, sheetIdx) => {
-                                const stock = stockSheets[0]
+                                const meta = sheetsMetadata[sheetIdx] || { width: stockSheets[0]?.length || 2440, height: stockSheets[0]?.width || 1220, label: 'Standard Sheet' }
                                 const sheetPanels = placements.filter((p) => p.sheetIndex === sheetIdx)
                                 const levels = sheetLevels[sheetIdx] || []
 
                                 // Calculate sheet utilization
                                 const sheetUsedArea = sheetPanels.reduce((sum, p) => sum + (p.length * p.width), 0)
-                                const sheetTotalArea = (stock.length || 0) * (stock.width || 0)
+                                const sheetTotalArea = meta.width * meta.height
                                 const sheetUtilization = sheetTotalArea > 0 ? Math.round((sheetUsedArea / sheetTotalArea) * 100) : 0
 
                                 // Scale to fit width but maintain aspect ratio
                                 const svgWidth = 1200
-                                const svgHeight = (stock.width / stock.length) * svgWidth
-                                const scale = svgWidth / stock.length
+                                const svgHeight = (meta.height / meta.width) * svgWidth
+                                const scale = svgWidth / meta.width
 
                                 return (
                                     <div
@@ -1545,9 +1833,25 @@ export default function CutlistGeneratorPage() {
                                                     <span className="text-lg font-black bg-primary text-primary-foreground px-4 py-1 rounded-xl shadow-lg shadow-primary/20">
                                                         SHEET {sheetIdx + 1}
                                                     </span>
-                                                    <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest border-l-2 border-border/40 pl-3">
-                                                        {stock.length}{unitLabel} × {stock.width}{unitLabel}
-                                                    </span>
+                                                    <div className="flex flex-col border-l-2 border-border/40 pl-3">
+                                                        <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest leading-tight">
+                                                            {meta.label}
+                                                        </span>
+                                                        <span className="text-[10px] font-bold text-muted-foreground/60 uppercase">
+                                                            {meta.width}{unitLabel} × {meta.height}{unitLabel}
+                                                            {meta.materialGroup && (
+                                                                <span className="ml-2 inline-flex items-center gap-1">
+                                                                    <span className={cn(
+                                                                        "w-1.5 h-1.5 rounded-full",
+                                                                        meta.materialGroup === "carcass" ? "bg-emerald-500" :
+                                                                            meta.materialGroup === "doors" ? "bg-blue-500" :
+                                                                                "bg-amber-500"
+                                                                    )}></span>
+                                                                    {meta.materialGroup}
+                                                                </span>
+                                                            )}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="flex gap-6">
@@ -1616,17 +1920,31 @@ export default function CutlistGeneratorPage() {
 
                                                 {/* Placed panels */}
                                                 {sheetPanels.map((p, idx) => {
-                                                    const colors = ["#eff6ff", "#f0fdf4", "#fffbeb", "#fef2f2", "#faf5ff", "#f0fdfa"]
-                                                    const borderColors = ["#3b82f6", "#22c55e", "#f59e0b", "#ef4444", "#a855f7", "#14b8a6"]
-                                                    const textColors = ["#1e40af", "#166534", "#92400e", "#991b1b", "#6b21a8", "#0f766e"]
-
                                                     const actualW = p.length - kerfThickness
                                                     const actualH = p.width - kerfThickness
 
                                                     // IMPORTANT: Match panel label using base ID (removing -0, -1 suffix)
                                                     const baseId = p.panelId.split('-')[0]
                                                     const panelData = panels.find(pl => pl.id === baseId)
-                                                    const colorIdx = (idx) % colors.length
+                                                    const materialGroup = p.materialGroup || panelData?.materialGroup || 'general'
+
+                                                    let fillColor = "#eff6ff"
+                                                    let borderColor = "#3b82f6"
+                                                    let textColor = "#1e40af"
+
+                                                    if (materialGroup === "carcass") {
+                                                        fillColor = "#f0fdf4"
+                                                        borderColor = "#22c55e"
+                                                        textColor = "#166534"
+                                                    } else if (materialGroup === "backing") {
+                                                        fillColor = "#fffbeb"
+                                                        borderColor = "#f59e0b"
+                                                        textColor = "#92400e"
+                                                    } else if (materialGroup === "doors") {
+                                                        fillColor = "#eff6ff"
+                                                        borderColor = "#3b82f6"
+                                                        textColor = "#1e40af"
+                                                    }
 
                                                     return (
                                                         <g key={idx} className="hover:opacity-95 transition-all cursor-default group/panel">
@@ -1635,8 +1953,8 @@ export default function CutlistGeneratorPage() {
                                                                 y={p.y * scale}
                                                                 width={actualW * scale}
                                                                 height={actualH * scale}
-                                                                fill={colors[colorIdx]}
-                                                                stroke={borderColors[colorIdx]}
+                                                                fill={fillColor}
+                                                                stroke={borderColor}
                                                                 strokeWidth={2.5}
                                                                 rx={4}
                                                                 className="transition-all duration-300 group-hover/panel:shadow-inner"
@@ -1664,13 +1982,13 @@ export default function CutlistGeneratorPage() {
                                                             >
                                                                 <div className="h-full flex flex-col justify-center items-center text-center overflow-hidden">
                                                                     <p
-                                                                        style={{ color: textColors[colorIdx] }}
+                                                                        style={{ color: textColor }}
                                                                         className="font-black text-sm uppercase tracking-tight leading-none mb-1 truncate w-full"
                                                                     >
                                                                         {panelData?.label || `P-${idx + 1}`}
                                                                     </p>
                                                                     <p
-                                                                        style={{ color: textColors[colorIdx] }}
+                                                                        style={{ color: textColor }}
                                                                         className="font-mono text-[10px] font-bold opacity-60 whitespace-nowrap"
                                                                     >
                                                                         {Math.round(actualW)}×{Math.round(actualH)}
@@ -1717,6 +2035,586 @@ export default function CutlistGeneratorPage() {
                     </div>
                 </div>
             )}
+
+            {/* BOM Modal */}
+            {showBOMModal && (() => {
+                // Calculate Aggregated BOM
+                const aggregateBOM = cabinetConfigs.reduce((acc, config) => {
+                    const breakdown = getMaterialsBreakdown(config);
+                    if (!breakdown) return acc;
+
+                    const unitCount = breakdown.unitCount;
+
+                    // Aggregate Panels
+                    breakdown.panels.forEach(p => {
+                        const existing = acc.panels.find(ep => ep.name === p.name && ep.l === p.l && ep.w === p.w && ep.materialGroup === p.materialGroup);
+                        if (existing) {
+                            existing.qty += p.qty * unitCount;
+                        } else {
+                            acc.panels.push({ ...p, qty: p.qty * unitCount });
+                        }
+                    });
+
+                    // Aggregate Hardware
+                    acc.hardware.hinges += breakdown.hardware.hinges * unitCount;
+                    acc.hardware.handles += (breakdown.hardware.doorHandles + breakdown.hardware.drawerHandles) * unitCount;
+                    acc.hardware.slides += breakdown.hardware.drawerSlides * unitCount;
+                    acc.hardware.shelfPins += breakdown.hardware.shelfPins * unitCount;
+
+                    // Aggregate Fasteners
+                    acc.fasteners.confirmat += breakdown.fasteners.confirmatScrews * unitCount;
+                    acc.fasteners.camLocks += breakdown.fasteners.camLocks * unitCount;
+                    acc.fasteners.nails += breakdown.fasteners.backPanelNails * unitCount;
+
+                    // Aggregate Edge Banding
+                    acc.totalEdgeBand += breakdown.totalEdgeBand * unitCount;
+                    acc.totalUnits += unitCount;
+
+                    return acc;
+                }, {
+                    panels: [] as any[],
+                    hardware: { hinges: 0, handles: 0, slides: 0, shelfPins: 0 },
+                    fasteners: { confirmat: 0, camLocks: 0, nails: 0 },
+                    totalEdgeBand: 0,
+                    totalUnits: 0
+                });
+
+                return (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
+                        <div className="bg-card w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-3xl border-2 border-primary/20 shadow-2xl flex flex-col scale-in-95 animate-in zoom-in-95 duration-300">
+                            {/* Header */}
+                            <div className="p-8 border-b border-border/20 bg-muted/30 flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-primary rounded-2xl shadow-lg shadow-primary/20 text-primary-foreground">
+                                        <Calculator className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-2xl font-black uppercase tracking-tight">Bill of Materials (BOM)</h2>
+                                        <p className="text-sm text-muted-foreground font-medium uppercase tracking-widest opacity-70">Production Summary — {aggregateBOM.totalUnits} Units Total</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setShowBOMModal(false)} className="p-2 hover:bg-muted rounded-full transition-colors">
+                                    <X className="w-6 h-6 text-muted-foreground" />
+                                </button>
+                            </div>
+
+                            {/* Body */}
+                            <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar relative">
+                                {!showReportPreview ? (
+                                    <>
+                                        {/* Sheets & Optimization Meta */}
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                            <div className="p-5 rounded-2xl bg-primary/5 border border-primary/20">
+                                                <p className="text-[10px] font-black text-primary uppercase tracking-widest opacity-60 mb-1">Production Required</p>
+                                                <div className="flex flex-col">
+                                                    <p className="text-3xl font-black leading-none">{calculated ? usedSheets : "--"} <span className="text-sm font-bold opacity-60">Sheets</span></p>
+                                                    {calculated && sheetsMetadata.length > 0 && (
+                                                        <div className="flex gap-2 mt-2">
+                                                            {Object.entries(
+                                                                sheetsMetadata.reduce((acc, meta) => {
+                                                                    const group = meta.materialGroup || 'general';
+                                                                    acc[group] = (acc[group] || 0) + 1;
+                                                                    return acc;
+                                                                }, {} as Record<string, number>)
+                                                            ).map(([group, count]) => (
+                                                                <span key={group} className="text-[8px] font-black uppercase flex items-center gap-1 bg-white/50 px-1.5 py-0.5 rounded border border-primary/10">
+                                                                    <span className={cn(
+                                                                        "w-1 h-1 rounded-full",
+                                                                        group === "carcass" ? "bg-emerald-500" :
+                                                                            group === "doors" ? "bg-blue-500" :
+                                                                                group === "backing" ? "bg-amber-500" : "bg-muted-foreground"
+                                                                    )}></span>
+                                                                    {count} {group}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
+                                                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest opacity-60 mb-1">Material Utilization</p>
+                                                <p className="text-3xl font-black text-emerald-600">{calculated ? 100 - (stats.wastePercent || 0) : "--"}%</p>
+                                            </div>
+                                            <div className="p-5 rounded-2xl bg-blue-500/5 border border-blue-500/20">
+                                                <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest opacity-60 mb-1">Total Edge Banding</p>
+                                                <p className="text-3xl font-black text-blue-600">{aggregateBOM.totalEdgeBand.toFixed(2)} <span className="text-sm font-bold opacity-60 uppercase">LM</span></p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                            {/* Panels List */}
+                                            <div className="space-y-4">
+                                                <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                                    <div className="w-1.5 h-4 bg-primary rounded-full"></div>
+                                                    Panel Breakdown
+                                                </h3>
+                                                <div className="bg-muted/20 border border-border/10 rounded-2xl overflow-hidden">
+                                                    <table className="w-full text-xs">
+                                                        <thead className="bg-muted/30 border-b border-border/10 text-[10px] uppercase font-black text-muted-foreground">
+                                                            <tr>
+                                                                <th className="p-3 text-left">Label</th>
+                                                                <th className="p-3 text-left">Group</th>
+                                                                <th className="p-3 text-left">Dimensions</th>
+                                                                <th className="p-3 text-right">Qty</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-border/5">
+                                                            {aggregateBOM.panels.map((p, i) => (
+                                                                <tr key={i} className="hover:bg-muted/10 transition-colors">
+                                                                    <td className="p-3 font-bold">{p.name}</td>
+                                                                    <td className="p-3">
+                                                                        <span className={cn(
+                                                                            "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest",
+                                                                            p.materialGroup === "carcass" ? "bg-emerald-500/10 text-emerald-600" :
+                                                                                p.materialGroup === "doors" ? "bg-blue-500/10 text-blue-600" :
+                                                                                    "bg-amber-500/10 text-amber-600"
+                                                                        )}>
+                                                                            {p.materialGroup}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="p-3 font-mono opacity-70">{p.l}×{p.w}mm</td>
+                                                                    <td className="p-3 text-right font-black">×{p.qty}</td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+
+                                            {/* Board Stock, Hardware & Fasteners */}
+                                            <div className="space-y-8">
+                                                <div className="space-y-4">
+                                                    <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                                        <div className="w-1.5 h-4 bg-primary rounded-full"></div>
+                                                        Board Stock Required
+                                                    </h3>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        {Object.entries(
+                                                            sheetsMetadata.reduce((acc, meta) => {
+                                                                const key = `${meta.materialGroup}|${meta.label}`;
+                                                                acc[key] = (acc[key] || 0) + 1;
+                                                                return acc;
+                                                            }, {} as Record<string, number>)
+                                                        ).map(([key, count]) => {
+                                                            const [group, label] = key.split('|');
+                                                            return (
+                                                                <div key={key} className="p-4 rounded-xl border border-border/10 bg-muted/5">
+                                                                    <div className="flex justify-between items-start mb-1">
+                                                                        <p className="text-[10px] font-bold text-muted-foreground uppercase">{group}</p>
+                                                                        <p className="text-[8px] font-black text-primary opacity-40 uppercase px-1 border border-primary/20 rounded-sm leading-tight">{label.split('×')[0]}mm</p>
+                                                                    </div>
+                                                                    <p className="text-xl font-black">{count} <span className="text-[10px] opacity-40 uppercase">Boards</span></p>
+                                                                    <p className="text-[8px] font-medium opacity-50 truncate">{label}</p>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                        <div className="p-4 rounded-xl border border-border/10 bg-primary/5">
+                                                            <p className="text-[10px] font-bold text-primary uppercase mb-1">Total Stock</p>
+                                                            <p className="text-xl font-black">{usedSheets} <span className="text-[10px] opacity-40 uppercase">Boards</span></p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                                        <div className="w-1.5 h-4 bg-amber-500 rounded-full"></div>
+                                                        Fitting & Hardware
+                                                    </h3>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="p-4 rounded-xl border border-border/10 bg-muted/5">
+                                                            <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Hinges</p>
+                                                            <p className="text-xl font-black">{aggregateBOM.hardware.hinges} <span className="text-[10px] opacity-40 uppercase">pcs</span></p>
+                                                        </div>
+                                                        <div className="p-4 rounded-xl border border-border/10 bg-muted/5">
+                                                            <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Handles</p>
+                                                            <p className="text-xl font-black">{aggregateBOM.hardware.handles} <span className="text-[10px] opacity-40 uppercase">pcs</span></p>
+                                                        </div>
+                                                        <div className="p-4 rounded-xl border border-border/10 bg-muted/5">
+                                                            <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Drawer Slides</p>
+                                                            <p className="text-xl font-black">{aggregateBOM.hardware.slides} <span className="text-[10px] opacity-40 uppercase">sets</span></p>
+                                                        </div>
+                                                        <div className="p-4 rounded-xl border border-border/10 bg-muted/5">
+                                                            <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Shelf Pins</p>
+                                                            <p className="text-xl font-black">{aggregateBOM.hardware.shelfPins} <span className="text-[10px] opacity-40 uppercase">pcs</span></p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                                        <div className="w-1.5 h-4 bg-rose-500 rounded-full"></div>
+                                                        Fastener Count
+                                                    </h3>
+                                                    <div className="grid grid-cols-2 gap-4 text-xs">
+                                                        <div className="flex justify-between p-3 border-b border-border/10">
+                                                            <span className="font-bold uppercase opacity-60">Confirmat Screws</span>
+                                                            <span className="font-black text-primary">{aggregateBOM.fasteners.confirmat}</span>
+                                                        </div>
+                                                        <div className="flex justify-between p-3 border-b border-border/10">
+                                                            <span className="font-bold uppercase opacity-60">Cam Locks</span>
+                                                            <span className="font-black text-primary">{aggregateBOM.fasteners.camLocks}</span>
+                                                        </div>
+                                                        <div className="flex justify-between p-3">
+                                                            <span className="font-bold uppercase opacity-60">Back Panel Nails</span>
+                                                            <span className="font-black text-primary">{aggregateBOM.fasteners.nails}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="bg-white rounded-3xl shadow-2xl p-0 !mt-0 min-h-[1000px] border border-black/5 overflow-hidden print:hidden scale-[0.85] origin-top translate-y-[-10%] transition-transform duration-500 hover:scale-[0.9] hover:translate-y-[-5%] group/report">
+                                        <div className="max-w-[800px] mx-auto p-16 text-black font-sans bg-white min-h-[1100px] relative">
+                                            {/* Report Header */}
+                                            <div className="flex justify-between items-start border-b-[3px] border-black pb-10 mb-10">
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-4">
+                                                        <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-black text-xl italic">M</div>
+                                                        <h1 className="text-3xl font-black uppercase tracking-tighter italic">ModuLux <span className="not-italic">Fabricator</span></h1>
+                                                    </div>
+                                                    <p className="text-[9px] font-black opacity-30 tracking-[0.3em] uppercase leading-tight">Automated Production Protocol <br /> Certified Precision Output</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-base font-black uppercase tracking-tight">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                                                    <p className="text-[10px] font-bold opacity-30 uppercase tracking-[0.2em] mt-1">Ref ID: PRD-{Math.random().toString(36).substring(7).toUpperCase()}</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Executive Overview */}
+                                            <div className="grid grid-cols-3 gap-1 mb-12">
+                                                <div className="p-6 border border-black/10 rounded-l-2xl border-r-0">
+                                                    <p className="text-[8px] font-black uppercase tracking-widest opacity-20 mb-2">Total Inventory</p>
+                                                    <div className="flex items-baseline gap-1">
+                                                        <span className="text-4xl font-black tracking-tighter">{usedSheets}</span>
+                                                        <span className="text-[10px] font-bold uppercase opacity-40">Sheets</span>
+                                                    </div>
+                                                </div>
+                                                <div className="p-6 border border-black/10">
+                                                    <p className="text-[8px] font-black uppercase tracking-widest opacity-20 mb-2">Efficiency Rating</p>
+                                                    <div className="flex items-baseline gap-1">
+                                                        <span className="text-4xl font-black tracking-tighter">{100 - (stats.wastePercent || 0)}</span>
+                                                        <span className="text-[10px] font-bold uppercase opacity-40">%</span>
+                                                    </div>
+                                                </div>
+                                                <div className="p-6 border border-black/10 rounded-r-2xl border-l-0">
+                                                    <p className="text-[8px] font-black uppercase tracking-widest opacity-20 mb-2">Edge Duration</p>
+                                                    <div className="flex items-baseline gap-1">
+                                                        <span className="text-4xl font-black tracking-tighter">{aggregateBOM.totalEdgeBand.toFixed(1)}</span>
+                                                        <span className="text-[10px] font-bold uppercase opacity-40">LM</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Section 01: Materials */}
+                                            {/* Section 01: Materials */}
+                                            <div className="mb-12">
+                                                <div className="flex items-center gap-3 mb-6">
+                                                    <span className="w-10 h-[1px] bg-black/10"></span>
+                                                    <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-black">01 / Boards Requirements</h3>
+                                                    <span className="flex-1 h-[1px] bg-black/10"></span>
+                                                </div>
+                                                <div className="space-y-4">
+                                                    {Object.entries(
+                                                        sheetsMetadata.reduce((acc, meta) => {
+                                                            const key = `${meta.materialGroup}|${meta.label}|${meta.width}x${meta.height}`;
+                                                            acc[key] = (acc[key] || 0) + 1;
+                                                            return acc;
+                                                        }, {} as Record<string, number>)
+                                                    ).map(([key, count]) => {
+                                                        const [group, label, dims] = key.split('|');
+                                                        return (
+                                                            <div key={key} className="flex items-center justify-between group/item">
+                                                                <div className="flex items-center gap-6">
+                                                                    <div className="w-12 h-12 bg-black flex items-center justify-center text-white text-xs font-black rounded-lg group-hover/item:scale-105 transition-transform uppercase">
+                                                                        {group.charAt(0)}
+                                                                    </div>
+                                                                    <div>
+                                                                        <p className="text-[9px] font-black uppercase opacity-20 tracking-widest mb-0.5">{group}</p>
+                                                                        <p className="font-bold text-lg leading-tight tracking-tight">{label}</p>
+                                                                        <p className="text-[10px] font-mono opacity-40">{dims}mm Standard Stock</p>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <p className="text-3xl font-black tracking-tighter">×{count}</p>
+                                                                    <p className="text-[8px] font-bold opacity-20 uppercase tracking-[0.2em]">Units Required</p>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+
+                                            {/* Section 03: Fittings (Moved up) */}
+                                            <div className="grid grid-cols-2 gap-10 mb-12">
+                                                <div>
+                                                    <h3 className="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-black border-b border-black/10 pb-2">03 / Fittings List</h3>
+                                                    <div className="space-y-2">
+                                                        <div className="flex justify-between items-center py-2 border-b border-black/5 last:border-0">
+                                                            <span className="text-[10px] font-black uppercase opacity-30 tracking-widest">Hinges</span>
+                                                            <span className="font-black italic text-lg">{aggregateBOM.hardware.hinges} <span className="text-[8px] not-italic">PCS</span></span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center py-2 border-b border-black/5 last:border-0">
+                                                            <span className="text-[10px] font-black uppercase opacity-30 tracking-widest">Handles</span>
+                                                            <span className="font-black italic text-lg">{aggregateBOM.hardware.handles} <span className="text-[8px] not-italic">PCS</span></span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center py-2 border-b border-black/5 last:border-0">
+                                                            <span className="text-[10px] font-black uppercase opacity-30 tracking-widest">Slides</span>
+                                                            <span className="font-black italic text-lg">{aggregateBOM.hardware.slides} <span className="text-[8px] not-italic">SETS</span></span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-black border-b border-black/10 pb-2">04 / Assembly Units</h3>
+                                                    <div className="space-y-4">
+                                                        <div className="p-3 bg-black/5 rounded-xl border border-black/5">
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <span className="text-[8px] font-black uppercase opacity-30 tracking-widest">Structural Screws</span>
+                                                                <span className="text-sm font-black italic">{aggregateBOM.fasteners.confirmat}</span>
+                                                            </div>
+                                                            <div className="w-full bg-black/10 h-1 rounded-full overflow-hidden">
+                                                                <div className="bg-black h-full" style={{ width: '100%' }}></div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="p-3 bg-black/5 rounded-xl border border-black/5">
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <span className="text-[8px] font-black uppercase opacity-30 tracking-widest">Mechanical Fasteners</span>
+                                                                <span className="text-sm font-black italic">{aggregateBOM.fasteners.camLocks}</span>
+                                                            </div>
+                                                            <div className="w-full bg-black/10 h-1 rounded-full overflow-hidden">
+                                                                <div className="bg-black h-full" style={{ width: '100%' }}></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Section 02: Cuts List (Moved down) */}
+                                            <div className="mb-12">
+                                                <div className="flex items-center gap-3 mb-6">
+                                                    <span className="w-10 h-[1px] bg-black/10"></span>
+                                                    <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-black">02 / Precision Cuts Data</h3>
+                                                    <span className="flex-1 h-[1px] bg-black/10"></span>
+                                                </div>
+                                                <div className="border-[2px] border-black rounded-2xl overflow-hidden">
+                                                    <table className="w-full text-[10px]">
+                                                        <thead>
+                                                            <tr className="bg-black text-white text-left">
+                                                                <th className="p-4 font-black uppercase tracking-widest">Component</th>
+                                                                <th className="p-4 font-black uppercase tracking-widest">Dimension (L×W)</th>
+                                                                <th className="p-4 font-black uppercase tracking-widest text-right">Quantity</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-black/10 font-medium">
+                                                            {aggregateBOM.panels.slice(0, 12).map((p, i) => (
+                                                                <tr key={i} className="hover:bg-black/[0.02] transition-colors">
+                                                                    <td className="p-4">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className={cn(
+                                                                                "w-1 h-3 rounded-full",
+                                                                                p.materialGroup === "carcass" ? "bg-emerald-500" :
+                                                                                    p.materialGroup === "doors" ? "bg-blue-500" : "bg-amber-500"
+                                                                            )}></span>
+                                                                            <span className="font-bold">{p.name}</span>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="p-4 font-mono font-bold tracking-tighter">{p.l} × {p.w}mm</td>
+                                                                    <td className="p-4 text-right font-black text-sm">×{p.qty}</td>
+                                                                </tr>
+                                                            ))}
+                                                            {aggregateBOM.panels.length > 12 && (
+                                                                <tr className="bg-muted/5">
+                                                                    <td colSpan={3} className="p-4 text-center text-[9px] font-black uppercase opacity-30 italic">
+                                                                        ... Continued on Supplemental Sheets ({aggregateBOM.panels.length - 12} more items)
+                                                                    </td>
+                                                                </tr>
+                                                            )}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+
+                                            {/* Report Watermark/Footer */}
+                                            <div className="absolute bottom-16 left-16 right-16 flex justify-between items-end">
+                                                <div className="opacity-20">
+                                                    <div className="w-12 h-1 bg-black mb-2"></div>
+                                                    <p className="text-[8px] font-black uppercase tracking-[0.5em]">APPROVED FOR FABRICATION</p>
+                                                </div>
+                                                <p className="text-[9px] font-black italic opacity-10">PAGE 01 / GENERATED BY MODULUX AI</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Footer */}
+                            <div className="p-8 border-t border-border/20 bg-muted/30 flex justify-between items-center">
+                                <div className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em]">
+                                    ModuLux Fabrication Management System
+                                </div>
+                                <div className="flex gap-4">
+                                    <Button variant="outline" className="rounded-xl px-8" onClick={() => {
+                                        if (showReportPreview) setShowReportPreview(false);
+                                        else setShowBOMModal(false);
+                                    }}>
+                                        {showReportPreview ? "Back to Summary" : "Close"}
+                                    </Button>
+                                    <Button variant="outline" className="rounded-xl px-8 border-primary/20 hover:bg-primary/5 group" onClick={() => setShowReportPreview(!showReportPreview)}>
+                                        {showReportPreview ? (
+                                            <><Calculator className="w-4 h-4 mr-2" /> Show Summary</>
+                                        ) : (
+                                            <><FileText className="w-4 h-4 mr-2" /> Preview Document</>
+                                        )}
+                                    </Button>
+                                    <Button variant="outline" className="rounded-xl px-8 border-primary/20 hover:bg-primary/5 group" onClick={() => {
+                                        if (!showReportPreview) setShowReportPreview(true);
+                                        setTimeout(() => window.print(), 100);
+                                    }}>
+                                        <Printer className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" /> Print PDF
+                                    </Button>
+                                    <Button className="rounded-xl px-10 font-bold shadow-xl shadow-primary/20" onClick={() => {
+                                        toast.success("BOM Exported to Production Queue");
+                                        setShowBOMModal(false);
+                                    }}>
+                                        <Download className="w-4 h-4 mr-2" /> Finalize & Export
+                                    </Button>
+                                </div>
+                            </div>
+
+                            {/* HIDDEN PRINT-ONLY PRODUCTION REPORT (FULL VERSION) */}
+                            <div className="hidden print:block fixed inset-0 bg-white z-[100] text-black overflow-visible p-0 m-0">
+                                <div className="max-w-[800px] mx-auto p-12 font-sans bg-white min-h-screen">
+                                    {/* Report Header */}
+                                    <div className="flex justify-between items-start border-b-[3px] border-black pb-10 mb-10">
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-black text-xl italic">M</div>
+                                                <h1 className="text-3xl font-black uppercase tracking-tighter italic">ModuLux <span className="not-italic">Fabricator</span></h1>
+                                            </div>
+                                            <p className="text-[9px] font-black opacity-30 tracking-[0.3em] uppercase leading-tight">Automated Production Protocol <br /> Certified Precision Output</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-base font-black uppercase tracking-tight">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                                            <p className="text-[10px] font-bold opacity-30 uppercase tracking-[0.2em] mt-1">Ref ID: PRD-{Math.random().toString(36).substring(7).toUpperCase()}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Board Inventory Section */}
+                                    <div className="mb-12">
+                                        <h2 className="text-xs font-black uppercase tracking-[0.4em] border-b border-black/10 pb-4 mb-6 flex items-center gap-3">
+                                            <span className="w-3 h-3 bg-black rounded-full"></span> 01 / Boards Requirements
+                                        </h2>
+                                        <div className="grid grid-cols-1 gap-4">
+                                            {Object.entries(
+                                                sheetsMetadata.reduce((acc, meta) => {
+                                                    const key = `${meta.materialGroup}|${meta.label}|${meta.width}x${meta.height}`;
+                                                    acc[key] = (acc[key] || 0) + 1;
+                                                    return acc;
+                                                }, {} as Record<string, number>)
+                                            ).map(([key, count]) => {
+                                                const [group, label, dims] = key.split('|');
+                                                return (
+                                                    <div key={key} className="flex items-center justify-between p-6 border-2 border-black/5 rounded-2xl bg-muted/5">
+                                                        <div>
+                                                            <p className="text-[9px] font-black uppercase opacity-30 tracking-widest mb-1">{group} Material</p>
+                                                            <p className="font-black text-xl leading-none">{label}</p>
+                                                            <p className="text-[10px] font-mono opacity-60 mt-2">{dims}mm Industrial Grade</p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-4xl font-black italic tracking-tighter">×{count}</p>
+                                                            <p className="text-[8px] font-bold opacity-40 uppercase tracking-widest">Units</p>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Hardware & Assembly Sections (Moved up) */}
+                                    <div className="grid grid-cols-2 gap-12 mb-12 page-break-before">
+                                        <div>
+                                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] border-b-[2px] border-black pb-2 mb-4">03 / Hardware & Fittings</h3>
+                                            <div className="space-y-3">
+                                                <div className="flex justify-between items-baseline py-1 border-b border-black/5">
+                                                    <span className="text-[10px] uppercase font-bold opacity-40">Soft-Close Hinges</span>
+                                                    <span className="font-black italic text-lg">{aggregateBOM.hardware.hinges} pcs</span>
+                                                </div>
+                                                <div className="flex justify-between items-baseline py-1 border-b border-black/5">
+                                                    <span className="text-[10px] uppercase font-bold opacity-40">Precision Handles</span>
+                                                    <span className="font-black italic text-lg">{aggregateBOM.hardware.handles} pcs</span>
+                                                </div>
+                                                <div className="flex justify-between items-baseline py-1 border-b border-black/5">
+                                                    <span className="text-[10px] uppercase font-bold opacity-40">Full Extension Slides</span>
+                                                    <span className="font-black italic text-lg">{aggregateBOM.hardware.slides} sets</span>
+                                                </div>
+                                                <div className="flex justify-between items-baseline py-1 border-b border-black/5">
+                                                    <span className="text-[10px] uppercase font-bold opacity-40">Shelf Support Pins</span>
+                                                    <span className="font-black italic text-lg">{aggregateBOM.hardware.shelfPins} pcs</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] border-b-[2px] border-black pb-2 mb-4">04 / Assembly Connections</h3>
+                                            <div className="space-y-3">
+                                                <div className="flex justify-between items-baseline py-1 border-b border-black/5">
+                                                    <span className="text-[10px] uppercase font-bold opacity-40">Confirmat Fasteners</span>
+                                                    <span className="font-black italic text-lg">{aggregateBOM.fasteners.confirmat}</span>
+                                                </div>
+                                                <div className="flex justify-between items-baseline py-1 border-b border-black/5">
+                                                    <span className="text-[10px] uppercase font-bold opacity-40">Cam & Bolt Sets</span>
+                                                    <span className="font-black italic text-lg">{aggregateBOM.fasteners.camLocks}</span>
+                                                </div>
+                                                <div className="flex justify-between items-baseline py-1 border-b border-black/5">
+                                                    <span className="text-[10px] uppercase font-bold opacity-40">Backing Pin Nails</span>
+                                                    <span className="font-black italic text-lg">{aggregateBOM.fasteners.nails}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Panel Breakdown Table (Moved down) */}
+                                    <div className="mb-12">
+                                        <h2 className="text-xs font-black uppercase tracking-[0.4em] border-b border-black/10 pb-4 mb-6 flex items-center gap-3">
+                                            <span className="w-3 h-3 bg-black rounded-full"></span> 02 / Component Cuts List & Dimensions
+                                        </h2>
+                                        <div className="border-[2px] border-black rounded-2xl overflow-hidden">
+                                            <table className="w-full text-[10px]">
+                                                <thead>
+                                                    <tr className="bg-black text-white text-left font-black uppercase tracking-widest">
+                                                        <th className="p-4">Part Specification</th>
+                                                        <th className="p-4">Material Group</th>
+                                                        <th className="p-4">Finish Dim (L×W)</th>
+                                                        <th className="p-4 text-right">Qty</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-black/10 font-bold">
+                                                    {aggregateBOM.panels.map((p, i) => (
+                                                        <tr key={i} className="align-middle">
+                                                            <td className="p-4 bg-black/[0.02]">{p.name}</td>
+                                                            <td className="p-4 uppercase opacity-60">{p.materialGroup}</td>
+                                                            <td className="p-4 font-mono font-black italic">{p.l} × {p.w}mm</td>
+                                                            <td className="p-4 text-right font-black text-sm italic">×{p.qty}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    {/* Report Footer */}
+                                    <div className="mt-24 pt-10 border-t-2 border-black/10 flex justify-between items-center opacity-40">
+                                        <p className="text-[9px] font-black uppercase tracking-[0.4em] italic leading-tight">ModuLux Digital Ecosystem <br /> <span className="text-[7px]">PROPRIETARY REPORT — NOT FOR PUBLIC DISTRIBUTION</span></p>
+                                        <div className="text-right">
+                                            <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-1 italic opacity-60">Verified Accuracy</p>
+                                            <div className="w-24 h-[1px] bg-black"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* AI Plan Parser Modal */}
             {aiParserOpen && (

@@ -45,24 +45,40 @@ export const SubmitButton: any = ({ children, className, confirm, type = "primar
   const [showConfirm, setShowConfirm] = React.useState(false)
   const buttonRef = React.useRef<HTMLButtonElement>(null)
 
-  const handleInitialClick = (e: React.MouseEvent) => {
+  const handleConfirmed = () => {
+    setShowConfirm(false)
+    if (buttonRef.current?.form) {
+      const form = buttonRef.current.form
+      // We set a flag to allow the next click to go through
+      const originalSubmit = (form as any)._isConfirmedBySubmitButton
+        ; (form as any)._isConfirmedBySubmitButton = true
+
+      if (typeof form.requestSubmit === 'function') {
+        form.requestSubmit()
+      } else {
+        // Fallback for very old browsers: just click the button manually
+        // but avoid recursion by checking the flag
+        buttonRef.current.click()
+      }
+
+      // Reset flag after a tick
+      setTimeout(() => {
+        ; (form as any)._isConfirmedBySubmitButton = false
+      }, 100)
+    }
+  }
+
+  const handleInitialClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    // If we've already confirmed, let the event through
+    const form = e.currentTarget.form as any
+    if (form?._isConfirmedBySubmitButton) {
+      return
+    }
+
     if (confirm) {
       e.preventDefault()
       e.stopPropagation()
       setShowConfirm(true)
-    }
-  }
-
-  const handleConfirmed = () => {
-    setShowConfirm(false)
-    // Manually trigger form submission since we intercepted the initial click
-    if (buttonRef.current?.form) {
-      // Use form.requestSubmit() if available, fallback to form.submit()
-      if (typeof buttonRef.current.form.requestSubmit === 'function') {
-        buttonRef.current.form.requestSubmit()
-      } else {
-        buttonRef.current.form.submit()
-      }
     }
   }
 

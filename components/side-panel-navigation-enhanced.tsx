@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
 import { LayoutDashboard, BarChart3, Users, FolderOpen, Package, ShoppingCart, User, CreditCard, FileText, Wallet, Settings, HelpCircle, Mail, Menu, X, ChevronRight, Search, Bell, Sun, ChevronDown, MessageSquare, CalendarDays, Calculator, Wrench, Scissors } from "lucide-react"
 import "./side-panel-navigation.css"
+import { NotificationDropdown } from "./admin/notification-dropdown"
 
 export interface NavItem {
   title: string
@@ -294,7 +295,7 @@ export function SidePanelNavigationEnhanced({ navigation, utility, brandName, br
           </div>
           <div className="side-panel-header-actions">
             <button className="side-panel-header-button" aria-label="Toggle theme"><Sun className="side-panel-header-button-icon" /></button>
-            <button className="side-panel-header-button relative" aria-label="View notifications"><Bell className="side-panel-header-button-icon" /><span className="side-panel-notification-badge">3</span></button>
+            <NotificationDropdown />
             <button className="side-panel-header-button" aria-label="Open settings"><Settings className="side-panel-header-button-icon" /></button>
             {rightActions}
           </div>
