@@ -183,13 +183,47 @@ create table if not exists public.inquiries (
   phone text,
   message text,
   attachments jsonb,
+  date text,
   status text default 'new',
+
   tags text[] default '{}',
   created_at timestamptz default now(),
   updated_at timestamptz
 );
 
 create index if not exists idx_inquiries_created on public.inquiries (created_at desc);
+
+-- Blog Posts
+create table if not exists public.blog_posts (
+  id text primary key,
+  title text not null,
+  excerpt text,
+  description text,
+  image text,
+  author text,
+  date text,
+  read_time text,
+  category text,
+  created_at timestamptz default now(),
+  updated_at timestamptz
+);
+
+create index if not exists idx_blog_posts_category on public.blog_posts (category);
+create index if not exists idx_blog_posts_date on public.blog_posts (date desc);
+
+-- Products
+create table if not exists public.products (
+  id text primary key,
+  name text not null,
+  category text,
+  image text,
+  description text,
+  created_at timestamptz default now(),
+  updated_at timestamptz
+);
+
+create index if not exists idx_products_category on public.products (category);
+
 
 -- Specification templates for different quality tiers
 create table if not exists public.specification_templates (
@@ -225,6 +259,9 @@ alter table public.contacts enable row level security;
 alter table public.leads enable row level security;
 alter table public.clients enable row level security;
 alter table public.inquiries enable row level security;
+alter table public.blog_posts enable row level security;
+alter table public.products enable row level security;
+
 
 -- Policies for proposal_drafts
 drop policy if exists "Admins can manage proposal drafts" on public.proposal_drafts;
@@ -289,3 +326,117 @@ create policy "Admins can manage inquiries" on public.inquiries for all to authe
 
 drop policy if exists "Public can insert inquiries" on public.inquiries;
 create policy "Public can insert inquiries" on public.inquiries for insert with check (true);
+
+-- Policies for blog_posts
+drop policy if exists "Public can read blog posts" on public.blog_posts;
+create policy "Public can read blog posts" on public.blog_posts for select using (true);
+
+drop policy if exists "Admins can manage blog posts" on public.blog_posts;
+create policy "Admins can manage blog posts" on public.blog_posts for all to authenticated using (true) with check (true);
+
+-- Policies for products
+drop policy if exists "Public can read products" on public.products;
+create policy "Public can read products" on public.products for select using (true);
+
+drop policy if exists "Admins can manage products" on public.products;
+create policy "Admins can manage products" on public.products for all to authenticated using (true) with check (true);
+
+
+-- Cutlist Generator: Projects
+create table if not exists public.cutlist_projects (
+  id text primary key,
+  name text not null,
+  description text,
+  units text default 'mm',
+  options jsonb not null default '{
+    "kerf": 3,
+    "showLabels": true,
+    "considerMaterial": true,
+    "edgeBanding": false,
+    "considerGrain": true
+  }'::jsonb,
+  metrics jsonb default '{
+    "utilization": 0,
+    "waste": 0,
+    "sheetsUsed": 0,
+    "usedArea": 0,
+    "cutOperations": 0,
+    "linearCutLength": 0
+  }'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz
+);
+
+-- Cutlist Generator: Stock Sheets (Global Parameters)
+create table if not exists public.cutlist_stock_sheets (
+  id text primary key,
+  label text,
+  width numeric not null,
+  height numeric not null,
+  thickness numeric,
+  quantity int default 1,
+  material_group text,
+  created_at timestamptz default now()
+);
+
+-- Cutlist Generator: Cabinet Configurations
+create table if not exists public.cutlist_cabinet_configs (
+  id text primary key,
+  project_id text references public.cutlist_projects(id) on delete cascade,
+  name text,
+  type text,
+  width numeric not null,
+  height numeric not null,
+  depth numeric not null,
+  doors int default 0,
+  shelves int default 0,
+  drawers int default 0,
+  quantity int default 1,
+  materials jsonb,
+  order_index int default 0,
+  created_at timestamptz default now()
+);
+
+-- Cutlist Generator: Panels (Custom/Individual)
+create table if not exists public.cutlist_panels (
+  id text primary key,
+  project_id text references public.cutlist_projects(id) on delete cascade,
+  name text,
+  width numeric not null,
+  height numeric not null,
+  quantity int default 1,
+  material_group text,
+  stock_sheet_id text references public.cutlist_stock_sheets(id),
+  created_at timestamptz default now()
+);
+
+-- Cutlist Generator: Optimization Results
+create table if not exists public.cutlist_results (
+  id text primary key,
+  project_id text references public.cutlist_projects(id) on delete cascade,
+  sheets_metadata jsonb not null,
+  created_at timestamptz default now()
+);
+
+-- Enable RLS on Cutlist tables
+alter table public.cutlist_projects enable row level security;
+alter table public.cutlist_stock_sheets enable row level security;
+alter table public.cutlist_cabinet_configs enable row level security;
+alter table public.cutlist_panels enable row level security;
+alter table public.cutlist_results enable row level security;
+
+-- Policies for Cutlist Generator
+drop policy if exists "Admins can manage cutlist projects" on public.cutlist_projects;
+create policy "Admins can manage cutlist projects" on public.cutlist_projects for all using (true) with check (true);
+
+drop policy if exists "Admins can manage cutlist stock" on public.cutlist_stock_sheets;
+create policy "Admins can manage cutlist stock" on public.cutlist_stock_sheets for all using (true) with check (true);
+
+drop policy if exists "Admins can manage cutlist cabinets" on public.cutlist_cabinet_configs;
+create policy "Admins can manage cutlist cabinets" on public.cutlist_cabinet_configs for all using (true) with check (true);
+
+drop policy if exists "Admins can manage cutlist panels" on public.cutlist_panels;
+create policy "Admins can manage cutlist panels" on public.cutlist_panels for all using (true) with check (true);
+
+drop policy if exists "Admins can manage cutlist results" on public.cutlist_results;
+create policy "Admins can manage cutlist results" on public.cutlist_results for all using (true) with check (true);

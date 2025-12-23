@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { AIPlanParser } from "@/components/admin/ai-plan-parser"
+import { supabase } from "@/lib/supabase"
+import { Save, FolderOpen, Loader2 } from "lucide-react"
+
 
 interface Panel {
     id: string
@@ -124,8 +127,130 @@ export default function CutlistGeneratorPage() {
     const [cabinetTypeDefaults, setCabinetTypeDefaults] = useState<Record<"base" | "hanging" | "tall", CabinetTypeDefaults>>(CABINET_DEFAULTS)
     const [settingsModalType, setSettingsModalType] = useState<"base" | "hanging" | "tall" | null>(null)
     const [aiParserOpen, setAiParserOpen] = useState(false)
+    const [isSaving, setIsSaving] = useState(false)
+    const [projectId, setProjectId] = useState<string | null>(null)
+    const [projectName, setProjectName] = useState("New Project")
+    const [isEditingName, setIsEditingName] = useState(false)
+    const [savedProjects, setSavedProjects] = useState<Array<{ id: string; name: string; updated_at: string; metrics: any }>>([])
+    const [cutsTab, setCutsTab] = useState<"cuts" | "projects">("cuts")
 
-    // Load defaults from localStorage on mount
+    // Load all saved projects from Supabase
+    const loadSavedProjects = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('cutlist_projects')
+                .select('id, name, updated_at, metrics')
+                .order('updated_at', { ascending: false })
+            if (error) throw error
+            setSavedProjects(data || [])
+        } catch (error: any) {
+            console.error("Error loading projects:", error)
+        }
+    }
+
+    // Start a new project (reset state)
+    const startNewProject = () => {
+        setProjectId(null)
+        setProjectName("New Project")
+        setCabinetConfigs([])
+        setPanels([])
+        setCalculated(false)
+        setPlacements([])
+        setUsedSheets(0)
+        setSheetLevels([])
+        setSheetsMetadata([])
+        // Clear URL param
+        const url = new URL(window.location.href)
+        url.searchParams.delete('projectId')
+        window.history.replaceState({}, '', url.toString())
+        toast.success("Started new project")
+    }
+
+    // Load Project from Supabase
+    const loadProject = async (id: string) => {
+        try {
+            const { data: project, error: projError } = await supabase
+                .from('cutlist_projects')
+                .select('*, cutlist_cabinet_configs(*), cutlist_results(*)')
+                .eq('id', id)
+                .single()
+
+
+            if (projError) throw projError
+
+            if (project) {
+                setProjectId(project.id)
+                setProjectName(project.name)
+                setUnit(project.units as any)
+                setKerfThickness(project.options.kerf)
+                setLabelsOnPanels(project.options.showLabels)
+                setConsiderMaterial(project.options.considerMaterial)
+                setEdgeBanding(project.options.edgeBanding)
+                setGrainDirection(project.options.considerGrain)
+
+                if (project.options.cabinetDefaults) {
+                    setCabinetTypeDefaults(project.options.cabinetDefaults)
+                }
+
+                // Stock sheets are now global and loaded separately
+
+
+                if (project.cutlist_cabinet_configs?.length) {
+                    setCabinetConfigs(project.cutlist_cabinet_configs.map((c: any) => ({
+                        id: c.id,
+                        type: c.type,
+                        linearMeters: (c.width * c.quantity) / 1000,
+                        unitWidth: c.width,
+                        height: c.height,
+                        depth: c.depth,
+                        doorsPerUnit: c.doors,
+                        shelves: c.shelves,
+                        drawers: c.drawers,
+                        materials: c.materials,
+                        order: c.order_index || c.order || 0
+                    })))
+                }
+
+                if (project.cutlist_results?.[0]) {
+                    setSheetsMetadata(project.cutlist_results[0].sheets_metadata)
+                    // Note: We don't restore placements here as they are temporary and usually recalculated 
+                    // but we could if we added a placements field to cutlist_results
+                }
+            }
+        } catch (error: any) {
+            console.error("Load Error:", error)
+            toast.error(`Error loading project: ${error.message}`)
+        }
+    }
+
+    // Load Global Stock Sheets
+    const loadStockSheets = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('cutlist_stock_sheets')
+                .select('*')
+                .order('created_at', { ascending: true })
+
+            if (error) throw error
+
+            if (data?.length) {
+                setStockSheets(data.map((s: any) => ({
+                    id: s.id,
+                    length: s.height,
+                    width: s.width,
+                    quantity: s.quantity,
+                    thickness: s.thickness,
+                    label: s.label,
+                    materialGroup: s.material_group
+                })))
+            }
+        } catch (error: any) {
+            console.error("Stock Load Error:", error)
+        }
+    }
+
+
+    // Load defaults and initial project
     useEffect(() => {
         const saved = localStorage.getItem("cabinetTypeDefaults")
         if (saved) {
@@ -134,7 +259,20 @@ export default function CutlistGeneratorPage() {
                 setCabinetTypeDefaults({ ...CABINET_DEFAULTS, ...parsed })
             } catch { /* ignore */ }
         }
+
+        // Check for project ID in URL
+        const params = new URLSearchParams(window.location.search)
+        const id = params.get('projectId')
+        if (id) {
+            loadProject(id)
+        }
+
+
+        // Load global parameters
+        loadStockSheets()
+        loadSavedProjects()
     }, [])
+
 
     // Save defaults to localStorage when changed
     const updateTypeDefaults = (type: "base" | "hanging" | "tall", field: keyof CabinetTypeDefaults, value: any) => {
@@ -224,6 +362,9 @@ export default function CutlistGeneratorPage() {
         setCabinetConfigs(prev => [...prev, ...newConfigs])
         setAiParserOpen(false)
         toast.success(`Added ${newConfigs.length} cabinet${newConfigs.length > 1 ? 's' : ''} from plan`)
+
+        // Auto-save after extracting plan
+        setTimeout(() => saveProject(), 500)
     }
 
     // Cabinet Builder functions
@@ -626,6 +767,135 @@ export default function CutlistGeneratorPage() {
         setSheetLevels([])
     }
 
+    const [isProjectSettingsOpen, setIsProjectSettingsOpen] = useState(false)
+
+    const updateProjectName = (name: string) => {
+        setProjectName(name)
+    }
+
+
+    // Save Project to Supabase
+    const saveProject = async () => {
+        setIsSaving(true)
+        const activeProjectId = projectId || crypto.randomUUID()
+
+        try {
+            // 1. Save Project Core
+            const { error: projError } = await supabase
+                .from('cutlist_projects')
+                .upsert({
+                    id: activeProjectId,
+                    name: projectName,
+                    units: unit,
+                    options: {
+                        kerf: kerfThickness,
+                        showLabels: labelsOnPanels,
+                        considerMaterial,
+                        edgeBanding,
+                        considerGrain: grainDirection,
+                        cabinetDefaults: cabinetTypeDefaults
+                    },
+                    metrics: calculated ? {
+                        utilization: 100 - (stats.wastePercent || 0),
+                        waste: stats.wastePercent,
+                        sheetsUsed: usedSheets,
+                        usedArea: stats.totalUsedArea,
+                        cutOperations: stats.totalCuts,
+                        linearCutLength: stats.cutLength
+                    } : null,
+                    updated_at: new Date().toISOString()
+                })
+
+            if (projError) throw projError
+
+            // 2. Save Stock Sheets (Globally)
+            // We delete all global sheets and replace with current ones to maintain a global library
+            await supabase.from('cutlist_stock_sheets').delete().not('id', 'is', null)
+
+            if (stockSheets.length > 0) {
+                const { error: stockInsertError } = await supabase
+                    .from('cutlist_stock_sheets')
+                    .insert(stockSheets.map(s => ({
+                        id: s.id,
+                        label: s.label,
+                        width: s.width,
+                        height: s.length,
+                        thickness: s.thickness,
+                        quantity: s.quantity,
+                        material_group: s.materialGroup
+                    })))
+                if (stockInsertError) throw stockInsertError
+            }
+
+
+            // 3. Save Cabinet Configs
+            await supabase.from('cutlist_cabinet_configs').delete().eq('project_id', activeProjectId)
+            const { error: cabError } = await supabase
+                .from('cutlist_cabinet_configs')
+                .insert(cabinetConfigs.map(c => ({
+                    id: c.id,
+                    project_id: activeProjectId,
+                    name: `Cabinet ${c.order + 1}`,
+                    type: c.type,
+                    width: c.unitWidth,
+                    height: c.height,
+                    depth: c.depth,
+                    doors: c.doorsPerUnit,
+                    shelves: c.shelves,
+                    drawers: c.drawers,
+                    quantity: Math.floor((c.linearMeters * 1000) / c.unitWidth),
+                    materials: c.materials,
+                    order_index: c.order
+                })))
+            if (cabError) throw cabError
+
+            // 4. Save Panels (Individual/Custom)
+            await supabase.from('cutlist_panels').delete().eq('project_id', activeProjectId)
+            if (panels.length > 0) {
+                const { error: panelError } = await supabase
+                    .from('cutlist_panels')
+                    .insert(panels.map(p => ({
+                        id: p.id,
+                        project_id: activeProjectId,
+                        name: p.label || 'Untitled Panel',
+                        width: p.width,
+                        height: p.length,
+                        quantity: p.quantity,
+                        material_group: p.materialGroup,
+                        stock_sheet_id: p.stockSheetId
+                    })))
+                if (panelError) throw panelError
+            }
+
+            // 5. Save Optimization Result
+            if (calculated) {
+                await supabase.from('cutlist_results').delete().eq('project_id', activeProjectId)
+                const { error: resError } = await supabase.from('cutlist_results').insert({
+                    id: crypto.randomUUID(),
+                    project_id: activeProjectId,
+                    sheets_metadata: sheetsMetadata
+                })
+                if (resError) throw resError
+            }
+
+            setProjectId(activeProjectId)
+
+            // Update URL with projectId without reloading
+            const url = new URL(window.location.href)
+            url.searchParams.set('projectId', activeProjectId)
+            window.history.replaceState({}, '', url.toString())
+
+            toast.success("Project saved successfully")
+            loadSavedProjects() // Refresh the projects list
+        } catch (error: any) {
+
+            console.error("Save Error:", error)
+            toast.error(`Error saving project: ${error.message}`)
+        } finally {
+            setIsSaving(false)
+        }
+    }
+
     // Export JSON
     const exportJSON = () => {
         const data = {
@@ -649,10 +919,48 @@ export default function CutlistGeneratorPage() {
         <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Cutlist Generator</h1>
-                    <p className="text-sm text-muted-foreground">Optimize panel layouts on stock sheets</p>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => setCutsTab("projects")}
+                            className="p-3 bg-primary/5 hover:bg-primary/10 rounded-2xl border border-primary/20 transition-all group"
+                            title="View Saved Projects"
+                        >
+                            <FolderOpen className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
+                        </button>
+                        <button
+                            onClick={startNewProject}
+                            className="p-2 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl border border-emerald-500/20 transition-all"
+                            title="New Project"
+                        >
+                            <Plus className="w-4 h-4 text-emerald-600" />
+                        </button>
+                    </div>
+                    <div>
+                        {isEditingName ? (
+                            <input
+                                autoFocus
+                                className="text-2xl font-bold tracking-tight bg-transparent border-b-2 border-primary/50 outline-none px-1"
+                                value={projectName}
+                                onChange={(e) => setProjectName(e.target.value)}
+                                onBlur={() => setIsEditingName(false)}
+                                onKeyDown={(e) => e.key === "Enter" && setIsEditingName(false)}
+                            />
+                        ) : (
+                            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                                {projectName}
+                                <button onClick={() => setIsEditingName(true)} className="opacity-30 hover:opacity-100 transition-opacity">
+                                    <Pencil className="w-3 h-3" />
+                                </button>
+                                {projectId && (
+                                    <span className="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded opacity-60">{projectId.slice(0, 8)}</span>
+                                )}
+                            </h1>
+                        )}
+                        <p className="text-sm text-muted-foreground">Optimize panel layouts on stock sheets</p>
+                    </div>
                 </div>
+
                 <div className="flex flex-wrap items-center gap-2">
                     <div className="flex items-center p-1 bg-muted/50 border border-border/40 rounded-lg mr-2">
                         {(["mm", "cm", "m", "in"] as const).map((u) => (
@@ -676,8 +984,13 @@ export default function CutlistGeneratorPage() {
                     <Button variant="outline" size="sm" onClick={exportJSON}>
                         <Download className="w-4 h-4 mr-1" /> Export
                     </Button>
+                    <Button variant="outline" size="sm" onClick={saveProject} disabled={isSaving}>
+                        {isSaving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
+                        Save
+                    </Button>
                     <Button
                         onClick={() => setShowBOMModal(true)}
+
                         className="bg-emerald-600 hover:bg-emerald-700 text-white border-none shadow-lg shadow-emerald-500/20"
                     >
                         <Settings className="w-4 h-4 mr-2" /> Process BOM
@@ -847,7 +1160,19 @@ export default function CutlistGeneratorPage() {
                                                 </div>
                                             </div>
                                         </div>
-                                        <p className="text-[9px] text-muted-foreground">Settings saved to browser</p>
+                                        <div className="flex items-center justify-between pt-2 border-t border-border/10">
+                                            <p className="text-[9px] text-muted-foreground italic">Settings sync to project</p>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 text-[9px] font-black uppercase text-primary hover:bg-primary/5 px-2 gap-1"
+                                                onClick={saveProject}
+                                                disabled={isSaving}
+                                            >
+                                                {isSaving ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Save className="w-2.5 h-2.5" />}
+                                                Save Config
+                                            </Button>
+                                        </div>
                                     </div>
                                 )}
 
@@ -1243,33 +1568,110 @@ export default function CutlistGeneratorPage() {
                         </div>
                     </div>
 
-                    {/* Cuts Table */}
+                    {/* Cuts Table / Saved Projects (Tabbed) */}
                     <div className="bg-card border border-border/40 rounded-xl p-4 shadow-sm flex flex-col max-h-[400px]">
-                        <h2 className="text-sm font-semibold mb-3">Cuts Breakdown</h2>
-                        {cutsData.length === 0 ? (
-                            <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground py-8">
-                                No layout generated
-                            </div>
-                        ) : (
-                            <div className="overflow-auto border rounded-lg">
-                                <table className="w-full text-[10px] border-collapse">
-                                    <thead className="bg-muted/50 border-b sticky top-0">
-                                        <tr>
-                                            <th className="p-2 text-left font-semibold">#</th>
-                                            <th className="p-2 text-left font-semibold">Size ({unitLabel})</th>
-                                            <th className="p-2 text-left font-semibold text-muted-foreground">Location</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-border/40">
-                                        {cutsData.map((c, idx) => (
-                                            <tr key={idx} className="hover:bg-muted/30 transition-colors">
-                                                <td className="p-2 text-muted-foreground">{idx + 1}</td>
-                                                <td className="p-2 font-mono font-medium">{c.cut}</td>
-                                                <td className="p-2 text-muted-foreground">{c.result}</td>
+                        <div className="flex items-center gap-2 mb-3">
+                            <button
+                                onClick={() => setCutsTab("cuts")}
+                                className={cn(
+                                    "px-3 py-1 text-[10px] font-bold rounded-md transition-all uppercase",
+                                    cutsTab === "cuts" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                                )}
+                            >
+                                Cuts Breakdown
+                            </button>
+                            <button
+                                onClick={() => setCutsTab("projects")}
+                                className={cn(
+                                    "px-3 py-1 text-[10px] font-bold rounded-md transition-all uppercase",
+                                    cutsTab === "projects" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                                )}
+                            >
+                                Saved Projects ({savedProjects.length})
+                            </button>
+                        </div>
+
+                        {cutsTab === "cuts" ? (
+                            cutsData.length === 0 ? (
+                                <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground py-8">
+                                    No layout generated
+                                </div>
+                            ) : (
+                                <div className="overflow-auto border rounded-lg">
+                                    <table className="w-full text-[10px] border-collapse">
+                                        <thead className="bg-muted/50 border-b sticky top-0">
+                                            <tr>
+                                                <th className="p-2 text-left font-semibold">#</th>
+                                                <th className="p-2 text-left font-semibold">Size ({unitLabel})</th>
+                                                <th className="p-2 text-left font-semibold text-muted-foreground">Location</th>
                                             </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-border/40">
+                                            {cutsData.map((c, idx) => (
+                                                <tr key={idx} className="hover:bg-muted/30 transition-colors">
+                                                    <td className="p-2 text-muted-foreground">{idx + 1}</td>
+                                                    <td className="p-2 font-mono font-medium">{c.cut}</td>
+                                                    <td className="p-2 text-muted-foreground">{c.result}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )
+                        ) : (
+                            <div className="flex-1 overflow-auto">
+                                {savedProjects.length === 0 ? (
+                                    <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground py-8">
+                                        No saved projects yet
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {savedProjects.map((proj) => (
+                                            <div
+                                                key={proj.id}
+                                                className={cn(
+                                                    "flex items-center justify-between p-3 rounded-lg border transition-all",
+                                                    proj.id === projectId ? "border-primary bg-primary/5" : "border-border/40 hover:bg-muted/30"
+                                                )}
+                                            >
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-semibold">{proj.name}</p>
+                                                    <p className="text-[10px] text-muted-foreground">
+                                                        {proj.updated_at ? new Date(proj.updated_at).toLocaleDateString() : "No date"}
+                                                        {proj.metrics?.sheetsUsed && ` • ${proj.metrics.sheetsUsed} sheets`}
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-7 text-[10px] px-2"
+                                                        onClick={() => {
+                                                            loadProject(proj.id)
+                                                            setCutsTab("cuts")
+                                                        }}
+                                                        disabled={proj.id === projectId}
+                                                    >
+                                                        {proj.id === projectId ? "Active" : "Load"}
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-7 text-[10px] px-2 text-destructive hover:bg-destructive/10"
+                                                        onClick={async () => {
+                                                            if (!confirm(`Delete "${proj.name}"?`)) return
+                                                            await supabase.from('cutlist_projects').delete().eq('id', proj.id)
+                                                            loadSavedProjects()
+                                                            toast.success("Project deleted")
+                                                        }}
+                                                    >
+                                                        <Trash2 className="w-3 h-3" />
+                                                    </Button>
+                                                </div>
+                                            </div>
                                         ))}
-                                    </tbody>
-                                </table>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -1621,9 +2023,16 @@ export default function CutlistGeneratorPage() {
 
                         <div className="p-6 border-t border-border/20 bg-muted/20 flex justify-between items-center text-xs text-muted-foreground italic">
                             <span>* All changes are saved automatically</span>
-                            <Button onClick={() => setIsPanelModalOpen(false)} className="rounded-xl px-10 h-11 font-bold">
+                            <Button
+                                onClick={() => {
+                                    saveProject();
+                                    setIsPanelModalOpen(false);
+                                }}
+                                className="rounded-xl px-10 h-11 font-bold"
+                            >
                                 Done
                             </Button>
+
                         </div>
                     </div>
                 </div>
@@ -1735,9 +2144,16 @@ export default function CutlistGeneratorPage() {
                         </div>
 
                         <div className="p-6 border-t border-border/20 bg-muted/20 flex justify-end">
-                            <Button onClick={() => setIsStockModalOpen(false)} className="rounded-xl px-10 h-11 font-bold">
+                            <Button
+                                onClick={() => {
+                                    saveProject();
+                                    setIsStockModalOpen(false);
+                                }}
+                                className="rounded-xl px-10 h-11 font-bold"
+                            >
                                 Done
                             </Button>
+
                         </div>
                     </div>
                 </div>
@@ -2264,14 +2680,14 @@ export default function CutlistGeneratorPage() {
                                         </div>
                                     </>
                                 ) : (
-                                    <div className="bg-white rounded-3xl shadow-2xl p-0 !mt-0 min-h-[1000px] border border-black/5 overflow-hidden print:hidden scale-[0.85] origin-top translate-y-[-10%] transition-transform duration-500 hover:scale-[0.9] hover:translate-y-[-5%] group/report">
-                                        <div className="max-w-[800px] mx-auto p-16 text-black font-sans bg-white min-h-[1100px] relative">
+                                    <div className="bg-white rounded-3xl shadow-2xl p-0 !mt-0 min-h-[1000px] border border-primary/5 overflow-hidden print:hidden scale-[0.85] origin-top translate-y-[-10%] transition-transform duration-500 hover:scale-[0.9] hover:translate-y-[-5%] group/report">
+                                        <div className="max-w-[800px] mx-auto p-16 text-primary font-sans bg-white min-h-[1100px] relative">
                                             {/* Report Header */}
-                                            <div className="flex justify-between items-start border-b-[3px] border-black pb-10 mb-10">
+                                            <div className="flex justify-between items-start border-b-[3px] border-primary pb-10 mb-10">
                                                 <div>
-                                                    <div className="flex items-center gap-2 mb-4">
-                                                        <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-black text-xl italic">M</div>
-                                                        <h1 className="text-3xl font-black uppercase tracking-tighter italic">ModuLux <span className="not-italic">Fabricator</span></h1>
+                                                    <div className="flex items-center gap-4 mb-6">
+                                                        <img src="https://res.cloudinary.com/dbviya1rj/image/upload/v1757004631/nlir90vrzv0qywleruvv.png" alt="ModuLux" className="h-10 w-auto" />
+                                                        <h1 className="text-3xl font-black uppercase tracking-tighter italic text-primary">ModuLux <span className="not-italic opacity-50">Fabricator</span></h1>
                                                     </div>
                                                     <p className="text-[9px] font-black opacity-30 tracking-[0.3em] uppercase leading-tight">Automated Production Protocol <br /> Certified Precision Output</p>
                                                 </div>
@@ -2281,23 +2697,24 @@ export default function CutlistGeneratorPage() {
                                                 </div>
                                             </div>
 
+
                                             {/* Executive Overview */}
                                             <div className="grid grid-cols-3 gap-1 mb-12">
-                                                <div className="p-6 border border-black/10 rounded-l-2xl border-r-0">
+                                                <div className="p-6 border border-primary/10 rounded-l-2xl border-r-0">
                                                     <p className="text-[8px] font-black uppercase tracking-widest opacity-20 mb-2">Total Inventory</p>
                                                     <div className="flex items-baseline gap-1">
                                                         <span className="text-4xl font-black tracking-tighter">{usedSheets}</span>
                                                         <span className="text-[10px] font-bold uppercase opacity-40">Sheets</span>
                                                     </div>
                                                 </div>
-                                                <div className="p-6 border border-black/10">
+                                                <div className="p-6 border border-primary/10">
                                                     <p className="text-[8px] font-black uppercase tracking-widest opacity-20 mb-2">Efficiency Rating</p>
                                                     <div className="flex items-baseline gap-1">
                                                         <span className="text-4xl font-black tracking-tighter">{100 - (stats.wastePercent || 0)}</span>
                                                         <span className="text-[10px] font-bold uppercase opacity-40">%</span>
                                                     </div>
                                                 </div>
-                                                <div className="p-6 border border-black/10 rounded-r-2xl border-l-0">
+                                                <div className="p-6 border border-primary/10 rounded-r-2xl border-l-0">
                                                     <p className="text-[8px] font-black uppercase tracking-widest opacity-20 mb-2">Edge Duration</p>
                                                     <div className="flex items-baseline gap-1">
                                                         <span className="text-4xl font-black tracking-tighter">{aggregateBOM.totalEdgeBand.toFixed(1)}</span>
@@ -2306,13 +2723,15 @@ export default function CutlistGeneratorPage() {
                                                 </div>
                                             </div>
 
-                                            {/* Section 01: Materials */}
+
+
+
                                             {/* Section 01: Materials */}
                                             <div className="mb-12">
                                                 <div className="flex items-center gap-3 mb-6">
-                                                    <span className="w-10 h-[1px] bg-black/10"></span>
-                                                    <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-black">01 / Boards Requirements</h3>
-                                                    <span className="flex-1 h-[1px] bg-black/10"></span>
+                                                    <span className="w-10 h-[1.5px] bg-secondary/30"></span>
+                                                    <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-primary">01 / Boards Requirements</h3>
+                                                    <span className="flex-1 h-[1.5px] bg-secondary/30"></span>
                                                 </div>
                                                 <div className="space-y-4">
                                                     {Object.entries(
@@ -2324,20 +2743,20 @@ export default function CutlistGeneratorPage() {
                                                     ).map(([key, count]) => {
                                                         const [group, label, dims] = key.split('|');
                                                         return (
-                                                            <div key={key} className="flex items-center justify-between group/item">
+                                                            <div key={key} className="flex items-center justify-between group/item p-4 rounded-xl border border-primary/5 bg-primary/[0.01]">
                                                                 <div className="flex items-center gap-6">
-                                                                    <div className="w-12 h-12 bg-black flex items-center justify-center text-white text-xs font-black rounded-lg group-hover/item:scale-105 transition-transform uppercase">
+                                                                    <div className="w-12 h-12 bg-primary flex items-center justify-center text-white text-xs font-black rounded-lg group-hover/item:scale-105 transition-transform uppercase shadow-lg shadow-primary/20">
                                                                         {group.charAt(0)}
                                                                     </div>
                                                                     <div>
-                                                                        <p className="text-[9px] font-black uppercase opacity-20 tracking-widest mb-0.5">{group}</p>
-                                                                        <p className="font-bold text-lg leading-tight tracking-tight">{label}</p>
-                                                                        <p className="text-[10px] font-mono opacity-40">{dims}mm Standard Stock</p>
+                                                                        <p className="text-[9px] font-black uppercase opacity-40 tracking-widest mb-0.5 text-primary">{group}</p>
+                                                                        <p className="font-bold text-lg leading-tight tracking-tight text-primary">{label}</p>
+                                                                        <p className="text-[10px] font-mono opacity-50 text-primary">{dims}mm Standard Stock</p>
                                                                     </div>
                                                                 </div>
                                                                 <div className="text-right">
-                                                                    <p className="text-3xl font-black tracking-tighter">×{count}</p>
-                                                                    <p className="text-[8px] font-bold opacity-20 uppercase tracking-[0.2em]">Units Required</p>
+                                                                    <p className="text-3xl font-black tracking-tighter text-primary">×{count}</p>
+                                                                    <p className="text-[8px] font-bold opacity-30 uppercase tracking-[0.2em] text-primary">Units Required</p>
                                                                 </div>
                                                             </div>
                                                         );
@@ -2345,69 +2764,69 @@ export default function CutlistGeneratorPage() {
                                                 </div>
                                             </div>
 
-                                            {/* Section 03: Fittings (Moved up) */}
+                                            {/* Section 03: Fittings */}
                                             <div className="grid grid-cols-2 gap-10 mb-12">
-                                                <div>
-                                                    <h3 className="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-black border-b border-black/10 pb-2">03 / Fittings List</h3>
+                                                <div className="p-6 rounded-2xl bg-primary/[0.02] border border-primary/10">
+                                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] mb-4 text-primary border-b border-secondary/20 pb-2">03 / Fittings List</h3>
                                                     <div className="space-y-2">
-                                                        <div className="flex justify-between items-center py-2 border-b border-black/5 last:border-0">
-                                                            <span className="text-[10px] font-black uppercase opacity-30 tracking-widest">Hinges</span>
-                                                            <span className="font-black italic text-lg">{aggregateBOM.hardware.hinges} <span className="text-[8px] not-italic">PCS</span></span>
+                                                        <div className="flex justify-between items-center py-2 border-b border-primary/5 last:border-0">
+                                                            <span className="text-[10px] font-black uppercase opacity-40 tracking-widest text-primary">Hinges</span>
+                                                            <span className="font-black italic text-lg text-primary">{aggregateBOM.hardware.hinges} <span className="text-[8px] not-italic opacity-40">PCS</span></span>
                                                         </div>
-                                                        <div className="flex justify-between items-center py-2 border-b border-black/5 last:border-0">
-                                                            <span className="text-[10px] font-black uppercase opacity-30 tracking-widest">Handles</span>
-                                                            <span className="font-black italic text-lg">{aggregateBOM.hardware.handles} <span className="text-[8px] not-italic">PCS</span></span>
+                                                        <div className="flex justify-between items-center py-2 border-b border-primary/5 last:border-0">
+                                                            <span className="text-[10px] font-black uppercase opacity-40 tracking-widest text-primary">Handles</span>
+                                                            <span className="font-black italic text-lg text-primary">{aggregateBOM.hardware.handles} <span className="text-[8px] not-italic opacity-40">PCS</span></span>
                                                         </div>
-                                                        <div className="flex justify-between items-center py-2 border-b border-black/5 last:border-0">
-                                                            <span className="text-[10px] font-black uppercase opacity-30 tracking-widest">Slides</span>
-                                                            <span className="font-black italic text-lg">{aggregateBOM.hardware.slides} <span className="text-[8px] not-italic">SETS</span></span>
+                                                        <div className="flex justify-between items-center py-2 border-b border-primary/5 last:border-0">
+                                                            <span className="text-[10px] font-black uppercase opacity-40 tracking-widest text-primary">Slides</span>
+                                                            <span className="font-black italic text-lg text-primary">{aggregateBOM.hardware.slides} <span className="text-[8px] not-italic opacity-40">SETS</span></span>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div>
-                                                    <h3 className="text-[9px] font-black uppercase tracking-[0.3em] mb-4 text-black border-b border-black/10 pb-2">04 / Assembly Units</h3>
+                                                <div className="p-6 rounded-2xl bg-secondary/[0.02] border border-secondary/10">
+                                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] mb-4 text-secondary border-b border-primary/20 pb-2">04 / Assembly Units</h3>
                                                     <div className="space-y-4">
-                                                        <div className="p-3 bg-black/5 rounded-xl border border-black/5">
+                                                        <div className="p-3 bg-white/50 rounded-xl border border-primary/5">
                                                             <div className="flex justify-between items-center mb-1">
-                                                                <span className="text-[8px] font-black uppercase opacity-30 tracking-widest">Structural Screws</span>
-                                                                <span className="text-sm font-black italic">{aggregateBOM.fasteners.confirmat}</span>
+                                                                <span className="text-[8px] font-black uppercase opacity-40 tracking-widest text-primary">Structural Screws</span>
+                                                                <span className="text-sm font-black italic text-primary">{aggregateBOM.fasteners.confirmat}</span>
                                                             </div>
-                                                            <div className="w-full bg-black/10 h-1 rounded-full overflow-hidden">
-                                                                <div className="bg-black h-full" style={{ width: '100%' }}></div>
+                                                            <div className="w-full bg-primary/10 h-1 rounded-full overflow-hidden">
+                                                                <div className="bg-primary h-full" style={{ width: '100%' }}></div>
                                                             </div>
                                                         </div>
-                                                        <div className="p-3 bg-black/5 rounded-xl border border-black/5">
+                                                        <div className="p-3 bg-white/50 rounded-xl border border-primary/5">
                                                             <div className="flex justify-between items-center mb-1">
-                                                                <span className="text-[8px] font-black uppercase opacity-30 tracking-widest">Mechanical Fasteners</span>
-                                                                <span className="text-sm font-black italic">{aggregateBOM.fasteners.camLocks}</span>
+                                                                <span className="text-[8px] font-black uppercase opacity-40 tracking-widest text-primary">Mechanical Fasteners</span>
+                                                                <span className="text-sm font-black italic text-primary">{aggregateBOM.fasteners.camLocks}</span>
                                                             </div>
-                                                            <div className="w-full bg-black/10 h-1 rounded-full overflow-hidden">
-                                                                <div className="bg-black h-full" style={{ width: '100%' }}></div>
+                                                            <div className="w-full bg-primary/10 h-1 rounded-full overflow-hidden">
+                                                                <div className="bg-primary h-full" style={{ width: '100%' }}></div>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            {/* Section 02: Cuts List (Moved down) */}
+                                            {/* Section 02: Cuts List */}
                                             <div className="mb-12">
                                                 <div className="flex items-center gap-3 mb-6">
-                                                    <span className="w-10 h-[1px] bg-black/10"></span>
-                                                    <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-black">02 / Precision Cuts Data</h3>
-                                                    <span className="flex-1 h-[1px] bg-black/10"></span>
+                                                    <span className="w-10 h-[1.5px] bg-secondary/30"></span>
+                                                    <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-primary">02 / Precision Cuts Data</h3>
+                                                    <span className="flex-1 h-[1.5px] bg-secondary/30"></span>
                                                 </div>
-                                                <div className="border-[2px] border-black rounded-2xl overflow-hidden">
+                                                <div className="border-[2px] border-primary/20 rounded-2xl overflow-hidden shadow-xl shadow-primary/5">
                                                     <table className="w-full text-[10px]">
                                                         <thead>
-                                                            <tr className="bg-black text-white text-left">
+                                                            <tr className="bg-primary text-white text-left">
                                                                 <th className="p-4 font-black uppercase tracking-widest">Component</th>
                                                                 <th className="p-4 font-black uppercase tracking-widest">Dimension (L×W)</th>
                                                                 <th className="p-4 font-black uppercase tracking-widest text-right">Quantity</th>
                                                             </tr>
                                                         </thead>
-                                                        <tbody className="divide-y divide-black/10 font-medium">
+                                                        <tbody className="divide-y divide-primary/10 font-medium">
                                                             {aggregateBOM.panels.slice(0, 12).map((p, i) => (
-                                                                <tr key={i} className="hover:bg-black/[0.02] transition-colors">
+                                                                <tr key={i} className="hover:bg-primary/[0.02] transition-colors">
                                                                     <td className="p-4">
                                                                         <div className="flex items-center gap-2">
                                                                             <span className={cn(
@@ -2415,16 +2834,16 @@ export default function CutlistGeneratorPage() {
                                                                                 p.materialGroup === "carcass" ? "bg-emerald-500" :
                                                                                     p.materialGroup === "doors" ? "bg-blue-500" : "bg-amber-500"
                                                                             )}></span>
-                                                                            <span className="font-bold">{p.name}</span>
+                                                                            <span className="font-bold text-primary">{p.name}</span>
                                                                         </div>
                                                                     </td>
-                                                                    <td className="p-4 font-mono font-bold tracking-tighter">{p.l} × {p.w}mm</td>
-                                                                    <td className="p-4 text-right font-black text-sm">×{p.qty}</td>
+                                                                    <td className="p-4 font-mono font-bold tracking-tighter text-primary">{p.l} × {p.w}mm</td>
+                                                                    <td className="p-4 text-right font-black text-sm text-primary">×{p.qty}</td>
                                                                 </tr>
                                                             ))}
                                                             {aggregateBOM.panels.length > 12 && (
                                                                 <tr className="bg-muted/5">
-                                                                    <td colSpan={3} className="p-4 text-center text-[9px] font-black uppercase opacity-30 italic">
+                                                                    <td colSpan={3} className="p-4 text-center text-[9px] font-black uppercase opacity-30 italic text-primary">
                                                                         ... Continued on Supplemental Sheets ({aggregateBOM.panels.length - 12} more items)
                                                                     </td>
                                                                 </tr>
@@ -2434,13 +2853,16 @@ export default function CutlistGeneratorPage() {
                                                 </div>
                                             </div>
 
-                                            {/* Report Watermark/Footer */}
+                                            {/* Branded Watermark/Footer */}
                                             <div className="absolute bottom-16 left-16 right-16 flex justify-between items-end">
-                                                <div className="opacity-20">
-                                                    <div className="w-12 h-1 bg-black mb-2"></div>
-                                                    <p className="text-[8px] font-black uppercase tracking-[0.5em]">APPROVED FOR FABRICATION</p>
+                                                <div className="opacity-30">
+                                                    <div className="w-16 h-1.5 bg-secondary mb-2 rounded-full"></div>
+                                                    <p className="text-[8px] font-black uppercase tracking-[0.5em] text-primary">APPROVED FOR FABRICATION</p>
                                                 </div>
-                                                <p className="text-[9px] font-black italic opacity-10">PAGE 01 / GENERATED BY MODULUX AI</p>
+                                                <div className="flex flex-col items-end">
+                                                    <img src="https://res.cloudinary.com/dbviya1rj/image/upload/v1757004631/nlir90vrzv0qywleruvv.png" alt="ModuLux Logo" className="h-6 w-auto opacity-20 mb-1" />
+                                                    <p className="text-[9px] font-black italic opacity-10 text-primary uppercase">PRODUCTION PROTOCOL PAGE 01</p>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -2472,6 +2894,9 @@ export default function CutlistGeneratorPage() {
                                     }}>
                                         <Printer className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" /> Print PDF
                                     </Button>
+                                    <Button className="rounded-xl px-10 font-bold shadow-xl shadow-primary/20" onClick={saveProject}>
+                                        <Save className="w-4 h-4 mr-2" /> {isSaving ? "Saving..." : "Save Project"}
+                                    </Button>
                                     <Button className="rounded-xl px-10 font-bold shadow-xl shadow-primary/20" onClick={() => {
                                         toast.success("BOM Exported to Production Queue");
                                         setShowBOMModal(false);
@@ -2481,30 +2906,70 @@ export default function CutlistGeneratorPage() {
                                 </div>
                             </div>
 
+
                             {/* HIDDEN PRINT-ONLY PRODUCTION REPORT (FULL VERSION) */}
-                            <div className="hidden print:block fixed inset-0 bg-white z-[100] text-black overflow-visible p-0 m-0">
-                                <div className="max-w-[800px] mx-auto p-12 font-sans bg-white min-h-screen">
-                                    {/* Report Header */}
-                                    <div className="flex justify-between items-start border-b-[3px] border-black pb-10 mb-10">
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-4">
-                                                <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-black text-xl italic">M</div>
-                                                <h1 className="text-3xl font-black uppercase tracking-tighter italic">ModuLux <span className="not-italic">Fabricator</span></h1>
+                            <div className="hidden print:block bg-white text-primary overflow-visible">
+                                <style dangerouslySetInnerHTML={{
+                                    __html: `
+                                    @page { 
+                                        size: A4; 
+                                        margin: 15mm; 
+                                    }
+                                    @media print {
+                                        body, html { 
+                                            margin: 0 !important; 
+                                            padding: 0 !important;
+                                            overflow: visible !important;
+                                            height: auto !important;
+                                        }
+                                        /* Hide everything except print-root */
+                                        body > *:not(.print-root-wrap) {
+                                            display: none !important;
+                                        }
+                                        .print-root-wrap {
+                                            display: block !important;
+                                            width: 190mm !important;
+                                            margin: 0 auto !important;
+                                            position: static !important;
+                                        }
+                                        .avoid-break { 
+                                            break-inside: avoid !important;
+                                            page-break-inside: avoid !important;
+                                            position: relative !important;
+                                            display: block !important;
+                                            margin-bottom: 30px !important;
+                                        }
+                                        .page-break { 
+                                            page-break-before: always !important; 
+                                        }
+                                        * {
+                                            -webkit-print-color-adjust: exact !important;
+                                            print-color-adjust: exact !important;
+                                        }
+                                    }
+                                `}} />
+                                <div className="print-root-wrap font-sans bg-white py-10 px-4">
+                                    {/* Branded Header */}
+                                    <div className="flex justify-between items-start border-b-[4px] border-primary pb-10 mb-12 avoid-break">
+                                        <div className="flex items-center gap-6">
+                                            <img src="https://res.cloudinary.com/dbviya1rj/image/upload/v1757004631/nlir90vrzv0qywleruvv.png" alt="ModuLux" className="h-12 w-auto" />
+                                            <div>
+                                                <h1 className="text-4xl font-black uppercase tracking-tighter italic text-primary">ModuLux <span className="not-italic opacity-40">Fabricator</span></h1>
+                                                <p className="text-[10px] font-black opacity-30 tracking-[0.4em] uppercase mt-2">Certified Production Protocol</p>
                                             </div>
-                                            <p className="text-[9px] font-black opacity-30 tracking-[0.3em] uppercase leading-tight">Automated Production Protocol <br /> Certified Precision Output</p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-base font-black uppercase tracking-tight">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-                                            <p className="text-[10px] font-bold opacity-30 uppercase tracking-[0.2em] mt-1">Ref ID: PRD-{Math.random().toString(36).substring(7).toUpperCase()}</p>
+                                            <p className="text-xl font-black uppercase tracking-tight text-primary font-mono">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                                            <p className="text-[11px] font-bold opacity-30 uppercase tracking-[0.3em] mt-2">ID: PRD-{Math.random().toString(36).substring(7).toUpperCase()}</p>
                                         </div>
                                     </div>
 
                                     {/* Board Inventory Section */}
-                                    <div className="mb-12">
-                                        <h2 className="text-xs font-black uppercase tracking-[0.4em] border-b border-black/10 pb-4 mb-6 flex items-center gap-3">
-                                            <span className="w-3 h-3 bg-black rounded-full"></span> 01 / Boards Requirements
+                                    <div className="mb-16">
+                                        <h2 className="text-lg font-black uppercase tracking-[0.6em] border-b-2 border-primary/20 pb-6 mb-10 flex items-center gap-4 text-primary avoid-break">
+                                            <div className="w-5 h-5 bg-secondary rounded-full"></div> 01 / Boards Requirements
                                         </h2>
-                                        <div className="grid grid-cols-1 gap-4">
+                                        <div className="grid grid-cols-1 gap-8">
                                             {Object.entries(
                                                 sheetsMetadata.reduce((acc, meta) => {
                                                     const key = `${meta.materialGroup}|${meta.label}|${meta.width}x${meta.height}`;
@@ -2514,15 +2979,15 @@ export default function CutlistGeneratorPage() {
                                             ).map(([key, count]) => {
                                                 const [group, label, dims] = key.split('|');
                                                 return (
-                                                    <div key={key} className="flex items-center justify-between p-6 border-2 border-black/5 rounded-2xl bg-muted/5">
+                                                    <div key={key} className="flex items-center justify-between p-10 border-4 border-primary/5 rounded-[2.5rem] bg-primary/[0.01] avoid-break">
                                                         <div>
-                                                            <p className="text-[9px] font-black uppercase opacity-30 tracking-widest mb-1">{group} Material</p>
-                                                            <p className="font-black text-xl leading-none">{label}</p>
-                                                            <p className="text-[10px] font-mono opacity-60 mt-2">{dims}mm Industrial Grade</p>
+                                                            <p className="text-[11px] font-black uppercase opacity-40 tracking-widest mb-3 text-primary">{group} Component</p>
+                                                            <p className="font-black text-4xl leading-none text-primary tracking-tighter">{label}</p>
+                                                            <p className="text-sm font-mono opacity-60 mt-4 text-primary tracking-widest">{dims}mm Standard Stock</p>
                                                         </div>
                                                         <div className="text-right">
-                                                            <p className="text-4xl font-black italic tracking-tighter">×{count}</p>
-                                                            <p className="text-[8px] font-bold opacity-40 uppercase tracking-widest">Units</p>
+                                                            <p className="text-7xl font-black italic tracking-tighter text-primary">×{count}</p>
+                                                            <p className="text-xs font-bold opacity-50 uppercase tracking-[0.3em] text-primary">Units</p>
                                                         </div>
                                                     </div>
                                                 );
@@ -2530,70 +2995,70 @@ export default function CutlistGeneratorPage() {
                                         </div>
                                     </div>
 
-                                    {/* Hardware & Assembly Sections (Moved up) */}
-                                    <div className="grid grid-cols-2 gap-12 mb-12 page-break-before">
-                                        <div>
-                                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] border-b-[2px] border-black pb-2 mb-4">03 / Hardware & Fittings</h3>
-                                            <div className="space-y-3">
-                                                <div className="flex justify-between items-baseline py-1 border-b border-black/5">
-                                                    <span className="text-[10px] uppercase font-bold opacity-40">Soft-Close Hinges</span>
-                                                    <span className="font-black italic text-lg">{aggregateBOM.hardware.hinges} pcs</span>
+                                    {/* Hardware & Assembly Sections (Print Only) */}
+                                    <div className="grid grid-cols-2 gap-10 mb-16 avoid-break">
+                                        <div className="p-8 rounded-3xl bg-primary/[0.02] border-2 border-primary/10">
+                                            <h3 className="text-xs font-black uppercase tracking-[0.4em] border-b-2 border-secondary/20 pb-4 mb-6 text-primary">03 / Fittings Required</h3>
+                                            <div className="space-y-4">
+                                                <div className="flex justify-between items-baseline py-2 border-b border-primary/5">
+                                                    <span className="text-[10px] uppercase font-bold opacity-50 text-primary">Soft-Close Hinges</span>
+                                                    <span className="font-black italic text-2xl text-primary">{aggregateBOM.hardware.hinges} <span className="text-[10px] not-italic opacity-40">pcs</span></span>
                                                 </div>
-                                                <div className="flex justify-between items-baseline py-1 border-b border-black/5">
-                                                    <span className="text-[10px] uppercase font-bold opacity-40">Precision Handles</span>
-                                                    <span className="font-black italic text-lg">{aggregateBOM.hardware.handles} pcs</span>
+                                                <div className="flex justify-between items-baseline py-2 border-b border-primary/5">
+                                                    <span className="text-[10px] uppercase font-bold opacity-50 text-primary">Precision Handles</span>
+                                                    <span className="font-black italic text-2xl text-primary">{aggregateBOM.hardware.handles} <span className="text-[10px] not-italic opacity-40">pcs</span></span>
                                                 </div>
-                                                <div className="flex justify-between items-baseline py-1 border-b border-black/5">
-                                                    <span className="text-[10px] uppercase font-bold opacity-40">Full Extension Slides</span>
-                                                    <span className="font-black italic text-lg">{aggregateBOM.hardware.slides} sets</span>
+                                                <div className="flex justify-between items-baseline py-2 border-b border-primary/5">
+                                                    <span className="text-[10px] uppercase font-bold opacity-50 text-primary">Full Extension Slides</span>
+                                                    <span className="font-black italic text-2xl text-primary">{aggregateBOM.hardware.slides} <span className="text-[10px] not-italic opacity-40">sets</span></span>
                                                 </div>
-                                                <div className="flex justify-between items-baseline py-1 border-b border-black/5">
-                                                    <span className="text-[10px] uppercase font-bold opacity-40">Shelf Support Pins</span>
-                                                    <span className="font-black italic text-lg">{aggregateBOM.hardware.shelfPins} pcs</span>
+                                                <div className="flex justify-between items-baseline py-2 border-b border-primary/5">
+                                                    <span className="text-[10px] uppercase font-bold opacity-50 text-primary">Shelf Support Pins</span>
+                                                    <span className="font-black italic text-2xl text-primary">{aggregateBOM.hardware.shelfPins} <span className="text-[10px] not-italic opacity-40">pcs</span></span>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div>
-                                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] border-b-[2px] border-black pb-2 mb-4">04 / Assembly Connections</h3>
-                                            <div className="space-y-3">
-                                                <div className="flex justify-between items-baseline py-1 border-b border-black/5">
-                                                    <span className="text-[10px] uppercase font-bold opacity-40">Confirmat Fasteners</span>
-                                                    <span className="font-black italic text-lg">{aggregateBOM.fasteners.confirmat}</span>
+                                        <div className="p-8 rounded-3xl bg-secondary/[0.03] border-2 border-secondary/10">
+                                            <h3 className="text-xs font-black uppercase tracking-[0.4em] border-b-2 border-primary/20 pb-4 mb-6 text-secondary">04 / Assembly Connections</h3>
+                                            <div className="space-y-4">
+                                                <div className="flex justify-between items-baseline py-2 border-b border-primary/5">
+                                                    <span className="text-[10px] uppercase font-bold opacity-50 text-primary">Confirmat Screws</span>
+                                                    <span className="font-black italic text-2xl text-primary">{aggregateBOM.fasteners.confirmat}</span>
                                                 </div>
-                                                <div className="flex justify-between items-baseline py-1 border-b border-black/5">
-                                                    <span className="text-[10px] uppercase font-bold opacity-40">Cam & Bolt Sets</span>
-                                                    <span className="font-black italic text-lg">{aggregateBOM.fasteners.camLocks}</span>
+                                                <div className="flex justify-between items-baseline py-2 border-b border-primary/5">
+                                                    <span className="text-[10px] uppercase font-bold opacity-50 text-primary">Cam & Bolt Sets</span>
+                                                    <span className="font-black italic text-2xl text-primary">{aggregateBOM.fasteners.camLocks}</span>
                                                 </div>
-                                                <div className="flex justify-between items-baseline py-1 border-b border-black/5">
-                                                    <span className="text-[10px] uppercase font-bold opacity-40">Backing Pin Nails</span>
-                                                    <span className="font-black italic text-lg">{aggregateBOM.fasteners.nails}</span>
+                                                <div className="flex justify-between items-baseline py-2 border-b border-primary/5">
+                                                    <span className="text-[10px] uppercase font-bold opacity-50 text-primary">Backing Pin Nails</span>
+                                                    <span className="font-black italic text-2xl text-primary">{aggregateBOM.fasteners.nails}</span>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Panel Breakdown Table (Moved down) */}
-                                    <div className="mb-12">
-                                        <h2 className="text-xs font-black uppercase tracking-[0.4em] border-b border-black/10 pb-4 mb-6 flex items-center gap-3">
-                                            <span className="w-3 h-3 bg-black rounded-full"></span> 02 / Component Cuts List & Dimensions
+                                    {/* Components Cuts Table */}
+                                    <div className="mb-16">
+                                        <h2 className="text-lg font-black uppercase tracking-[0.6em] border-b-2 border-primary/20 pb-6 mb-10 flex items-center gap-4 text-primary avoid-break">
+                                            <div className="w-5 h-5 bg-secondary rounded-full"></div> 02 / Component Cuts List & Dimensions
                                         </h2>
-                                        <div className="border-[2px] border-black rounded-2xl overflow-hidden">
-                                            <table className="w-full text-[10px]">
+                                        <div className="border-4 border-primary/10 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-primary/5 avoid-break">
+                                            <table className="w-full text-xs">
                                                 <thead>
-                                                    <tr className="bg-black text-white text-left font-black uppercase tracking-widest">
-                                                        <th className="p-4">Part Specification</th>
-                                                        <th className="p-4">Material Group</th>
-                                                        <th className="p-4">Finish Dim (L×W)</th>
-                                                        <th className="p-4 text-right">Qty</th>
+                                                    <tr className="bg-primary text-white text-left font-black uppercase tracking-widest">
+                                                        <th className="p-6">Part Specification</th>
+                                                        <th className="p-6">Material Group</th>
+                                                        <th className="p-6">Finish Dim (L×W)</th>
+                                                        <th className="p-6 text-right">Qty</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody className="divide-y divide-black/10 font-bold">
+                                                <tbody className="divide-y-2 divide-primary/5 font-bold">
                                                     {aggregateBOM.panels.map((p, i) => (
                                                         <tr key={i} className="align-middle">
-                                                            <td className="p-4 bg-black/[0.02]">{p.name}</td>
-                                                            <td className="p-4 uppercase opacity-60">{p.materialGroup}</td>
-                                                            <td className="p-4 font-mono font-black italic">{p.l} × {p.w}mm</td>
-                                                            <td className="p-4 text-right font-black text-sm italic">×{p.qty}</td>
+                                                            <td className="p-6 bg-primary/[0.02] text-primary">{p.name}</td>
+                                                            <td className="p-6 uppercase opacity-50 text-primary tracking-widest text-[10px]">{p.materialGroup}</td>
+                                                            <td className="p-6 font-mono font-black italic text-primary tracking-tighter text-sm">{p.l} × {p.w}mm</td>
+                                                            <td className="p-6 text-right font-black text-2xl italic text-primary tracking-tighter">×{p.qty}</td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -2601,12 +3066,15 @@ export default function CutlistGeneratorPage() {
                                         </div>
                                     </div>
 
-                                    {/* Report Footer */}
-                                    <div className="mt-24 pt-10 border-t-2 border-black/10 flex justify-between items-center opacity-40">
-                                        <p className="text-[9px] font-black uppercase tracking-[0.4em] italic leading-tight">ModuLux Digital Ecosystem <br /> <span className="text-[7px]">PROPRIETARY REPORT — NOT FOR PUBLIC DISTRIBUTION</span></p>
+                                    {/* Watermark Footer */}
+                                    <div className="mt-20 pt-12 border-t-2 border-primary/10 flex justify-between items-center opacity-40 avoid-break">
+                                        <div className="flex items-center gap-4">
+                                            <img src="https://res.cloudinary.com/dbviya1rj/image/upload/v1757004631/nlir90vrzv0qywleruvv.png" alt="ModuLux Logo" className="h-8 w-auto grayscale" />
+                                            <p className="text-[10px] font-black uppercase tracking-[0.4em] italic leading-tight text-primary">ModuLux Digital Ecosystem <br /> <span className="text-[8px] opacity-60">PROPRIETARY REPORT — NOT FOR PUBLIC DISTRIBUTION</span></p>
+                                        </div>
                                         <div className="text-right">
-                                            <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-1 italic opacity-60">Verified Accuracy</p>
-                                            <div className="w-24 h-[1px] bg-black"></div>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2 italic opacity-60 text-primary">Verified Precision Accuracy</p>
+                                            <div className="w-32 h-1 bg-secondary rounded-full"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -2616,24 +3084,72 @@ export default function CutlistGeneratorPage() {
                 );
             })()}
 
-            {/* AI Plan Parser Modal */}
-            {aiParserOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 lg:p-8">
-                    <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setAiParserOpen(false)} />
-                    <div className="relative w-full max-w-4xl max-h-[90vh] overflow-auto bg-card border border-border/40 rounded-xl shadow-2xl p-6">
-                        <div className="mb-6">
-                            <h2 className="text-2xl font-bold mb-2">AI Plan Parser</h2>
-                            <p className="text-sm text-muted-foreground">
-                                Upload an architectural floor plan to automatically extract cabinet specifications
-                            </p>
+
+            {/* Project Settings Modal */}
+            {
+                isProjectSettingsOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
+                        <div className="bg-card w-full max-w-md overflow-hidden rounded-3xl border-2 border-primary/20 shadow-2xl scale-in-95 animate-in zoom-in-95 duration-300">
+                            <div className="p-8 space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-xl font-black uppercase tracking-tight">Project Settings</h2>
+                                    <button onClick={() => setIsProjectSettingsOpen(false)} className="p-2 hover:bg-muted rounded-full transition-colors">
+                                        <X className="w-5 h-5 text-muted-foreground" />
+                                    </button>
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Project Name</label>
+                                        <input
+                                            type="text"
+                                            value={projectName}
+                                            onChange={(e) => setProjectName(e.target.value)}
+                                            className="w-full bg-muted/50 border border-border/40 rounded-xl px-4 py-3 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                                            placeholder="Enter project name..."
+                                        />
+                                    </div>
+                                    <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
+                                        <p className="text-[10px] font-bold text-primary uppercase mb-1">Project ID</p>
+                                        <p className="text-[10px] font-mono opacity-50 truncate">{projectId || "Pending Save..."}</p>
+                                    </div>
+                                </div>
+                                <Button
+                                    onClick={() => {
+                                        saveProject();
+                                        setIsProjectSettingsOpen(false);
+                                    }}
+                                    className="w-full rounded-2xl h-12 font-black uppercase tracking-tight shadow-lg shadow-primary/20"
+                                >
+                                    Done
+                                </Button>
+
+                            </div>
                         </div>
-                        <AIPlanParser
-                            onApply={handleApplyExtractedCabinets}
-                            onClose={() => setAiParserOpen(false)}
-                        />
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+
+            {/* AI Plan Parser Modal */}
+
+            {
+                aiParserOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+                        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setAiParserOpen(false)} />
+                        <div className="relative w-full max-w-4xl max-h-[90vh] overflow-auto bg-card border border-border/40 rounded-xl shadow-2xl p-6">
+                            <div className="mb-6">
+                                <h2 className="text-2xl font-bold mb-2">AI Plan Parser</h2>
+                                <p className="text-sm text-muted-foreground">
+                                    Upload an architectural floor plan to automatically extract cabinet specifications
+                                </p>
+                            </div>
+                            <AIPlanParser
+                                onApply={handleApplyExtractedCabinets}
+                                onClose={() => setAiParserOpen(false)}
+                            />
+                        </div>
+                    </div>
+                )
+            }
+        </div >
     )
 }
