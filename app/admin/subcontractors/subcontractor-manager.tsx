@@ -27,7 +27,7 @@ export function SubcontractorManager({
     const rfqs = initialRfqs
     const editItem = editId ? list.find((f: any) => f.id === editId) : null
 
-    const [rfqFabId, setRfqFabId] = React.useState(searchParams.get("rfqFabId") || "")
+    const [rfqSubId, setRfqSubId] = React.useState(searchParams.get("rfqSubId") || searchParams.get("rfqFabId") || "")
     const [rfqEmail, setRfqEmail] = React.useState("")
     const [rfqName, setRfqName] = React.useState("")
     const [searchQuery, setSearchQuery] = React.useState("")
@@ -35,19 +35,19 @@ export function SubcontractorManager({
 
     // Update rfqFabId when search params change (e.g. from a Link)
     React.useEffect(() => {
-        const id = searchParams.get("rfqFabId")
-        if (id) setRfqFabId(id)
+        const id = searchParams.get("rfqSubId") || searchParams.get("rfqFabId")
+        if (id) setRfqSubId(id)
     }, [searchParams])
 
     React.useEffect(() => {
-        if (rfqFabId) {
-            const fab = list.find((f: any) => f.id === rfqFabId)
+        if (rfqSubId) {
+            const fab = list.find((f: any) => f.id === rfqSubId)
             if (fab) {
                 setRfqEmail(fab.email || "")
                 setRfqName(fab.name || "")
             }
         }
-    }, [rfqFabId, list])
+    }, [rfqSubId, list])
 
     const nextId = React.useMemo(() => {
         if (!list || list.length === 0) return "fab-001"
@@ -95,6 +95,7 @@ export function SubcontractorManager({
         params.delete("editId")
         params.delete("showAdd")
         params.delete("showRFQ")
+        params.delete("rfqSubId")
         params.delete("rfqFabId")
         router.replace(`/admin/subcontractors?${params.toString()}`, { scroll: false })
     }
@@ -157,7 +158,7 @@ export function SubcontractorManager({
                 </div>
 
                 <Link
-                    href={`/admin/subcontractors?showRFQ=true&rfqFabId=${f.id}`}
+                    href={`/admin/subcontractors?showRFQ=true&rfqSubId=${f.id}`}
                     scroll={false}
                     onClick={() => setShowFullList(false)}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-all shadow-sm"
@@ -267,7 +268,7 @@ export function SubcontractorManager({
                                 <tbody>
                                     {rfqs.slice(0, 10).map((e: any) => (
                                         <tr key={`${e.gmail_id || e.ts}-${e.to_email || e.to}`} className="border-b border-border/10 last:border-0 hover:bg-muted/10 transition-colors">
-                                            <td className="p-2 font-medium truncate max-w-[80px]">{e.name || e.fabricator_id}</td>
+                                            <td className="p-2 font-medium truncate max-w-[80px]">{e.name || e.subcontractor_id || e.fabricator_id}</td>
                                             <td className="p-2">
                                                 <span className={e.ok ? "text-green-500" : "text-red-500"}>{e.ok ? "OK" : "Err"}</span>
                                             </td>
@@ -310,7 +311,7 @@ export function SubcontractorManager({
                                     <div className="p-1.5 bg-blue-500/10 text-blue-600 rounded">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21 11-8-8" /><path d="M21 3v8" /><path d="M13 3h8" /><path d="M10.6 19a2 2 0 1 1-2.8-2.8l10.4-10.4" /><path d="m15.8 4.6 2.8 2.8" /><path d="m10.2 15.4 5.2-5.2" /><path d="m4.6 15.8 2.8 2.8" /><path d="M19 10.6a2 2 0 1 1-2.8 2.8l-10.4 10.4" /><path d="m4.6 15.8-2.8-2.8" /><path d="M5.4 10.2l5.2 5.2" /></svg>
                                     </div>
-                                    <span className="text-xs font-medium">CNC Fabricators</span>
+                                    <span className="text-xs font-medium">CNC Fabricators / Service Providers</span>
                                 </div>
                                 <span className="text-sm font-black text-blue-600">{analytics.fabricators}</span>
                             </div>
@@ -510,7 +511,7 @@ export function SubcontractorManager({
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Select Subcontractor</label>
-                                    <select name="fabricator_id" value={rfqFabId} onChange={(e) => setRfqFabId(e.target.value)} className="w-full p-3 border border-border/40 rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium">
+                                    <select name="subcontractor_id" value={rfqSubId} onChange={(e) => setRfqSubId(e.target.value)} className="w-full p-3 border border-border/40 rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium">
                                         <option value="">Choose from list...</option>
                                         {list.map((f: any) => (
                                             <option key={f.id} value={f.id}>{f.name}</option>

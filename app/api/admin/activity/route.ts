@@ -17,7 +17,7 @@ export async function GET() {
         ] = await Promise.all([
             supabase.from("analytics_events").select("*").order("created_at", { ascending: false }).limit(5),
             supabase.from("inquiries").select("*").order("created_at", { ascending: false }).limit(5),
-            supabase.from("fabricator_rfqs").select("*").order("created_at", { ascending: false }).limit(5),
+            supabase.from("subcontractor_rfqs").select("*").order("created_at", { ascending: false }).limit(5),
             supabase.from("leads").select("*").order("created_at", { ascending: false }).limit(5),
             supabase.from("deals").select("*").order("created_at", { ascending: false }).limit(5),
             supabase.from("projects").select("*").order("created_at", { ascending: false }).limit(5),
@@ -43,7 +43,7 @@ export async function GET() {
             ...(rfqs || []).map((r: any) => ({
                 id: r.id,
                 type: "rfq",
-                title: `RFQ Sent: ${r.name || r.fabricator_id}`,
+                title: `RFQ Sent: ${r.name || r.subcontractor_id || r.fabricator_id}`,
                 description: r.subject,
                 timestamp: r.created_at,
             })),

@@ -1,0 +1,177 @@
+[
+    {
+        "id": "fab-001",
+        "name": "EVO Fixture Fabrication and Services",
+        "category": "CNC Cutting Services",
+        "email": "evomanila@gmail.com",
+        "phone": "09153547616",
+        "notes": "CNC cutting provider, need to confirm the rates for each per linear meter, or per project.",
+        "rates": {
+            "board_cut": 2500,
+            "edge_band": 0,
+            "assembly": 0,
+            "design": 0,
+            "install": 0,
+            "countertop": 0
+        },
+        "units": {
+            "board_cut": "per job",
+            "edge_band": "per job",
+            "assembly": "per job",
+            "design": "per job",
+            "install": "per job",
+            "countertop": "per job"
+        },
+        "history": []
+    },
+    {
+        "id": "fab-002",
+        "name": "Enrique Adrid",
+        "category": "CNC Programmer",
+        "email": "adridenrique@gmail.com",
+        "phone": "09948040258",
+        "notes": "CNC Programmer for Pytha",
+        "rates": {
+            "board_cut": 0,
+            "edge_band": 0,
+            "assembly": 0,
+            "design": 1500,
+            "install": 0,
+            "countertop": 0
+        },
+        "units": {
+            "board_cut": "per job",
+            "edge_band": "per job",
+            "assembly": "per job",
+            "design": "per job",
+            "install": "per job",
+            "countertop": "per job"
+        },
+        "history": []
+    },
+    {
+        "id": "fab-003",
+        "name": "Dezon Silvestre",
+        "category": "Cabinet Installer",
+        "email": "silvestredezon21@gmail.com",
+        "phone": "09381698905",
+        "notes": "09381698905 contact number.",
+        "rates": {
+            "board_cut": 0,
+            "edge_band": 0,
+            "assembly": 0,
+            "design": 0,
+            "install": 8000,
+            "countertop": 0
+        },
+        "units": {
+            "board_cut": "per job",
+            "edge_band": "per job",
+            "assembly": "per job",
+            "design": "per job",
+            "install": "per job",
+            "countertop": "per job"
+        },
+        "history": []
+    },
+    {
+        "id": "fab-004",
+        "name": "Vincent John Rodriguez",
+        "category": "Cabinet Installer",
+        "email": "vjrodriguez1994@gmail.com",
+        "phone": "09566549968",
+        "notes": "",
+        "rates": {
+            "board_cut": 0,
+            "edge_band": 0,
+            "assembly": 0,
+            "design": 0,
+            "install": 0,
+            "countertop": 3500
+        },
+        "units": {
+            "board_cut": "per job",
+            "edge_band": "per job",
+            "assembly": "per job",
+            "design": "per job",
+            "install": "per job",
+            "countertop": "per linear meter"
+        },
+        "history": []
+    },
+    {
+        "id": "fab-005",
+        "name": "Cut Master CNC Fabrication",
+        "category": "CNC Cutting Services",
+        "email": "cutmasterph@gmail.com",
+        "phone": "09171203578",
+        "notes": "",
+        "rates": {
+            "board_cut": 2500,
+            "edge_band": 0,
+            "assembly": 800,
+            "design": 0,
+            "install": 0,
+            "countertop": 0
+        },
+        "units": {
+            "board_cut": "per job",
+            "edge_band": "per job",
+            "assembly": "per job",
+            "design": "per job",
+            "install": "per job",
+            "countertop": "per job"
+        },
+        "history": []
+    },
+    {
+        "id": "fab-006",
+        "name": "Beyond Signs - Engraving and Cutting Services Philippines",
+        "category": "CNC Cutting Services",
+        "email": "leadyjacob@primark.ph",
+        "phone": "09177053916",
+        "notes": "",
+        "rates": {
+            "board_cut": 2500,
+            "edge_band": 0,
+            "assembly": 0,
+            "design": 0,
+            "install": 0,
+            "countertop": 0
+        },
+        "units": {
+            "board_cut": "per job",
+            "edge_band": "per job",
+            "assembly": "per job",
+            "design": "per job",
+            "install": "per job",
+            "countertop": "per job"
+        },
+        "history": []
+    },
+    {
+        "id": "fab-007",
+        "name": "Cenon Suan Jr",
+        "category": "Cabinet Installer",
+        "email": "cenonarrofosuan1969@gmail.com",
+        "phone": "09066512097",
+        "notes": "no price yet, but requesting for an offer for the labor.",
+        "rates": {
+            "board_cut": 0,
+            "edge_band": 0,
+            "assembly": 0,
+            "design": 0,
+            "install": 0,
+            "countertop": 0
+        },
+        "units": {
+            "board_cut": "per job",
+            "edge_band": "per job",
+            "assembly": "per job",
+            "design": "per job",
+            "install": "per job",
+            "countertop": "per job"
+        },
+        "history": []
+    }
+]

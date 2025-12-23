@@ -8,7 +8,7 @@ import { SubcontractorManager } from "./subcontractor-manager"
 const dataDir = path.join(process.cwd(), "data")
 const rfqHistoryPath = path.join(dataDir, "rfq-history.json")
 const emailCfgPath = path.join(dataDir, "email.json")
-const subcontractorsJsonPath = path.join(dataDir, "fabricators.json")
+const subcontractorsJsonPath = path.join(dataDir, "subcontractors.json")
 const rfqUploadsDir = path.join(process.cwd(), "public", "uploads", "rfq")
 
 async function addSubcontractor(formData: FormData) {
@@ -65,7 +65,7 @@ async function addSubcontractor(formData: FormData) {
     }]
   }
 
-  await supabase.from("fabricators").upsert(item, { onConflict: "id" })
+  await supabase.from("subcontractors").upsert(item, { onConflict: "id" })
 
   try {
     const raw = await readFile(subcontractorsJsonPath, "utf-8").catch(() => "[]")
@@ -82,7 +82,7 @@ async function deleteSubcontractor(formData: FormData) {
   const id = String(formData.get("id") || "").trim()
   if (!id) return
   const supabase = supabaseServer()
-  await supabase.from("fabricators").delete().eq("id", id)
+  await supabase.from("subcontractors").delete().eq("id", id)
   try {
     const raw = await readFile(subcontractorsJsonPath, "utf-8").catch(() => "[]")
     const prev = JSON.parse(raw || "[]")
@@ -97,7 +97,7 @@ import { sendGmail } from "@/lib/gmail"
 
 async function sendRFQ(formData: FormData) {
   "use server"
-  const fabricator_id = String(formData.get("fabricator_id") || "").trim()
+  const subcontractor_id = String(formData.get("subcontractor_id") || formData.get("fabricator_id") || "").trim()
   const to = String(formData.get("email") || "").trim()
   const name = String(formData.get("name") || "").trim()
   const message = String(formData.get("message") || "").trim()
@@ -106,9 +106,9 @@ async function sendRFQ(formData: FormData) {
   let email = to
   let fname = name
   const supabase = supabaseServer()
-  if (!email && fabricator_id) {
+  if (!email && subcontractor_id) {
     try {
-      const { data: fab } = await supabase.from("fabricators").select("*").eq("id", fabricator_id).single()
+      const { data: fab } = await supabase.from("subcontractors").select("*").eq("id", subcontractor_id).single()
       email = String((fab as any)?.email || "").trim()
       fname = fname || String((fab as any)?.name || "").trim()
     } catch { }
@@ -141,7 +141,7 @@ async function sendRFQ(formData: FormData) {
 
     attachments.push({ filename, content_base64, mime })
     try {
-      const safe = `${fabricator_id || "rfq"}-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`
+      const safe = `${subcontractor_id || "rfq"}-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`
       const storageUrl = await uploadToStorage(safe, new Uint8Array(ab), mime)
       if (storageUrl) archivedPaths.push(storageUrl)
     } catch { }
@@ -155,15 +155,15 @@ async function sendRFQ(formData: FormData) {
   try {
     const data = await sendGmail({ to: email, subject, text: message, attachments })
     const ok = true
-    const event = { ts: Date.now(), ok, fabricator_id, to: email, name: fname, subject, gmail_id: String(data?.id || ""), attachments: attachments.map(a => a.filename), files: archivedPaths }
+    const event = { ts: Date.now(), ok, subcontractor_id, to: email, name: fname, subject, gmail_id: String(data?.id || ""), attachments: attachments.map(a => a.filename), files: archivedPaths }
     const raw = await readFile(rfqHistoryPath, "utf-8").catch(() => "[]")
     const prev = JSON.parse(raw || "[]")
     const next = [event, ...prev]
     await writeFile(rfqHistoryPath, JSON.stringify(next, null, 2))
 
-    await supabase.from('fabricator_rfqs').upsert({
-      id: `${fabricator_id || 'rfq'}-${Date.now()}`,
-      fabricator_id,
+    await supabase.from('subcontractor_rfqs').upsert({
+      id: `${subcontractor_id || 'rfq'}-${Date.now()}`,
+      subcontractor_id,
       to_email: email,
       name: fname,
       subject,
@@ -190,7 +190,7 @@ async function resendRFQ(formData: FormData) {
   const supabase = supabaseServer()
   let record: any = null
   if (event_id) {
-    const { data } = await supabase.from("fabricator_rfqs").select("*").eq("id", event_id).single()
+    const { data } = await supabase.from("subcontractor_rfqs").select("*").eq("id", event_id).single()
     record = data || null
   }
   if (!record && ts) {
@@ -249,12 +249,12 @@ async function saveSubcontractor(formData: FormData) {
   const notes = String(formData.get("notes") || "").trim()
 
   const supabase = supabaseServer()
-  const { data: prev } = await supabase.from("fabricators").select("*").eq("id", id).single()
+  const { data: prev } = await supabase.from("subcontractors").select("*").eq("id", id).single()
 
   const history = [...(prev?.history || []), { ts: Date.now(), rates, units }]
   const item = { id, name, email, phone, category, notes, rates, units, history }
 
-  const { error } = await supabase.from("fabricators").upsert(item, { onConflict: "id" })
+  const { error } = await supabase.from("subcontractors").upsert(item, { onConflict: "id" })
   if (error) console.error("Supabase Save Error:", error)
 
   try {
@@ -279,7 +279,7 @@ async function updateEmailTemplate(formData: FormData) {
 
 export default async function AdminSubcontractorsPage() {
   const supabase = supabaseServer()
-  const { data: listRaw } = await supabase.from("fabricators").select("*").order("name")
+  const { data: listRaw } = await supabase.from("subcontractors").select("*").order("name")
   let list = listRaw || []
 
   // Local merge
@@ -311,13 +311,14 @@ export default async function AdminSubcontractorsPage() {
   const rfqEvents = JSON.parse(rfqRaw || "[]")
   const lastById: any = {}
   for (const e of rfqEvents) {
-    if (!e.fabricator_id) continue
-    if (!lastById[e.fabricator_id] || e.ts > lastById[e.fabricator_id].ts) lastById[e.fabricator_id] = e
+    const subId = e.subcontractor_id || e.fabricator_id
+    if (!subId) continue
+    if (!lastById[subId] || e.ts > lastById[subId].ts) lastById[subId] = e
   }
 
   let rfqs: any[] = []
   try {
-    const { data: rows } = await supabase.from('fabricator_rfqs').select('*').order('ts', { ascending: false })
+    const { data: rows } = await supabase.from('subcontractor_rfqs').select('*').order('ts', { ascending: false })
     rfqs = rows || []
   } catch { }
   if (rfqs.length === 0) rfqs = rfqEvents.sort((a: any, b: any) => b.ts - a.ts)

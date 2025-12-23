@@ -6,8 +6,8 @@ create table if not exists public.proposal_drafts (
   updated_at timestamptz
 );
 
--- Fabricators
-create table if not exists public.fabricators (
+-- Subcontractors
+create table if not exists public.subcontractors (
   id text primary key,
   name text not null,
   email text,
@@ -21,12 +21,12 @@ create table if not exists public.fabricators (
   updated_at timestamptz
 );
 
-create index if not exists idx_fabricators_name on public.fabricators (name);
+create index if not exists idx_subcontractors_name on public.subcontractors (name);
 
--- Fabricator RFQs
-create table if not exists public.fabricator_rfqs (
+-- Subcontractor RFQs
+create table if not exists public.subcontractor_rfqs (
   id text primary key,
-  fabricator_id text,
+  subcontractor_id text,
   to_email text,
   name text,
   subject text,
@@ -39,7 +39,7 @@ create table if not exists public.fabricator_rfqs (
   created_at timestamptz default now()
 );
 
-create index if not exists idx_fabricator_rfqs_fabricator on public.fabricator_rfqs (fabricator_id);
+create index if not exists idx_subcontractor_rfqs_subcontractor on public.subcontractor_rfqs (subcontractor_id);
 
 -- Project tasks
 create table if not exists public.project_tasks (
@@ -247,8 +247,8 @@ on conflict (tier) do update set
 
 -- Enable RLS on all tables
 alter table public.proposal_drafts enable row level security;
-alter table public.fabricators enable row level security;
-alter table public.fabricator_rfqs enable row level security;
+alter table public.subcontractors enable row level security;
+alter table public.subcontractor_rfqs enable row level security;
 alter table public.project_tasks enable row level security;
 alter table public.analytics_events enable row level security;
 alter table public.projects enable row level security;
@@ -267,13 +267,13 @@ alter table public.products enable row level security;
 drop policy if exists "Admins can manage proposal drafts" on public.proposal_drafts;
 create policy "Admins can manage proposal drafts" on public.proposal_drafts for all to authenticated using (true) with check (true);
 
--- Policies for fabricators
-drop policy if exists "Admins can manage fabricators" on public.fabricators;
-create policy "Admins can manage fabricators" on public.fabricators for all to authenticated using (true) with check (true);
+-- Policies for subcontractors
+drop policy if exists "Admins can manage subcontractors" on public.subcontractors;
+create policy "Admins can manage subcontractors" on public.subcontractors for all to authenticated using (true) with check (true);
 
--- Policies for fabricator_rfqs
-drop policy if exists "Admins can manage fabricator rfqs" on public.fabricator_rfqs;
-create policy "Admins can manage fabricator rfqs" on public.fabricator_rfqs for all to authenticated using (true) with check (true);
+-- Policies for subcontractor_rfqs
+drop policy if exists "Admins can manage subcontractor rfqs" on public.subcontractor_rfqs;
+create policy "Admins can manage subcontractor rfqs" on public.subcontractor_rfqs for all to authenticated using (true) with check (true);
 
 -- Policies for project_tasks
 drop policy if exists "Admins can manage project tasks" on public.project_tasks;
