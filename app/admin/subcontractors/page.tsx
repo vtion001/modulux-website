@@ -42,25 +42,55 @@ async function addSubcontractor(formData: FormData) {
     phone,
     category,
     notes,
-    rates: { board_cut, edge_band, assembly, design, install, countertop },
+    rates: {
+      board_cut,
+      edge_band,
+      assembly,
+      design,
+      install,
+      countertop,
+      drawer: Number(formData.get("drawer") || 0),
+      base_cabinet: Number(formData.get("base_cabinet") || 0),
+      wall_cabinet: Number(formData.get("wall_cabinet") || 0),
+      closet: Number(formData.get("closet") || 0),
+    },
     units: {
       board_cut: unit_board_cut,
       edge_band: unit_edge_band,
       assembly: unit_assembly,
       design: unit_design,
       install: unit_install,
-      countertop: unit_countertop
+      countertop: unit_countertop,
+      drawer: String(formData.get("unit_drawer") || "per module"),
+      base_cabinet: String(formData.get("unit_base_cabinet") || "per module"),
+      wall_cabinet: String(formData.get("unit_wall_cabinet") || "per module"),
+      closet: String(formData.get("unit_closet") || "per module")
     },
     history: [{
       ts: Date.now(),
-      rates: { board_cut, edge_band, assembly, design, install, countertop },
+      rates: {
+        board_cut,
+        edge_band,
+        assembly,
+        design,
+        install,
+        countertop,
+        drawer: Number(formData.get("drawer") || 0),
+        base_cabinet: Number(formData.get("base_cabinet") || 0),
+        wall_cabinet: Number(formData.get("wall_cabinet") || 0),
+        closet: Number(formData.get("closet") || 0),
+      },
       units: {
         board_cut: unit_board_cut,
         edge_band: unit_edge_band,
         assembly: unit_assembly,
         design: unit_design,
         install: unit_install,
-        countertop: unit_countertop
+        countertop: unit_countertop,
+        drawer: String(formData.get("unit_drawer") || "per module"),
+        base_cabinet: String(formData.get("unit_base_cabinet") || "per module"),
+        wall_cabinet: String(formData.get("unit_wall_cabinet") || "per module"),
+        closet: String(formData.get("unit_closet") || "per module")
       }
     }]
   }
@@ -236,6 +266,10 @@ async function saveSubcontractor(formData: FormData) {
     design: Number(formData.get("design") || 0),
     install: Number(formData.get("install") || 0),
     countertop: Number(formData.get("countertop") || 0),
+    drawer: Number(formData.get("drawer") || 0),
+    base_cabinet: Number(formData.get("base_cabinet") || 0),
+    wall_cabinet: Number(formData.get("wall_cabinet") || 0),
+    closet: Number(formData.get("closet") || 0),
   }
   const units = {
     board_cut: String(formData.get("unit_board_cut") || "per job"),
@@ -244,6 +278,10 @@ async function saveSubcontractor(formData: FormData) {
     design: String(formData.get("unit_design") || "per job"),
     install: String(formData.get("unit_install") || "per job"),
     countertop: String(formData.get("unit_countertop") || "per job"),
+    drawer: String(formData.get("unit_drawer") || "per module"),
+    base_cabinet: String(formData.get("unit_base_cabinet") || "per module"),
+    wall_cabinet: String(formData.get("unit_wall_cabinet") || "per module"),
+    closet: String(formData.get("unit_closet") || "per module"),
   }
   const category = String(formData.get("category") || "").trim()
   const notes = String(formData.get("notes") || "").trim()

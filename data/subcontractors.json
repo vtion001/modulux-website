@@ -1,5 +1,127 @@
 [
   {
+    "id": "fab-010",
+    "name": "Randy Cuizon",
+    "email": "cuizonrandy26@gmail.com",
+    "phone": "09206034243",
+    "category": "Cabinet Installer",
+    "notes": "TBD",
+    "rates": {
+      "board_cut": 0,
+      "edge_band": 0,
+      "assembly": 0,
+      "design": 0,
+      "install": 0,
+      "countertop": 0,
+      "drawer": 0,
+      "base_cabinet": 0,
+      "wall_cabinet": 0,
+      "closet": 0
+    },
+    "units": {
+      "board_cut": "per job",
+      "edge_band": "per job",
+      "assembly": "per job",
+      "design": "per job",
+      "install": "per job",
+      "countertop": "per job",
+      "drawer": "per module",
+      "base_cabinet": "per module",
+      "wall_cabinet": "per module",
+      "closet": "per module"
+    },
+    "history": [
+      {
+        "ts": 1766666690338,
+        "rates": {
+          "board_cut": 0,
+          "edge_band": 0,
+          "assembly": 0,
+          "design": 0,
+          "install": 0,
+          "countertop": 0,
+          "drawer": 0,
+          "base_cabinet": 0,
+          "wall_cabinet": 0,
+          "closet": 0
+        },
+        "units": {
+          "board_cut": "per job",
+          "edge_band": "per job",
+          "assembly": "per job",
+          "design": "per job",
+          "install": "per job",
+          "countertop": "per job",
+          "drawer": "per module",
+          "base_cabinet": "per module",
+          "wall_cabinet": "per module",
+          "closet": "per module"
+        }
+      }
+    ]
+  },
+  {
+    "id": "fab-009",
+    "name": "Mark Joseph Trinidad",
+    "email": "markjosephtrinidad2123@gmail.com",
+    "phone": "09122736141",
+    "category": "Cabinet Installer",
+    "notes": "secondary phone number 09925781833",
+    "rates": {
+      "board_cut": 0,
+      "edge_band": 0,
+      "assembly": 0,
+      "design": 0,
+      "install": 2500,
+      "countertop": 0,
+      "drawer": 200,
+      "base_cabinet": 400,
+      "wall_cabinet": 400,
+      "closet": 1500
+    },
+    "units": {
+      "board_cut": "per job",
+      "edge_band": "per job",
+      "assembly": "per job",
+      "design": "per job",
+      "install": "per job",
+      "countertop": "per job",
+      "drawer": "per module",
+      "base_cabinet": "per module",
+      "wall_cabinet": "per module",
+      "closet": "per module"
+    },
+    "history": [
+      {
+        "ts": 1766666639285,
+        "rates": {
+          "board_cut": 0,
+          "edge_band": 0,
+          "assembly": 0,
+          "design": 0,
+          "install": 2500,
+          "countertop": 0,
+          "drawer": 200,
+          "base_cabinet": 400,
+          "wall_cabinet": 400,
+          "closet": 1500
+        },
+        "units": {
+          "board_cut": "per job",
+          "edge_band": "per job",
+          "assembly": "per job",
+          "design": "per job",
+          "install": "per job",
+          "countertop": "per job",
+          "drawer": "per module",
+          "base_cabinet": "per module",
+          "wall_cabinet": "per module",
+          "closet": "per module"
+        }
+      }
+    ]
+  },
+  {
     "id": "fab-008",
     "name": "Ge Gamilla De Mwaa",
     "email": "grgdwmeaa@gmail.com",
@@ -12,7 +134,11 @@
       "assembly": 0,
       "design": 0,
       "install": 3000,
-      "countertop": 0
+      "countertop": 0,
+      "drawer": 300,
+      "base_cabinet": 550,
+      "wall_cabinet": 550,
+      "closet": 1600
     },
     "units": {
       "board_cut": "per job",
@@ -20,18 +146,45 @@
       "assembly": "per job",
       "design": "per job",
       "install": "per linear meter",
-      "countertop": "per module"
+      "countertop": "per module",
+      "drawer": "per module",
+      "base_cabinet": "per module",
+      "wall_cabinet": "per module",
+      "closet": "per module"
     },
     "history": [
       {
         "ts": 1766458612566,
+        "rates": {
+          "design": 0,
+          "install": 3000,
+          "assembly": 0,
+          "board_cut": 0,
+          "edge_band": 0,
+          "countertop": 0
+        },
+        "units": {
+          "design": "per job",
+          "install": "per linear meter",
+          "assembly": "per job",
+          "board_cut": "per job",
+          "edge_band": "per job",
+          "countertop": "per module"
+        }
+      },
+      {
+        "ts": 1766666511089,
         "rates": {
           "board_cut": 0,
           "edge_band": 0,
           "assembly": 0,
           "design": 0,
           "install": 3000,
-          "countertop": 0
+          "countertop": 0,
+          "drawer": 300,
+          "base_cabinet": 550,
+          "wall_cabinet": 550,
+          "closet": 1600
         },
         "units": {
           "board_cut": "per job",
@@ -39,7 +192,11 @@
           "assembly": "per job",
           "design": "per job",
           "install": "per linear meter",
-          "countertop": "per module"
+          "countertop": "per module",
+          "drawer": "per module",
+          "base_cabinet": "per module",
+          "wall_cabinet": "per module",
+          "closet": "per module"
         }
       }
     ]

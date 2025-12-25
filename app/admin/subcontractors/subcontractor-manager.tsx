@@ -134,6 +134,14 @@ export function SubcontractorManager({
                 <div className="flex items-center gap-1.5"><span className="opacity-60">Inst:</span> ₱{f?.rates?.install || 0} <span className="text-[10px] opacity-40">({f?.units?.install || 'job'})</span></div>
                 <div className="flex items-center gap-1.5"><span className="opacity-60">Counter:</span> ₱{f?.rates?.countertop || 0} <span className="text-[10px] opacity-40">({f?.units?.countertop || 'job'})</span></div>
             </div>
+            {(f?.rates?.drawer > 0 || f?.rates?.base_cabinet > 0 || f?.rates?.wall_cabinet > 0 || f?.rates?.closet > 0) && (
+                <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px] bg-muted/30 p-2 rounded-lg border border-border/10">
+                    {f?.rates?.drawer > 0 && <div className="flex items-center gap-1"><span className="opacity-60">Drawer:</span> ₱{f.rates.drawer}</div>}
+                    {f?.rates?.base_cabinet > 0 && <div className="flex items-center gap-1"><span className="opacity-60">Base:</span> ₱{f.rates.base_cabinet}</div>}
+                    {f?.rates?.wall_cabinet > 0 && <div className="flex items-center gap-1"><span className="opacity-60">Wall:</span> ₱{f.rates.wall_cabinet}</div>}
+                    {f?.rates?.closet > 0 && <div className="flex items-center gap-1"><span className="opacity-60">Closet:</span> ₱{f.rates.closet}</div>}
+                </div>
+            )}
             <div className="mt-2 text-[11px] text-muted-foreground flex flex-wrap gap-x-4 border-t border-border/20 pt-2">
                 <div>Email: {f?.email || "—"}</div>
                 <div>Phone: {f?.phone || "—"}</div>
@@ -142,7 +150,12 @@ export function SubcontractorManager({
 
             <div className="mt-3 flex items-center justify-between border-t border-border/20 pt-3">
                 <div className="flex gap-2">
-                    <Link className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-border/50 text-xs transition-all duration-200 hover:bg-muted" href={`/admin/subcontractors?editId=${f.id}`} scroll={false}>
+                    <Link
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-border/50 text-xs transition-all duration-200 hover:bg-muted"
+                        href={`/admin/subcontractors?editId=${f.id}`}
+                        scroll={false}
+                        onClick={() => setShowFullList(false)}
+                    >
                         Edit
                     </Link>
                     <SaveForm action={deleteAction} onSubmitted={closeModal}>
@@ -372,26 +385,53 @@ export function SubcontractorManager({
                                 <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary mb-3 block">Rate Configuration (per unit/m)</label>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
                                     {['board_cut', 'edge_band', 'assembly', 'design', 'install', 'countertop'].map(rId => (
-                                        <div key={rId} className="flex gap-2">
-                                            <div className="flex-1 space-y-1">
-                                                <label className="text-[10px] text-muted-foreground font-medium ml-1 capitalize text-nowrap">{rId.replace('_', ' ')}</label>
-                                                <div className="relative">
-                                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-semibold">₱</span>
-                                                    <input name={rId} type="number" step="0.01" defaultValue={editItem.rates?.[rId] || 0} className="w-full p-2 pl-6 border border-border/40 rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm" />
+                                        <React.Fragment key={rId}>
+                                            <div className="flex gap-2">
+                                                <div className="flex-1 space-y-1">
+                                                    <label className="text-[10px] text-muted-foreground font-medium ml-1 capitalize text-nowrap flex items-center justify-between">
+                                                        {rId.replace('_', ' ')}
+                                                        {rId === 'install' && (
+                                                            <span className="text-[9px] text-primary cursor-pointer hover:underline font-bold bg-primary/5 px-1.5 py-0.5 rounded">Granular ▼</span>
+                                                        )}
+                                                    </label>
+                                                    <div className="relative">
+                                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-semibold">₱</span>
+                                                        <input name={rId} type="number" step="0.01" defaultValue={editItem.rates?.[rId] || 0} className="w-full p-2 pl-6 border border-border/40 rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm" />
+                                                    </div>
+                                                </div>
+                                                <div className="w-32 space-y-1 pt-[18px]">
+                                                    <select name={`unit_${rId}`} defaultValue={editItem.units?.[rId] || (['drawer', 'base_cabinet', 'wall_cabinet', 'closet'].includes(rId) ? "per module" : "per job")} className="w-full p-2 border border-border/40 rounded bg-background text-[10px] focus:outline-none focus:ring-2 focus:ring-primary/20 h-[38px]">
+                                                        <option value="per job">per job</option>
+                                                        <option value="per sqm">per sqm</option>
+                                                        <option value="per linear meter">per linear m</option>
+                                                        <option value="per feet">per feet</option>
+                                                        <option value="per project">per project</option>
+                                                        <option value="per board">per board</option>
+                                                        <option value="per module">per module</option>
+                                                    </select>
                                                 </div>
                                             </div>
-                                            <div className="w-32 space-y-1 pt-[18px]">
-                                                <select name={`unit_${rId}`} defaultValue={editItem.units?.[rId] || "per job"} className="w-full p-2 border border-border/40 rounded bg-background text-[10px] focus:outline-none focus:ring-2 focus:ring-primary/20 h-[38px]">
-                                                    <option value="per job">per job</option>
-                                                    <option value="per sqm">per sqm</option>
-                                                    <option value="per linear meter">per linear m</option>
-                                                    <option value="per feet">per feet</option>
-                                                    <option value="per project">per project</option>
-                                                    <option value="per board">per board</option>
-                                                    <option value="per module">per module</option>
-                                                </select>
-                                            </div>
-                                        </div>
+                                            {rId === 'install' && (
+                                                <div className="col-span-1 md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 bg-muted/20 p-3 rounded-xl border border-dashed border-border/60">
+                                                    {['drawer', 'base_cabinet', 'wall_cabinet', 'closet'].map(sub => (
+                                                        <div key={sub} className="space-y-1">
+                                                            <label className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter opacity-70 ml-1">{sub.replace('_', ' ')}</label>
+                                                            <div className="flex gap-1.5">
+                                                                <div className="relative flex-1">
+                                                                    <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-muted-foreground text-[10px] font-semibold">₱</span>
+                                                                    <input name={sub} type="number" step="0.01" defaultValue={editItem.rates?.[sub] || 0} className="w-full p-1.5 pl-4 border border-border/40 rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 text-[11px]" placeholder="0" />
+                                                                </div>
+                                                                <select name={`unit_${sub}`} defaultValue={editItem.units?.[sub] || "per module"} className="w-16 p-1 border border-border/40 rounded bg-background text-[9px] focus:outline-none h-[28px]">
+                                                                    <option value="per module">pc</option>
+                                                                    <option value="per linear meter">lm</option>
+                                                                    <option value="per feet">ft</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </React.Fragment>
                                     ))}
                                 </div>
                             </div>
@@ -453,26 +493,53 @@ export function SubcontractorManager({
                                 <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary block">Default Rates</label>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
                                     {['board_cut', 'edge_band', 'assembly', 'design', 'install', 'countertop'].map(r => (
-                                        <div key={r} className="flex gap-2">
-                                            <div className="flex-1 space-y-1">
-                                                <label className="text-[10px] text-muted-foreground font-medium ml-1 capitalize text-nowrap">{r.replace('_', ' ')}</label>
-                                                <div className="relative">
-                                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-semibold">₱</span>
-                                                    <input name={r} type="number" step="0.01" placeholder="0" className="w-full p-2 pl-6 border border-border/40 rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm" />
+                                        <React.Fragment key={r}>
+                                            <div className="flex gap-2">
+                                                <div className="flex-1 space-y-1">
+                                                    <label className="text-[10px] text-muted-foreground font-medium ml-1 capitalize text-nowrap flex items-center justify-between">
+                                                        {r.replace('_', ' ')}
+                                                        {r === 'install' && (
+                                                            <span className="text-[9px] text-primary font-bold bg-primary/5 px-1.5 py-0.5 rounded">Granular ▼</span>
+                                                        )}
+                                                    </label>
+                                                    <div className="relative">
+                                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-semibold">₱</span>
+                                                        <input name={r} type="number" step="0.01" placeholder="0" className="w-full p-2 pl-6 border border-border/40 rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm" />
+                                                    </div>
+                                                </div>
+                                                <div className="w-32 space-y-1 pt-[18px]">
+                                                    <select name={`unit_${r}`} className="w-full p-2 border border-border/40 rounded bg-background text-[10px] focus:outline-none focus:ring-2 focus:ring-primary/20 h-[38px]">
+                                                        <option value="per job">per job</option>
+                                                        <option value="per sqm">per sqm</option>
+                                                        <option value="per linear meter">per linear m</option>
+                                                        <option value="per feet">per feet</option>
+                                                        <option value="per project">per project</option>
+                                                        <option value="per board">per board</option>
+                                                        <option value="per module">per module</option>
+                                                    </select>
                                                 </div>
                                             </div>
-                                            <div className="w-32 space-y-1 pt-[18px]">
-                                                <select name={`unit_${r}`} className="w-full p-2 border border-border/40 rounded bg-background text-[10px] focus:outline-none focus:ring-2 focus:ring-primary/20 h-[38px]">
-                                                    <option value="per job">per job</option>
-                                                    <option value="per sqm">per sqm</option>
-                                                    <option value="per linear meter">per linear m</option>
-                                                    <option value="per feet">per feet</option>
-                                                    <option value="per project">per project</option>
-                                                    <option value="per board">per board</option>
-                                                    <option value="per module">per module</option>
-                                                </select>
-                                            </div>
-                                        </div>
+                                            {r === 'install' && (
+                                                <div className="col-span-1 md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 bg-muted/20 p-3 rounded-xl border border-dashed border-border/60">
+                                                    {['drawer', 'base_cabinet', 'wall_cabinet', 'closet'].map(sub => (
+                                                        <div key={sub} className="space-y-1">
+                                                            <label className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter opacity-70 ml-1">{sub.replace('_', ' ')}</label>
+                                                            <div className="flex gap-1.5">
+                                                                <div className="relative flex-1">
+                                                                    <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-muted-foreground text-[10px] font-semibold">₱</span>
+                                                                    <input name={sub} type="number" step="0.01" className="w-full p-1.5 pl-4 border border-border/40 rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 text-[11px]" placeholder="0" />
+                                                                </div>
+                                                                <select name={`unit_${sub}`} defaultValue="per module" className="w-16 p-1 border border-border/40 rounded bg-background text-[9px] focus:outline-none h-[28px]">
+                                                                    <option value="per module">pc</option>
+                                                                    <option value="per linear meter">lm</option>
+                                                                    <option value="per feet">ft</option>
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </React.Fragment>
                                     ))}
                                 </div>
                             </div>

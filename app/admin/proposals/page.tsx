@@ -40,7 +40,6 @@ const tierSpecs: Record<string, { items: string[]; exclusive: string[] }> = {
     exclusive: ["Special Mechanism", "Lighting", "Appliances"],
   },
 }
-
 type ProposalItem = {
   id: string
   description: string
@@ -120,6 +119,40 @@ export default function AdminProposalsPage() {
   const [adminEmail, setAdminEmail] = useState<string>("")
   const [draftsOpen, setDraftsOpen] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [sentOpen, setSentOpen] = useState(false)
+  const [sentProposals, setSentProposals] = useState<any[]>([])
+  const [sentLoading, setSentLoading] = useState(false)
+  const [sentQuery, setSentQuery] = useState("")
+  const [debouncedSentQuery, setDebouncedSentQuery] = useState("")
+  const [sentPage, setSentPage] = useState(1)
+  const [sentTotal, setSentTotal] = useState(0)
+  const [sentSortKey, setSentSortKey] = useState("created_desc")
+
+  // Autofill title based on client info
+  useEffect(() => {
+    if (clientName && (title === "Kitchen Cabinet Proposal" || !title)) {
+      const suffix = "Kitchen Cabinet Proposal"
+      const clientPart = clientCompany ? `${clientName} (${clientCompany})` : clientName
+      setTitle(`${clientPart} - ${suffix}`)
+    }
+  }, [clientName, clientCompany])
+  const [showSnippets, setShowSnippets] = useState(false)
+  const [snippets, setSnippets] = useState<any[]>([])
+  const [snippetManagerOpen, setSnippetManagerOpen] = useState(false)
+  const [editingSnippet, setEditingSnippet] = useState<any>(null)
+  const snippetsRef = useRef<HTMLDivElement>(null)
+
+  const loadSnippets = async () => {
+    try {
+      const res = await fetch("/api/proposals/snippets", { cache: "no-store" })
+      const json = await res.json().catch(() => ({}))
+      setSnippets(Array.isArray(json?.snippets) ? json.snippets : [])
+    } catch { }
+  }
+
+  useEffect(() => {
+    loadSnippets()
+  }, [])
   useAdminDraftsShortcuts(searchInputRef, page, totalPages, (p: number) => setPage(p))
 
   useEffect(() => {
@@ -342,6 +375,35 @@ export default function AdminProposalsPage() {
   useEffect(() => {
     loadDrafts()
   }, [debouncedDraftQuery, sortKey, page, pageSize])
+
+  const loadSentProposals = async () => {
+    try {
+      setSentLoading(true)
+      const params = new URLSearchParams()
+      if (debouncedSentQuery.trim()) params.set("q", debouncedSentQuery.trim())
+      params.set("sort", sentSortKey)
+      params.set("page", String(sentPage))
+      params.set("pageSize", String(pageSize))
+      const res = await fetch(`/api/proposals/sent?${params.toString()}`, { cache: "no-store" })
+      const json = await res.json().catch(() => ({}))
+      const arr = Array.isArray(json?.proposals) ? json.proposals : []
+      setSentProposals(arr)
+      setSentTotal(Number(json?.total || arr.length))
+    } finally {
+      setSentLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadSentProposals()
+  }, [debouncedSentQuery, sentSortKey, sentPage, pageSize])
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSentQuery(sentQuery)
+    }, 300)
+    return () => clearTimeout(t)
+  }, [sentQuery])
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -700,6 +762,7 @@ export default function AdminProposalsPage() {
                       }
                     } catch { }
                     toast.success("Proposal submitted")
+                    loadSentProposals()
                     window.location.href = `/admin/proposals?id=${encodeURIComponent(data.id)}`
                   } else {
                     toast.error(String(data?.error || "Submission failed"))
@@ -728,6 +791,7 @@ export default function AdminProposalsPage() {
               }}>Email Preview</Button>
               <Button variant="outline" onClick={() => setAiOpen(true)}>AI Fill</Button>
               <Button variant="outline" onClick={() => setDraftsOpen(true)}>View Drafts</Button>
+              <Button variant="outline" onClick={() => setSentOpen(true)}>View Sent</Button>
             </div>
           </div>
         </div>
@@ -1239,8 +1303,50 @@ export default function AdminProposalsPage() {
                   onChange={(e) => setValidUntil(e.target.value)}
                 />
               </div>
-              <div className="space-y-1 md:col-span-2">
-                <label className="text-xs text-muted-foreground">Notes</label>
+              <div className="space-y-1 md:col-span-2 relative">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs text-muted-foreground">Notes</label>
+                  <div className="relative" ref={snippetsRef}>
+                    <button
+                      type="button"
+                      onClick={() => setShowSnippets(!showSnippets)}
+                      className="text-[10px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded hover:bg-primary/20 transition-colors flex items-center gap-1"
+                    >
+                      <Plus className="w-2.5 h-2.5" /> Snippets
+                    </button>
+                    {showSnippets && (
+                      <div className="absolute right-0 top-full mt-1 w-56 bg-card border border-border shadow-xl rounded-md z-30 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                        <div className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground border-b border-border/40 uppercase tracking-widest">Select Snippet</div>
+                        {snippets.map((s, idx) => (
+                          <button
+                            key={s.id || idx}
+                            type="button"
+                            className="w-full text-left px-3 py-2 text-[11px] hover:bg-muted transition-colors border-b border-border/10 last:border-0"
+                            onClick={() => {
+                              const newNotes = notes ? (notes.trim() + "\n\n" + s.content) : s.content
+                              setNotes(newNotes)
+                              setShowSnippets(false)
+                              toast.success(`Added ${s.label}`)
+                            }}
+                          >
+                            <div className="font-semibold text-foreground">{s.label}</div>
+                            <div className="text-[9px] text-muted-foreground truncate opacity-70">Insert terms and conditions...</div>
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-[10px] bg-muted/50 hover:bg-muted text-primary font-bold flex items-center gap-1.5"
+                          onClick={() => {
+                            setSnippetManagerOpen(true)
+                            setShowSnippets(false)
+                          }}
+                        >
+                          <FileText className="w-3 h-3" /> Manage Snippets
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
                 <textarea
                   className="p-2 border border-border/40 rounded-md bg-background text-foreground w-full"
                   rows={3}
@@ -1440,18 +1546,12 @@ export default function AdminProposalsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-md border border-border/40 p-3">
-                  <div className="text-xs text-muted-foreground">Client</div>
-                  <div className="text-sm font-medium text-foreground">{clientName || "—"}</div>
-                  <div className="text-sm text-muted-foreground">{clientEmail || ""}</div>
-                  <div className="text-sm text-muted-foreground">{clientPhone || ""}</div>
-                  <div className="text-sm text-muted-foreground">{clientCompany || ""}</div>
-                </div>
-                <div className="rounded-md border border-border/40 p-3">
-                  <div className="text-xs text-muted-foreground">Summary</div>
-                  <div className="text-sm text-muted-foreground">{notes || "No notes provided."}</div>
-                </div>
+              <div className="rounded-md border border-border/40 p-3">
+                <div className="text-xs text-muted-foreground">Client</div>
+                <div className="text-sm font-medium text-foreground">{clientName || "—"}</div>
+                <div className="text-sm text-muted-foreground">{clientEmail || ""}</div>
+                <div className="text-sm text-muted-foreground">{clientPhone || ""}</div>
+                <div className="text-sm text-muted-foreground">{clientCompany || ""}</div>
               </div>
 
               <div>
@@ -1505,7 +1605,13 @@ export default function AdminProposalsPage() {
                 </table>
               </div>
 
-              <div className="text-xs text-muted-foreground">This is a proposal document generated for review purposes. Final scope and pricing may vary based on site survey and material selection.</div>
+              <div className="space-y-3">
+                <div className="text-xs text-muted-foreground">This is a proposal document generated for review purposes. Final scope and pricing may vary based on site survey and material selection.</div>
+                <div className="rounded-md border border-border/40 p-3">
+                  <div className="text-xs text-muted-foreground">Summary</div>
+                  <div className="text-sm text-muted-foreground">{notes || "No notes provided."}</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1543,18 +1649,12 @@ export default function AdminProposalsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-6">
-                <div className="rounded-lg border border-border/40 p-5 bg-muted/20">
-                  <div className="text-sm font-semibold text-muted-foreground mb-3">Client Information</div>
-                  <div className="text-lg font-bold text-foreground">{clientName || "—"}</div>
-                  <div className="text-base text-muted-foreground mt-1">{clientEmail || ""}</div>
-                  <div className="text-base text-muted-foreground">{clientPhone || ""}</div>
-                  <div className="text-base text-muted-foreground">{clientCompany || ""}</div>
-                </div>
-                <div className="rounded-lg border border-border/40 p-5 bg-muted/20">
-                  <div className="text-sm font-semibold text-muted-foreground mb-3">Project Summary</div>
-                  <div className="text-base text-muted-foreground">{notes || "No notes provided."}</div>
-                </div>
+              <div className="rounded-lg border border-border/40 p-5 bg-muted/20">
+                <div className="text-sm font-semibold text-muted-foreground mb-3">Client Information</div>
+                <div className="text-lg font-bold text-foreground">{clientName || "—"}</div>
+                <div className="text-base text-muted-foreground mt-1">{clientEmail || ""}</div>
+                <div className="text-base text-muted-foreground">{clientPhone || ""}</div>
+                <div className="text-base text-muted-foreground">{clientCompany || ""}</div>
               </div>
 
               <div>
@@ -1611,9 +1711,120 @@ export default function AdminProposalsPage() {
                 </div>
               </div>
 
-              <div className="text-sm text-muted-foreground bg-muted/20 p-4 rounded-lg border border-border/40">
-                This is a proposal document generated for review purposes. Final scope and pricing may vary based on site survey and material selection.
+              <div className="space-y-4">
+                <div className="text-sm text-muted-foreground bg-muted/20 p-4 rounded-lg border border-border/40">
+                  This is a proposal document generated for review purposes. Final scope and pricing may vary based on site survey and material selection.
+                </div>
+                <div className="rounded-lg border border-border/40 p-5 bg-muted/20">
+                  <div className="text-sm font-semibold text-muted-foreground mb-3">Project Summary</div>
+                  <div className="text-base text-muted-foreground">{notes || "No notes provided."}</div>
+                </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {sentOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSentOpen(false)} />
+          <div className="relative w-full max-w-5xl max-h-[90vh] overflow-auto bg-card border border-border/40 rounded-xl shadow-2xl p-6 space-y-6 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between sticky top-0 bg-card/95 backdrop-blur-sm pb-4 border-b z-10">
+              <div>
+                <h3 className="text-xl font-bold">Sent Proposals</h3>
+                <p className="text-xs text-muted-foreground">Manage your successfully submitted proposals</p>
+              </div>
+              <button onClick={() => setSentOpen(false)} className="p-2 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                <input
+                  value={sentQuery}
+                  onChange={(e) => setSentQuery(e.target.value)}
+                  placeholder="Search sent proposals by title, client, or email"
+                  className="flex-1 min-w-[200px] p-2 border rounded-md bg-background text-foreground text-sm"
+                />
+                <select
+                  value={sentSortKey}
+                  onChange={(e) => { setSentSortKey(e.target.value); setSentPage(1) }}
+                  className="p-2 border rounded-md bg-background text-foreground text-sm"
+                >
+                  <option value="created_desc">Newest</option>
+                  <option value="created_asc">Oldest</option>
+                  <option value="title_asc">Title</option>
+                  <option value="client_asc">Client</option>
+                </select>
+                <select
+                  value={String(pageSize)}
+                  onChange={(e) => { const v = Number(e.target.value) || 10; setPageSize(v); setSentPage(1) }}
+                  className="p-2 border rounded-md bg-background text-foreground text-sm"
+                >
+                  <option value="5">5</option>
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                </select>
+              </div>
+              {sentLoading ? (
+                <div className="text-center py-8 text-muted-foreground">Loading sent proposals...</div>
+              ) : (
+                <div className="space-y-3">
+                  {sentProposals.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">No sent proposals found.</div>
+                  ) : (
+                    sentProposals.map((p: any) => (
+                      <div key={p.id} className="flex items-center justify-between gap-3 border rounded-lg p-4 hover:bg-muted/30 transition-colors">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-semibold text-sm truncate">{String(p.title || "Untitled Proposal")}</div>
+                          <div className="text-xs text-muted-foreground truncate mt-1">
+                            {String(p?.client?.name || "No client")} • {new Date(p.created_at || Date.now()).toLocaleString()}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Button variant="outline" size="sm" onClick={() => {
+                            setClientName(String(p?.client?.name || ""))
+                            setClientEmail(String(p?.client?.email || ""))
+                            setClientCompany(String(p?.client?.company || ""))
+                            setClientPhone(String(p?.client?.phone || ""))
+                            setCrmSelectedId(String(p?.crmId || ""))
+                            setTitle(String(p?.title || "Proposal"))
+                            setItems((Array.isArray(p?.items) ? p.items : []).map((x: any) => ({
+                              id: crypto.randomUUID(),
+                              description: String(x?.description || ""),
+                              quantity: Number(x?.quantity || 0),
+                              unitPrice: Number(x?.unitPrice || 0),
+                              details: String(x?.details || ""),
+                              category: x?.category,
+                              setId: x?.setId,
+                              room: x?.room,
+                              baseRate: x?.baseRate,
+                              tierFactor: x?.tierFactor,
+                              materialFactor: x?.materialFactor,
+                              finishFactor: x?.finishFactor,
+                              hardwareFactor: x?.hardwareFactor,
+                              installationAdd: x?.installationAdd
+                            })))
+                            setTaxRate(Number(p?.taxRate || 0))
+                            setDiscount(Number(p?.discount || 0))
+                            setNotes(String(p?.notes || ""))
+                            setSentOpen(false)
+                            toast.success("Sent proposal loaded")
+                          }}>Load</Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  {sentTotal > 0 && (
+                    <div className="flex items-center justify-between gap-3 pt-4 border-t">
+                      <div className="text-sm text-muted-foreground">Page {sentPage} of {Math.ceil(sentTotal / pageSize)} • {sentTotal} total sent</div>
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setSentPage(Math.max(1, sentPage - 1))} disabled={sentPage <= 1}>Prev</Button>
+                        <Button variant="outline" size="sm" onClick={() => setSentPage(Math.min(Math.ceil(sentTotal / pageSize), sentPage + 1))} disabled={sentPage >= Math.ceil(sentTotal / pageSize)}>Next</Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1777,6 +1988,71 @@ export default function AdminProposalsPage() {
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
+      {snippetManagerOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setSnippetManagerOpen(false); setEditingSnippet(null); }} />
+          <div className="relative w-full max-w-xl bg-card border border-border shadow-2xl rounded-xl p-6 flex flex-col gap-4 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between border-b pb-4">
+              <h3 className="text-xl font-bold">Manage Snippets</h3>
+              <Button variant="ghost" size="sm" onClick={() => { setSnippetManagerOpen(false); setEditingSnippet(null); }}>
+                <Plus className="w-5 h-5 rotate-45" />
+              </Button>
+            </div>
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+              {snippets.map(s => (
+                <div key={s.id} className="p-3 border rounded-lg group relative hover:border-primary/50 transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-bold text-sm">{s.label}</span>
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setEditingSnippet(s)}>Edit</Button>
+                      <Button variant="ghost" size="sm" className="h-7 px-2 text-destructive" onClick={async () => {
+                        if (!confirm("Delete snippet?")) return
+                        await fetch("/api/proposals/snippets", { method: "DELETE", body: JSON.stringify({ id: s.id }) })
+                        loadSnippets()
+                      }}>Delete</Button>
+                    </div>
+                  </div>
+                  <pre className="text-[10px] text-muted-foreground whitespace-pre-wrap line-clamp-2 bg-muted/30 p-2 rounded">
+                    {s.content}
+                  </pre>
+                </div>
+              ))}
+              {!editingSnippet && (
+                <Button variant="outline" className="w-full border-dashed" onClick={() => setEditingSnippet({ label: "", content: "" })}>
+                  <Plus className="w-4 h-4 mr-2" /> Add New Snippet
+                </Button>
+              )}
+            </div>
+            {editingSnippet && (
+              <div className="border-t pt-4 space-y-3">
+                <div className="text-sm font-bold">{editingSnippet.id ? "Edit Snippet" : "New Snippet"}</div>
+                <input
+                  className="w-full p-2 border border-border/40 rounded-md bg-background text-sm"
+                  placeholder="Label (e.g. Payment Terms)"
+                  value={editingSnippet.label}
+                  onChange={e => setEditingSnippet({ ...editingSnippet, label: e.target.value })}
+                />
+                <textarea
+                  className="w-full p-2 border border-border/40 rounded-md bg-background text-sm font-mono"
+                  rows={4}
+                  placeholder="Content..."
+                  value={editingSnippet.content}
+                  onChange={e => setEditingSnippet({ ...editingSnippet, content: e.target.value })}
+                />
+                <div className="flex justify-end gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setEditingSnippet(null)}>Cancel</Button>
+                  <Button size="sm" onClick={async () => {
+                    if (!editingSnippet.label || !editingSnippet.content) return
+                    await fetch("/api/proposals/snippets", { method: "POST", body: JSON.stringify(editingSnippet) })
+                    setEditingSnippet(null)
+                    loadSnippets()
+                  }}>Save Snippet</Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

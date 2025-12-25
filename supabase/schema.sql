@@ -7,6 +7,8 @@ create table if not exists public.proposal_drafts (
 );
 
 -- Subcontractors
+-- rates: { board_cut, edge_band, assembly, design, install, countertop, drawer, base_cabinet, wall_cabinet, closet }
+-- units: { board_cut, edge_band, assembly, design, install, countertop, drawer, base_cabinet, wall_cabinet, closet }
 create table if not exists public.subcontractors (
   id text primary key,
   name text not null,
@@ -245,6 +247,24 @@ on conflict (tier) do update set
   exclusive = excluded.exclusive, 
   updated_at = now();
 
+-- Proposal Snippets
+create table if not exists public.proposal_snippets (
+  id uuid primary key default gen_random_uuid(),
+  label text not null,
+  content text not null,
+  created_at timestamptz default now(),
+  updated_at timestamptz
+);
+
+insert into public.proposal_snippets (label, content)
+values 
+  ('Payment Terms', 'PAYMENT TERMS:\n- 50% Downpayment (Initial mobilization)\n- 40% Progressive Payment (Upon delivery to site)\n- 10% Final Payment (Upon turnover/completion)'),
+  ('Kitchen Terms', 'KITCHEN TERMS:\n- 30-45 working days lead time\n- Includes basic installation of cabinets\n- Excludes appliance installation, plumbing, and electrical works'),
+  ('Wardrobe Terms', 'WARDROBE TERMS:\n- 25-30 working days lead time\n- Includes internal shelving systems and hanging rods\n- Excludes internal LED lighting unless specified in items'),
+  ('Exclusions', 'GENERAL EXCLUSIONS:\n- Civil works (Masonry/Breaking of concrete)\n- Hauling beyond 2nd floor without service elevator\n- Site lighting and power during installation'),
+  ('Standard Warranty', 'WARRANTY:\n- 1 year limited warranty on carcass and door workmanship\n- Hardwares are subject to manufacturer''s warranty policies')
+on conflict do nothing;
+
 -- Enable RLS on all tables
 alter table public.proposal_drafts enable row level security;
 alter table public.subcontractors enable row level security;
@@ -261,6 +281,11 @@ alter table public.clients enable row level security;
 alter table public.inquiries enable row level security;
 alter table public.blog_posts enable row level security;
 alter table public.products enable row level security;
+alter table public.proposal_snippets enable row level security;
+
+-- Policies
+drop policy if exists "Admins can manage proposal snippets" on public.proposal_snippets;
+create policy "Admins can manage proposal snippets" on public.proposal_snippets for all to authenticated using (true) with check (true);
 
 
 -- Policies for proposal_drafts
