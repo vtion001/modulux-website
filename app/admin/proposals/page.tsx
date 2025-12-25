@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { FileText, Plus, Trash2 } from "lucide-react"
+import { FileText, Plus, Trash2, Mail, Sparkles, FolderOpen, History, Send, Save } from "lucide-react"
 import { estimateCabinetCost } from "@/lib/estimator"
 import { toast } from "sonner"
 import * as Dialog from "@radix-ui/react-dialog"
@@ -699,7 +699,13 @@ export default function AdminProposalsPage() {
             </div>
             <div className="flex items-center gap-2">
               <SaveForm action={saveDraft}>
-                <SubmitButton variant="outline" confirm="Save this proposal as a draft?" disabled={savingDraft} aria-busy={savingDraft} className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+                <SubmitButton
+                  confirm="Save this proposal as a draft?"
+                  disabled={savingDraft}
+                  aria-busy={savingDraft}
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px] active:translate-y-0 disabled:pointer-events-none disabled:opacity-50 border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-10 px-4 py-2 text-black dark:text-white"
+                >
+                  <Save className="w-4 h-4" />
                   {savingDraft ? "Saving…" : "Save Draft"}
                 </SubmitButton>
               </SaveForm>
@@ -776,22 +782,51 @@ export default function AdminProposalsPage() {
                   confirm="Are you sure you want to submit this proposal? This will also create a Deal/Lead in the CRM."
                   disabled={submitting}
                   aria-busy={submitting}
-                  className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px] active:translate-y-0 disabled:pointer-events-none disabled:opacity-50 border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-10 px-4 py-2 text-black dark:text-white"
                 >
+                  <Send className="w-4 h-4" />
                   {submitting ? "Submitting…" : "Submit"}
                 </SubmitButton>
               </SaveForm>
-              <Button variant="outline" onClick={() => {
-                if (!clientEmail || !clientEmail.trim()) { toast.error("Add a client email first"); return }
-                const subject = `Proposal Preview: ${String(title || "Proposal")}`
-                const text = buildEmailText()
-                setEmailSubject(subject)
-                setEmailBody(text)
-                setEmailPreviewOpen(true)
-              }}>Email Preview</Button>
-              <Button variant="outline" onClick={() => setAiOpen(true)}>AI Fill</Button>
-              <Button variant="outline" onClick={() => setDraftsOpen(true)}>View Drafts</Button>
-              <Button variant="outline" onClick={() => setSentOpen(true)}>View Sent</Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (!clientEmail || !clientEmail.trim()) { toast.error("Add a client email first"); return }
+                  const subject = `Proposal Preview: ${String(title || "Proposal")}`
+                  const text = buildEmailText()
+                  setEmailSubject(subject)
+                  setEmailBody(text)
+                  setEmailPreviewOpen(true)
+                }}
+                className="inline-flex items-center justify-center gap-2 h-10 px-4 text-black dark:text-white"
+              >
+                <Mail className="w-4 h-4" />
+                Email Preview
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setAiOpen(true)}
+                className="inline-flex items-center justify-center gap-2 h-10 px-4 text-black dark:text-white"
+              >
+                <Sparkles className="w-4 h-4" />
+                AI Fill
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setDraftsOpen(true)}
+                className="inline-flex items-center justify-center gap-2 h-10 px-4 text-black dark:text-white"
+              >
+                <FolderOpen className="w-4 h-4" />
+                View Drafts
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setSentOpen(true)}
+                className="inline-flex items-center justify-center gap-2 h-10 px-4 text-black dark:text-white"
+              >
+                <History className="w-4 h-4" />
+                View Sent
+              </Button>
             </div>
           </div>
         </div>
@@ -846,8 +881,8 @@ export default function AdminProposalsPage() {
                   {drafts.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">No drafts found.</div>
                   ) : (
-                    drafts.map((d: any) => (
-                      <div key={d.id} className="flex items-center justify-between gap-3 border rounded-lg p-4 hover:bg-muted/30 transition-colors">
+                    drafts.map((d: any, idx: number) => (
+                      <div key={d.id || `draft_full_${idx}`} className="flex items-center justify-between gap-3 border rounded-lg p-4 hover:bg-muted/30 transition-colors">
                         <div className="min-w-0 flex-1">
                           <div className="font-semibold text-sm truncate">{String(d.title || "Untitled Proposal")}</div>
                           <div className="text-xs text-muted-foreground truncate mt-1">
@@ -981,8 +1016,8 @@ export default function AdminProposalsPage() {
             {drafts.length === 0 ? (
               <div className="text-xs text-muted-foreground">No drafts found.</div>
             ) : (
-              drafts.map((d: any) => (
-                <div key={d.id} className="flex items-center justify-between gap-3 border rounded p-2 text-xs">
+              drafts.map((d: any, idx: number) => (
+                <div key={d.id || `draft_mini_${idx}`} className="flex items-center justify-between gap-3 border rounded p-2 text-xs">
                   <div className="min-w-0">
                     <div className="font-medium truncate">{String(d.title || "Untitled Proposal")}</div>
                     <div className="text-muted-foreground truncate">{String(d?.client?.name || "")} • {new Date(d.updated_at || d.created_at || Date.now()).toLocaleString()}</div>
@@ -1099,10 +1134,10 @@ export default function AdminProposalsPage() {
                     ) : crmResults.length === 0 ? (
                       <div className="p-2 text-xs text-muted-foreground">No matches</div>
                     ) : (
-                      crmResults.map((c: any) => (
+                      crmResults.map((c: any, idx: number) => (
                         <button
                           type="button"
-                          key={String(c?.id || Math.random())}
+                          key={c.id || `crm_search_${idx}`}
                           className="w-full text-left p-2 hover:bg-muted"
                           onClick={() => selectCrm(c)}
                         >
@@ -1569,8 +1604,8 @@ export default function AdminProposalsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {previewBreakdown.map((r) => (
-                      <tr key={r.id} className="border-t border-border/40">
+                    {previewBreakdown.map((r, idx) => (
+                      <tr key={r.id || `breakdown_${idx}`} className="border-t border-border/40">
                         <td className="p-2 capitalize">{r.category || "—"}</td>
                         <td className="p-2">{r.set}</td>
                         <td className="p-2">{r.room}</td>
@@ -1772,8 +1807,8 @@ export default function AdminProposalsPage() {
                   {sentProposals.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">No sent proposals found.</div>
                   ) : (
-                    sentProposals.map((p: any) => (
-                      <div key={p.id} className="flex items-center justify-between gap-3 border rounded-lg p-4 hover:bg-muted/30 transition-colors">
+                    sentProposals.map((p: any, idx: number) => (
+                      <div key={p.id || `sent_${idx}`} className="flex items-center justify-between gap-3 border rounded-lg p-4 hover:bg-muted/30 transition-colors">
                         <div className="min-w-0 flex-1">
                           <div className="font-semibold text-sm truncate">{String(p.title || "Untitled Proposal")}</div>
                           <div className="text-xs text-muted-foreground truncate mt-1">
@@ -1840,8 +1875,8 @@ export default function AdminProposalsPage() {
                 className="w-full p-2 border border-border/40 rounded-md bg-background text-foreground"
               >
                 <option value="">Select a version</option>
-                {versions.map((v: any) => (
-                  <option key={v.ts} value={String(v.ts)}>{new Date(v.ts).toLocaleString()}</option>
+                {versions.map((v: any, idx: number) => (
+                  <option key={v.ts || `ver_${idx}`} value={String(v.ts)}>{new Date(v.ts).toLocaleString()}</option>
                 ))}
               </select>
               <div className="p-2 border rounded-md text-sm">
@@ -1868,8 +1903,8 @@ export default function AdminProposalsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {aiPreviewBreakdown.map((r) => (
-                      <tr key={r.id} className="border-t">
+                    {aiPreviewBreakdown.map((r, idx) => (
+                      <tr key={r.id || `ai_breakdown_${idx}`} className="border-t">
                         <td className="p-2 capitalize">{r.category || "—"}</td>
                         <td className="p-2">{r.set}</td>
                         <td className="p-2">{r.room}</td>
@@ -1999,8 +2034,8 @@ export default function AdminProposalsPage() {
               </Button>
             </div>
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-              {snippets.map(s => (
-                <div key={s.id} className="p-3 border rounded-lg group relative hover:border-primary/50 transition-colors">
+              {snippets.map((s, idx) => (
+                <div key={s.id || `snippets_mgr_${idx}`} className="p-3 border rounded-lg group relative hover:border-primary/50 transition-colors">
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-bold text-sm">{s.label}</span>
                     <div className="flex items-center gap-2">

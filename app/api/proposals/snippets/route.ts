@@ -5,11 +5,13 @@ import { readFile, writeFile } from "fs/promises"
 
 const JSON_PATH = path.join(process.cwd(), "data", "proposal-snippets.json")
 
+// Simple UUID v4 check
+const isUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+
 async function getLocalSnippets() {
     try {
         const txt = await readFile(JSON_PATH, "utf-8")
         const data = JSON.parse(txt || "[]")
-        // Ensure every snippet has an ID for frontend stability
         return data.map((s: any, idx: number) => ({
             id: s.id || `local_${idx}`,
             ...s
@@ -32,19 +34,19 @@ async function saveLocalSnippets(snippets: any[]) {
 
 export async function GET() {
     try {
-        const supabase = supabaseServer()
-        const { data, error } = await supabase.from("proposal_snippets").select("*").order("label")
+        try {
+            const supabase = supabaseServer()
+            const { data, error } = await supabase.from("proposal_snippets").select("*").order("label")
 
-        if (error) {
-            console.warn("Supabase GET error (falling back to JSON):", error.message)
+            if (error) throw error
+            return NextResponse.json({ snippets: data || [] })
+        } catch (dbError: any) {
+            console.warn("DB Snippets GET failed, using local fallback:", dbError.message || dbError)
             const local = await getLocalSnippets()
             return NextResponse.json({ snippets: local })
         }
-        return NextResponse.json({ snippets: data || [] })
-    } catch (e: any) {
-        console.warn("Snippet GET fallback triggered:", e.message)
-        const local = await getLocalSnippets()
-        return NextResponse.json({ snippets: local })
+    } catch (critical: any) {
+        return NextResponse.json({ snippets: [] }, { status: 200 })
     }
 }
 
@@ -53,47 +55,40 @@ export async function POST(request: Request) {
     try {
         body = await request.json()
     } catch (e) {
-        return NextResponse.json({ error: "Missing or invalid JSON body" }, { status: 400 })
+        return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
     }
 
     try {
-        const supabase = supabaseServer()
-        const { data, error } = await supabase.from("proposal_snippets").upsert({
-            id: body.id || undefined,
-            label: body.label,
-            content: body.content,
-            updated_at: new Date().toISOString()
-        }).select().single()
+        try {
+            const supabase = supabaseServer()
+            const supabaseId = (body.id && isUUID(body.id)) ? body.id : undefined
 
-        if (error) {
-            console.warn("Supabase POST error (falling back to JSON):", error.message)
+            const { data, error } = await supabase.from("proposal_snippets").upsert({
+                id: supabaseId,
+                label: body.label,
+                content: body.content,
+                updated_at: new Date().toISOString()
+            }).select().single()
+
+            if (error) throw error
+            return NextResponse.json({ ok: true, snippet: data })
+        } catch (dbError: any) {
+            console.warn("DB Snippets POST failed, using local fallback:", dbError.message || dbError)
             const local = await getLocalSnippets()
             if (body.id) {
                 const idx = local.findIndex((s: any) => s.id === body.id)
                 if (idx > -1) local[idx] = { ...local[idx], ...body }
                 else local.push({ id: body.id, ...body })
             } else {
-                local.push({ id: `local_${Date.now()}`, ...body })
+                const newId = `local_${Date.now()}`
+                local.push({ ...body, id: newId })
+                body.id = newId // Update body for return
             }
             await saveLocalSnippets(local)
             return NextResponse.json({ ok: true, snippet: body })
         }
-        return NextResponse.json({ ok: true, snippet: data })
-    } catch (e: any) {
-        console.warn("Snippet POST fallback triggered:", (e as Error).message)
-        try {
-            const local = await getLocalSnippets()
-            if (body) {
-                const idx = local.findIndex((s: any) => (s.id && s.id === body.id))
-                if (idx > -1) local[idx] = { ...local[idx], ...body }
-                else local.push({ id: body.id || `local_${Date.now()}`, ...body })
-                await saveLocalSnippets(local)
-                return NextResponse.json({ ok: true, snippet: body })
-            }
-            throw e
-        } catch (inner: any) {
-            return NextResponse.json({ error: inner.message }, { status: 500 })
-        }
+    } catch (critical: any) {
+        return NextResponse.json({ error: critical.message || "Unknown error" }, { status: 500 })
     }
 }
 
@@ -107,26 +102,21 @@ export async function DELETE(request: Request) {
     }
 
     try {
-        const supabase = supabaseServer()
-        const { error } = await supabase.from("proposal_snippets").delete().eq("id", id)
-
-        if (error) {
-            console.warn("Supabase DELETE error (falling back to JSON):", error.message)
-            let local = await getLocalSnippets()
-            local = local.filter((s: any) => s.id !== id)
-            await saveLocalSnippets(local)
-            return NextResponse.json({ ok: true })
-        }
-        return NextResponse.json({ ok: true })
-    } catch (e: any) {
-        console.warn("Snippet DELETE fallback triggered:", (e as Error).message)
         try {
+            const supabase = supabaseServer()
+            if (!isUUID(id)) throw new Error("Local ID - skip DB")
+
+            const { error } = await supabase.from("proposal_snippets").delete().eq("id", id)
+            if (error) throw error
+            return NextResponse.json({ ok: true })
+        } catch (dbError: any) {
+            console.warn("DB Snippets DELETE failed/skipped, using local fallback:", dbError.message || dbError)
             let local = await getLocalSnippets()
             local = local.filter((s: any) => s.id !== id)
             await saveLocalSnippets(local)
             return NextResponse.json({ ok: true })
-        } catch (inner: any) {
-            return NextResponse.json({ error: inner.message }, { status: 500 })
         }
+    } catch (critical: any) {
+        return NextResponse.json({ error: critical.message || "Unknown error" }, { status: 500 })
     }
 }
