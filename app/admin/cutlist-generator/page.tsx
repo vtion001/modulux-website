@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { Plus, Trash2, Calculator, Download, RotateCcw, Settings, ChevronDown, ChevronUp, GripVertical, Pencil, X, Eye, Upload, Printer, FileText } from "lucide-react"
+import { Plus, Trash2, Calculator, Download, RotateCcw, Settings, ChevronDown, ChevronUp, GripVertical, Pencil, X, Eye, Upload, Printer, FileText, Cpu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -134,6 +134,46 @@ export default function CutlistGeneratorPage() {
     const [savedProjects, setSavedProjects] = useState<Array<{ id: string; name: string; updated_at: string; metrics: any }>>([])
     const [cutsTab, setCutsTab] = useState<"cuts" | "projects">("cuts")
 
+    // Client & Project Details for BOM Report
+    const [clientName, setClientName] = useState("")
+    const [clientContact, setClientContact] = useState("")
+    const [clientAddress, setClientAddress] = useState("")
+    const [bomSubject, setBomSubject] = useState<"kitchen" | "wardrobe" | "vanity" | "entertainment" | "office" | "custom">("kitchen")
+
+    // Bill of Quantity (BOQ) Costs
+    const LABOR_RATE_PER_BOARD = 2800 // ₱2,800 per board (includes installation)
+    const [showBOQSection, setShowBOQSection] = useState(false)
+    const [transportCost, setTransportCost] = useState(0)
+    const [designFee, setDesignFee] = useState(0)
+    const [miscCosts, setMiscCosts] = useState(0)
+    const [materialMarkup, setMaterialMarkup] = useState(0) // percentage
+    const [boqNotes, setBoqNotes] = useState("")
+
+    // Material Unit Prices
+    const [boardPrices, setBoardPrices] = useState<Record<string, number>>({
+        carcass: 0,
+        backing: 0,
+        doors: 0
+    })
+    const [hardwarePrices, setHardwarePrices] = useState({
+        hinges: 0,
+        handles: 0,
+        slides: 0,
+        shelfPins: 0
+    })
+    const [fastenerPrices, setFastenerPrices] = useState({
+        confirmat: 0,
+        camLocks: 0,
+        nails: 0
+    })
+    const [upsellItems, setUpsellItems] = useState<{ id: string, name: string, quantity: number, price: number }[]>([])
+
+    const addUpsellItem = () => {
+        setUpsellItems(prev => [...prev, { id: crypto.randomUUID(), name: "", quantity: 1, price: 0 }])
+    }
+
+
+
     // Load all saved projects from Supabase
     const loadSavedProjects = async () => {
         try {
@@ -159,6 +199,22 @@ export default function CutlistGeneratorPage() {
         setUsedSheets(0)
         setSheetLevels([])
         setSheetsMetadata([])
+        // Reset client details
+        setClientName("")
+        setClientContact("")
+        setClientAddress("")
+        setBomSubject("kitchen")
+        // Reset BOQ state
+        setTransportCost(0)
+        setDesignFee(0)
+        setMiscCosts(0)
+        setMaterialMarkup(0)
+        setBoqNotes("")
+        setBoardPrices({ carcass: 0, backing: 0, doors: 0 })
+        setHardwarePrices({ hinges: 0, handles: 0, slides: 0, shelfPins: 0 })
+        setFastenerPrices({ confirmat: 0, camLocks: 0, nails: 0 })
+        setUpsellItems([])
+        setShowBOQSection(false)
         // Clear URL param
         const url = new URL(window.location.href)
         url.searchParams.delete('projectId')
@@ -191,6 +247,23 @@ export default function CutlistGeneratorPage() {
                 if (project.options.cabinetDefaults) {
                     setCabinetTypeDefaults(project.options.cabinetDefaults)
                 }
+
+                // Restore client & BOM details
+                if (project.options.clientName) setClientName(project.options.clientName)
+                if (project.options.clientContact) setClientContact(project.options.clientContact)
+                if (project.options.clientAddress) setClientAddress(project.options.clientAddress)
+                if (project.options.bomSubject) setBomSubject(project.options.bomSubject)
+
+                // Restore BOQ state
+                if (project.options.transportCost !== undefined) setTransportCost(project.options.transportCost)
+                if (project.options.designFee !== undefined) setDesignFee(project.options.designFee)
+                if (project.options.miscCosts !== undefined) setMiscCosts(project.options.miscCosts)
+                if (project.options.materialMarkup !== undefined) setMaterialMarkup(project.options.materialMarkup)
+                if (project.options.boqNotes !== undefined) setBoqNotes(project.options.boqNotes)
+                if (project.options.boardPrices) setBoardPrices(project.options.boardPrices)
+                if (project.options.hardwarePrices) setHardwarePrices(project.options.hardwarePrices)
+                if (project.options.fastenerPrices) setFastenerPrices(project.options.fastenerPrices)
+                if (project.options.upsellItems) setUpsellItems(project.options.upsellItems)
 
                 // Stock sheets are now global and loaded separately
 
@@ -655,6 +728,9 @@ export default function CutlistGeneratorPage() {
     };
 
 
+
+
+
     // Cabinet Builder functions
 
     // Handle AI extracted cabinets
@@ -793,6 +869,340 @@ export default function CutlistGeneratorPage() {
 
         return { unitCount, panels, hardware, fasteners, totalEdgeBand }
     }
+
+    // Computed: Aggregate BOM from cabinet configs (used for BOQ calculations and printing)
+    const aggregateBOM = useMemo(() => {
+        return cabinetConfigs.reduce((acc, config) => {
+            const breakdown = getMaterialsBreakdown(config);
+            if (!breakdown) return acc;
+
+            const unitCount = breakdown.unitCount;
+
+            // Aggregate Panels
+            breakdown.panels.forEach(p => {
+                const existing = acc.panels.find(ep => ep.name === p.name && ep.l === p.l && ep.w === p.w && ep.materialGroup === p.materialGroup);
+                if (existing) {
+                    existing.qty += p.qty * unitCount;
+                } else {
+                    acc.panels.push({ ...p, qty: p.qty * unitCount });
+                }
+            });
+
+            // Aggregate Hardware
+            acc.hardware.hinges += breakdown.hardware.hinges * unitCount;
+            acc.hardware.handles += (breakdown.hardware.doorHandles + breakdown.hardware.drawerHandles) * unitCount;
+            acc.hardware.slides += breakdown.hardware.drawerSlides * unitCount;
+            acc.hardware.shelfPins += breakdown.hardware.shelfPins * unitCount;
+
+            // Aggregate Fasteners
+            acc.fasteners.confirmat += breakdown.fasteners.confirmatScrews * unitCount;
+            acc.fasteners.camLocks += breakdown.fasteners.camLocks * unitCount;
+            acc.fasteners.nails += breakdown.fasteners.backPanelNails * unitCount;
+
+            // Aggregate Edge Banding
+            acc.totalEdgeBand += breakdown.totalEdgeBand * unitCount;
+            acc.totalUnits += unitCount;
+
+            return acc;
+        }, {
+            panels: [] as any[],
+            hardware: { hinges: 0, handles: 0, slides: 0, shelfPins: 0 },
+            fasteners: { confirmat: 0, camLocks: 0, nails: 0 },
+            totalEdgeBand: 0,
+            totalUnits: 0
+        });
+    }, [cabinetConfigs]);
+
+    // Print BOQ (Bill of Quantity) - Professional Quotation Template
+    const handlePrintBOQ = () => {
+        // Calculate all totals
+        const boardTotal = Object.entries(boardPrices).reduce((sum, [group, price]) => {
+            const count = sheetsMetadata.filter(m => m.materialGroup === group).length;
+            return sum + (price * count);
+        }, 0);
+        const hardwareTotal = (hardwarePrices.hinges * aggregateBOM.hardware.hinges) +
+            (hardwarePrices.handles * aggregateBOM.hardware.handles) +
+            (hardwarePrices.slides * aggregateBOM.hardware.slides) +
+            (hardwarePrices.shelfPins * aggregateBOM.hardware.shelfPins);
+        const fastenerTotal = (fastenerPrices.confirmat * aggregateBOM.fasteners.confirmat) +
+            (fastenerPrices.camLocks * aggregateBOM.fasteners.camLocks) +
+            (fastenerPrices.nails * aggregateBOM.fasteners.nails);
+        const materialSubtotal = boardTotal + hardwareTotal + fastenerTotal;
+        const upsellTotal = upsellItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+        const markupAmount = materialSubtotal * (materialMarkup / 100);
+        const laborTotal = usedSheets * LABOR_RATE_PER_BOARD;
+        const additionalTotal = transportCost + designFee + miscCosts;
+        const grandTotal = materialSubtotal + markupAmount + laborTotal + additionalTotal + upsellTotal;
+
+        // Generate board items HTML
+        const boardItemsHTML = Object.entries(
+            sheetsMetadata.reduce((acc, meta) => {
+                const group = meta.materialGroup || 'general';
+                const label = meta.label || 'Unknown Material';
+                if (!acc[group]) acc[group] = { count: 0, label };
+                acc[group].count++;
+                return acc;
+            }, {} as Record<string, { count: number; label: string }>)
+        ).map(([group, data]) => `
+            <tr>
+                <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">
+                    <div style="font-weight: 600;">${data.label}</div>
+                    <div style="font-size: 11px; color: #6b7280; text-transform: uppercase;">${group}</div>
+                </td>
+                <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: center;">${data.count}</td>
+                <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">₱${(boardPrices[group] || 0).toLocaleString()}</td>
+                <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">₱${((boardPrices[group] || 0) * data.count).toLocaleString()}</td>
+            </tr>
+        `).join('');
+
+        const printWindow = window.open('', '_blank', 'width=800,height=1000');
+        if (!printWindow) {
+            toast.error("Could not open print window. Please allow popups.");
+            return;
+        }
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>ModuLux Quotation - ${projectName}</title>
+                <style>
+                    @page { size: A4; margin: 15mm; }
+                    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                    body { font-family: system-ui, -apple-system, sans-serif; color: #1f2937; line-height: 1.5; font-size: 12px; background: white; }
+                    .container { max-width: 100%; padding: 24px; }
+                    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #1e3a2e; padding-bottom: 24px; margin-bottom: 24px; }
+                    .logo-section { }
+                    .logo { height: 40px; margin-bottom: 8px; }
+                    .company-name { font-size: 24px; font-weight: 900; color: #1e3a2e; letter-spacing: -0.5px; }
+                    .company-tagline { font-size: 10px; color: #b8860b; text-transform: uppercase; letter-spacing: 3px; font-weight: 700; }
+                    .doc-info { text-align: right; }
+                    .doc-title { font-size: 20px; font-weight: 900; color: #1e3a2e; text-transform: uppercase; letter-spacing: 2px; }
+                    .doc-number { font-size: 11px; color: #6b7280; margin-top: 4px; }
+                    .doc-date { font-size: 11px; color: #6b7280; }
+                    
+                    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+                    .info-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; }
+                    .info-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; margin-bottom: 8px; }
+                    .info-value { font-size: 13px; font-weight: 600; color: #1e3a2e; }
+                    .info-sub { font-size: 11px; color: #6b7280; margin-top: 2px; }
+                    
+                    .section { margin-bottom: 20px; }
+                    .section-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #1e3a2e; border-bottom: 2px solid #1e3a2e; padding-bottom: 8px; margin-bottom: 12px; }
+                    
+                    table { width: 100%; border-collapse: collapse; }
+                    thead { background: #1e3a2e; color: white; }
+                    th { padding: 10px 16px; text-align: left; font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+                    th:nth-child(2), th:nth-child(3), th:nth-child(4) { text-align: center; }
+                    th:last-child { text-align: right; }
+                    td { padding: 12px 16px; border-bottom: 1px solid #e5e7eb; }
+                    
+                    .subtotal-row { background: #f3f4f6; }
+                    .subtotal-row td { font-weight: 700; }
+                    .total-row { background: #1e3a2e; color: white; }
+                    .total-row td { font-weight: 900; font-size: 14px; padding: 16px; }
+                    
+                    .notes-section { background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 16px; margin-top: 24px; }
+                    .notes-title { font-size: 10px; font-weight: 800; text-transform: uppercase; color: #b45309; margin-bottom: 8px; }
+                    .notes-content { font-size: 11px; color: #78350f; white-space: pre-wrap; }
+                    
+                    .signature-section { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin-top: 48px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+                    .sig-box { text-align: center; }
+                    .sig-line { border-bottom: 1px solid #1e3a2e; height: 40px; margin-bottom: 8px; }
+                    .sig-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #6b7280; }
+                    
+                    .footer { margin-top: 32px; text-align: center; font-size: 9px; color: #9ca3af; }
+                    .footer-brand { font-weight: 800; color: #1e3a2e; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <div class="logo-section">
+                            <img src="https://res.cloudinary.com/dbviya1rj/image/upload/v1757004631/nlir90vrzv0qywleruvv.png" alt="ModuLux" class="logo" />
+                            <div class="company-name">ModuLux</div>
+                            <div class="company-tagline">Custom Cabinetry & Millwork</div>
+                        </div>
+                        <div class="doc-info">
+                            <div class="doc-title">Quotation</div>
+                            <div class="doc-number">Ref: ${projectId || 'DRAFT-' + Date.now().toString(36).toUpperCase()}</div>
+                            <div class="doc-date">Date: ${new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-grid">
+                        <div class="info-box">
+                            <div class="info-label">Project Information</div>
+                            <div class="info-value">${projectName}</div>
+                            <div class="info-sub">${bomSubject.charAt(0).toUpperCase() + bomSubject.slice(1)} Cabinetry</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="info-label">Client Details</div>
+                            <div class="info-value">${clientName || 'To be specified'}</div>
+                            <div class="info-sub">${clientContact || ''}</div>
+                            <div class="info-sub">${clientAddress || ''}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="section">
+                        <div class="section-title">Materials & Components</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 40%;">Description</th>
+                                    <th style="width: 15%;">Qty</th>
+                                    <th style="width: 20%;">Unit Price</th>
+                                    <th style="width: 25%;">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${boardItemsHTML}
+                                
+                                ${aggregateBOM.hardware.hinges > 0 ? `
+                                <tr>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Hinges</td>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: center;">${aggregateBOM.hardware.hinges} pcs</td>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">₱${hardwarePrices.hinges.toLocaleString()}</td>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">₱${(hardwarePrices.hinges * aggregateBOM.hardware.hinges).toLocaleString()}</td>
+                                </tr>` : ''}
+                                
+                                ${aggregateBOM.hardware.handles > 0 ? `
+                                <tr>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Cabinet Handles</td>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: center;">${aggregateBOM.hardware.handles} pcs</td>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">₱${hardwarePrices.handles.toLocaleString()}</td>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">₱${(hardwarePrices.handles * aggregateBOM.hardware.handles).toLocaleString()}</td>
+                                </tr>` : ''}
+                                
+                                ${aggregateBOM.hardware.slides > 0 ? `
+                                <tr>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Drawer Slides (pairs)</td>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: center;">${aggregateBOM.hardware.slides} sets</td>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">₱${hardwarePrices.slides.toLocaleString()}</td>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">₱${(hardwarePrices.slides * aggregateBOM.hardware.slides).toLocaleString()}</td>
+                                </tr>` : ''}
+                                
+                                ${aggregateBOM.hardware.shelfPins > 0 ? `
+                                <tr>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Shelf Pins</td>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: center;">${aggregateBOM.hardware.shelfPins} pcs</td>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">₱${hardwarePrices.shelfPins.toLocaleString()}</td>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">₱${(hardwarePrices.shelfPins * aggregateBOM.hardware.shelfPins).toLocaleString()}</td>
+                                </tr>` : ''}
+                                
+                                ${fastenerTotal > 0 ? `
+                                <tr>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Fasteners & Hardware (screws, cam locks, nails)</td>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: center;">1 lot</td>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">—</td>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">₱${fastenerTotal.toLocaleString()}</td>
+                                </tr>` : ''}
+                                ${upsellItems.length > 0 ? upsellItems.map(item => `
+                                 <tr>
+                                     <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">${item.name || 'Additional Item'}</td>
+                                     <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: center;">${item.quantity}</td>
+                                     <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">₱${(item.price || 0).toLocaleString()}</td>
+                                     <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">₱${((item.price || 0) * (item.quantity || 0)).toLocaleString()}</td>
+                                 </tr>
+                                 `).join('') : ''}
+                                 
+                                 <tr class="subtotal-row">
+                                     <td colspan="3" style="padding: 12px 16px; text-align: right; border-bottom: 1px solid #d1d5db;">Materials Subtotal</td>
+                                     <td style="padding: 12px 16px; text-align: right; border-bottom: 1px solid #d1d5db;">₱${materialSubtotal.toLocaleString()}</td>
+                                 </tr>
+                                
+                                ${materialMarkup > 0 ? `
+                                <tr>
+                                    <td colspan="3" style="padding: 12px 16px; text-align: right; border-bottom: 1px solid #e5e7eb;">Material Markup (${materialMarkup}%)</td>
+                                    <td style="padding: 12px 16px; text-align: right; border-bottom: 1px solid #e5e7eb;">₱${markupAmount.toLocaleString()}</td>
+                                </tr>` : ''}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="section">
+                        <div class="section-title">Labor & Services</div>
+                        <table>
+                            <tbody>
+                                <tr>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; width: 40%;">
+                                        <div style="font-weight: 600;">Fabrication & Installation</div>
+                                        <div style="font-size: 10px; color: #6b7280;">Includes on-site installation</div>
+                                    </td>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: center; width: 15%;">${usedSheets} boards</td>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right; width: 20%;">₱${LABOR_RATE_PER_BOARD.toLocaleString()}/board</td>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600; width: 25%;">₱${laborTotal.toLocaleString()}</td>
+                                </tr>
+                                ${transportCost > 0 ? `
+                                <tr>
+                                    <td colspan="3" style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Transportation / Delivery</td>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">₱${transportCost.toLocaleString()}</td>
+                                </tr>` : ''}
+                                ${designFee > 0 ? `
+                                <tr>
+                                    <td colspan="3" style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Design Consultation Fee</td>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">₱${designFee.toLocaleString()}</td>
+                                </tr>` : ''}
+                                ${miscCosts > 0 ? `
+                                <tr>
+                                    <td colspan="3" style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">Miscellaneous</td>
+                                    <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right; font-weight: 600;">₱${miscCosts.toLocaleString()}</td>
+                                </tr>` : ''}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <table>
+                        <tbody>
+                            <tr class="total-row">
+                                <td colspan="3" style="text-align: right;">GRAND TOTAL</td>
+                                <td style="text-align: right; font-size: 18px;">₱${grandTotal.toLocaleString()}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    ${boqNotes ? `
+                    <div class="notes-section">
+                        <div class="notes-title">Terms & Conditions</div>
+                        <div class="notes-content">${boqNotes}</div>
+                    </div>` : `
+                    <div class="notes-section">
+                        <div class="notes-title">Terms & Conditions</div>
+                        <div class="notes-content">• 50% downpayment required upon confirmation
+• Balance due upon completion before delivery
+• Quotation valid for 15 days
+• Lead time: 2-3 weeks after confirmation</div>
+                    </div>`}
+                    
+                    <div class="signature-section">
+                        <div class="sig-box">
+                            <div class="sig-line"></div>
+                            <div class="sig-label">Client Signature / Date</div>
+                        </div>
+                        <div class="sig-box">
+                            <div class="sig-line"></div>
+                            <div class="sig-label">Authorized Representative</div>
+                        </div>
+                    </div>
+                    
+                    <div class="footer">
+                        <span class="footer-brand">MODULUX</span> — Custom Cabinetry & Millwork | Generated on ${new Date().toLocaleDateString('en-PH')}
+                    </div>
+                </div>
+                <script>
+                    window.onload = function() {
+                        setTimeout(function() {
+                            window.print();
+                            window.onafterprint = function() { window.close(); };
+                        }, 300);
+                    };
+                </script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
 
     // Generate panels from cabinet configurations
     const generatePanelsFromCabinets = () => {
@@ -1116,7 +1526,22 @@ export default function CutlistGeneratorPage() {
                         considerMaterial,
                         edgeBanding,
                         considerGrain: grainDirection,
-                        cabinetDefaults: cabinetTypeDefaults
+                        cabinetDefaults: cabinetTypeDefaults,
+                        // Client & BOM details
+                        clientName,
+                        clientContact,
+                        clientAddress,
+                        bomSubject,
+                        // BOQ state
+                        transportCost,
+                        designFee,
+                        miscCosts,
+                        materialMarkup,
+                        boqNotes,
+                        boardPrices,
+                        hardwarePrices,
+                        fastenerPrices,
+                        upsellItems
                     },
                     metrics: calculated ? {
                         utilization: 100 - (stats.wastePercent || 0),
@@ -1270,8 +1695,15 @@ export default function CutlistGeneratorPage() {
                         ) : (
                             <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
                                 {projectName}
-                                <button onClick={() => setIsEditingName(true)} className="opacity-30 hover:opacity-100 transition-opacity">
+                                <button onClick={() => setIsEditingName(true)} className="opacity-30 hover:opacity-100 transition-opacity" title="Edit Name">
                                     <Pencil className="w-3 h-3" />
+                                </button>
+                                <button
+                                    onClick={() => setIsProjectSettingsOpen(true)}
+                                    className="opacity-30 hover:opacity-100 transition-opacity p-1 hover:bg-muted rounded-md"
+                                    title="Project Settings & Client Details"
+                                >
+                                    <Settings className="w-4 h-4" />
                                 </button>
                                 {projectId && (
                                     <span className="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded opacity-60">{projectId.slice(0, 8)}</span>
@@ -2775,46 +3207,7 @@ export default function CutlistGeneratorPage() {
 
             {/* BOM Modal */}
             {showBOMModal && (() => {
-                // Calculate Aggregated BOM
-                const aggregateBOM = cabinetConfigs.reduce((acc, config) => {
-                    const breakdown = getMaterialsBreakdown(config);
-                    if (!breakdown) return acc;
 
-                    const unitCount = breakdown.unitCount;
-
-                    // Aggregate Panels
-                    breakdown.panels.forEach(p => {
-                        const existing = acc.panels.find(ep => ep.name === p.name && ep.l === p.l && ep.w === p.w && ep.materialGroup === p.materialGroup);
-                        if (existing) {
-                            existing.qty += p.qty * unitCount;
-                        } else {
-                            acc.panels.push({ ...p, qty: p.qty * unitCount });
-                        }
-                    });
-
-                    // Aggregate Hardware
-                    acc.hardware.hinges += breakdown.hardware.hinges * unitCount;
-                    acc.hardware.handles += (breakdown.hardware.doorHandles + breakdown.hardware.drawerHandles) * unitCount;
-                    acc.hardware.slides += breakdown.hardware.drawerSlides * unitCount;
-                    acc.hardware.shelfPins += breakdown.hardware.shelfPins * unitCount;
-
-                    // Aggregate Fasteners
-                    acc.fasteners.confirmat += breakdown.fasteners.confirmatScrews * unitCount;
-                    acc.fasteners.camLocks += breakdown.fasteners.camLocks * unitCount;
-                    acc.fasteners.nails += breakdown.fasteners.backPanelNails * unitCount;
-
-                    // Aggregate Edge Banding
-                    acc.totalEdgeBand += breakdown.totalEdgeBand * unitCount;
-                    acc.totalUnits += unitCount;
-
-                    return acc;
-                }, {
-                    panels: [] as any[],
-                    hardware: { hinges: 0, handles: 0, slides: 0, shelfPins: 0 },
-                    fasteners: { confirmat: 0, camLocks: 0, nails: 0 },
-                    totalEdgeBand: 0,
-                    totalUnits: 0
-                });
 
                 return (
                     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
@@ -2999,6 +3392,385 @@ export default function CutlistGeneratorPage() {
                                                 </div>
                                             </div>
                                         </div>
+
+                                        {/* Bill of Quantity (BOQ) Section */}
+                                        <div className="space-y-4">
+                                            <button
+                                                onClick={() => setShowBOQSection(!showBOQSection)}
+                                                className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary/5 border border-secondary/20 hover:bg-secondary/10 transition-all group"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-1.5 h-6 bg-secondary rounded-full"></div>
+                                                    <div className="text-left">
+                                                        <h3 className="text-sm font-black uppercase tracking-widest">Bill of Quantity</h3>
+                                                        <p className="text-[10px] text-muted-foreground font-medium">Material costs, labor & other expenses</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    {calculated && (
+                                                        <span className="text-sm font-black text-secondary">
+                                                            ₱{((usedSheets * LABOR_RATE_PER_BOARD) + transportCost + designFee + miscCosts).toLocaleString()}
+                                                        </span>
+                                                    )}
+                                                    <ChevronDown className={cn(
+                                                        "w-5 h-5 text-muted-foreground transition-transform duration-300",
+                                                        showBOQSection && "rotate-180"
+                                                    )} />
+                                                </div>
+                                            </button>
+
+                                            {showBOQSection && (
+                                                <div className="p-6 rounded-2xl bg-muted/30 border border-border/20 space-y-6 animate-in slide-in-from-top-2 duration-300">
+
+                                                    {/* Labor Cost - Auto-calculated */}
+                                                    <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <div>
+                                                                <p className="text-[10px] font-black uppercase tracking-widest text-primary/70">Fabrication & Installation Labor</p>
+                                                                <p className="text-[9px] text-muted-foreground mt-0.5">Auto-calculated: {usedSheets} boards × ₱{LABOR_RATE_PER_BOARD.toLocaleString()}/board</p>
+                                                            </div>
+                                                            <p className="text-2xl font-black text-primary">₱{(usedSheets * LABOR_RATE_PER_BOARD).toLocaleString()}</p>
+                                                        </div>
+                                                        <p className="text-[9px] text-muted-foreground italic border-t border-primary/10 pt-2 mt-2">
+                                                            <span className="font-bold">Note:</span> Fabrication and installation are primarily performed using high-precision portable power tools. Rate is based on industry standard manual fabrication complexity.
+                                                        </p>
+
+                                                        {/* CNC Disclaimer & Value Prop */}
+                                                        <div className="mt-3 p-3 rounded-lg border border-secondary/20 bg-secondary/[0.03]">
+                                                            <p className="text-[10px] font-black uppercase tracking-wider text-secondary flex items-center gap-1.5 mb-1.5">
+                                                                <Cpu className="w-3 h-3" /> Premium CNC Processing (Optional)
+                                                            </p>
+                                                            <div className="space-y-1.5">
+                                                                <p className="text-[9px] text-muted-foreground leading-relaxed">
+                                                                    CNC precision processing is available for an <span className="text-secondary font-bold">additional fee</span>. Work is processed at our Manila facility, which involves <span className="text-secondary font-bold">additional logistics and handling costs</span>.
+                                                                </p>
+                                                                <div className="pt-1.5 border-t border-secondary/10">
+                                                                    <p className="text-[9px] text-primary/80 leading-relaxed font-medium">
+                                                                        <span className="text-secondary font-bold italic">The CNC Advantage:</span> It provides extreme 0.1mm dimensional accuracy, perfectly square edges, and nested-based optimization for zero material waste. This ensures a "factory-fit" quality far superior to manual cutting.
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Material Pricing Section */}
+                                                    <div className="space-y-3">
+                                                        <p className="text-[10px] font-black uppercase tracking-widest text-primary/50 border-b border-border/20 pb-2">Board Material Prices</p>
+                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                            {Object.entries(
+                                                                sheetsMetadata.reduce((acc, meta) => {
+                                                                    const group = meta.materialGroup || 'general';
+                                                                    const label = meta.label || 'Unknown';
+                                                                    if (!acc[group]) acc[group] = { count: 0, label };
+                                                                    acc[group].count++;
+                                                                    return acc;
+                                                                }, {} as Record<string, { count: number; label: string }>)
+                                                            ).map(([group, data]) => (
+                                                                <div key={group} className="p-3 rounded-xl bg-background border border-border/30">
+                                                                    <div className="flex justify-between items-start mb-2">
+                                                                        <div>
+                                                                            <p className="text-[9px] font-black uppercase tracking-widest opacity-50">{group}</p>
+                                                                            <p className="text-xs font-bold">{data.count} boards</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="relative">
+                                                                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">₱</span>
+                                                                        <input
+                                                                            type="number"
+                                                                            value={boardPrices[group] || ""}
+                                                                            onChange={(e) => setBoardPrices(prev => ({ ...prev, [group]: Number(e.target.value) || 0 }))}
+                                                                            className="w-full bg-muted/50 border border-border/40 rounded-lg pl-6 pr-2 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+                                                                            placeholder="per board"
+                                                                        />
+                                                                    </div>
+                                                                    {boardPrices[group] > 0 && (
+                                                                        <p className="text-[10px] font-bold text-secondary mt-1 text-right">
+                                                                            = ₱{(boardPrices[group] * data.count).toLocaleString()}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Hardware Pricing */}
+                                                    <div className="space-y-3">
+                                                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-600/70 border-b border-border/20 pb-2">Hardware Prices</p>
+                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                                            {[
+                                                                { key: 'hinges', label: 'Hinges', count: aggregateBOM.hardware.hinges, unit: 'pcs' },
+                                                                { key: 'handles', label: 'Handles', count: aggregateBOM.hardware.handles, unit: 'pcs' },
+                                                                { key: 'slides', label: 'Slides', count: aggregateBOM.hardware.slides, unit: 'sets' },
+                                                                { key: 'shelfPins', label: 'Shelf Pins', count: aggregateBOM.hardware.shelfPins, unit: 'pcs' },
+                                                            ].map(item => (
+                                                                <div key={item.key} className="p-3 rounded-xl bg-background border border-border/30">
+                                                                    <p className="text-[9px] font-black uppercase tracking-widest opacity-50 mb-1">{item.label}</p>
+                                                                    <p className="text-xs font-bold mb-2">{item.count} {item.unit}</p>
+                                                                    <div className="relative">
+                                                                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">₱</span>
+                                                                        <input
+                                                                            type="number"
+                                                                            value={hardwarePrices[item.key as keyof typeof hardwarePrices] || ""}
+                                                                            onChange={(e) => setHardwarePrices(prev => ({ ...prev, [item.key]: Number(e.target.value) || 0 }))}
+                                                                            className="w-full bg-muted/50 border border-border/40 rounded-lg pl-6 pr-2 py-1.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+                                                                            placeholder="/pc"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Fastener Pricing */}
+                                                    <div className="space-y-3">
+                                                        <p className="text-[10px] font-black uppercase tracking-widest text-rose-600/70 border-b border-border/20 pb-2">Fastener Prices</p>
+                                                        <div className="grid grid-cols-3 gap-3">
+                                                            {[
+                                                                { key: 'confirmat', label: 'Confirmat Screws', count: aggregateBOM.fasteners.confirmat },
+                                                                { key: 'camLocks', label: 'Cam Locks', count: aggregateBOM.fasteners.camLocks },
+                                                                { key: 'nails', label: 'Nails', count: aggregateBOM.fasteners.nails },
+                                                            ].map(item => (
+                                                                <div key={item.key} className="p-3 rounded-xl bg-background border border-border/30">
+                                                                    <p className="text-[9px] font-black uppercase tracking-widest opacity-50 mb-1">{item.label}</p>
+                                                                    <p className="text-xs font-bold mb-2">{item.count} pcs</p>
+                                                                    <div className="relative">
+                                                                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">₱</span>
+                                                                        <input
+                                                                            type="number"
+                                                                            value={fastenerPrices[item.key as keyof typeof fastenerPrices] || ""}
+                                                                            onChange={(e) => setFastenerPrices(prev => ({ ...prev, [item.key]: Number(e.target.value) || 0 }))}
+                                                                            className="w-full bg-muted/50 border border-border/40 rounded-lg pl-6 pr-2 py-1.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+                                                                            placeholder="/pc"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Upsell / Additional Items */}
+                                                    <div className="space-y-3">
+                                                        <div className="flex justify-between items-center border-b border-border/20 pb-2">
+                                                            <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600/70">Upsell / Additional Items</p>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-6 px-2 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg"
+                                                                onClick={addUpsellItem}
+                                                            >
+                                                                <Plus className="w-3 h-3 mr-1" /> Add Item
+                                                            </Button>
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            {upsellItems.length === 0 ? (
+                                                                <div className="p-4 rounded-xl border border-dashed border-border/40 text-center">
+                                                                    <p className="text-[10px] text-muted-foreground italic">No additional items added. Click "Add Item" to upsell accessories, lighting, etc.</p>
+                                                                </div>
+                                                            ) : (
+                                                                upsellItems.map((item) => (
+                                                                    <div key={item.id} className="grid grid-cols-12 gap-2 items-center bg-background p-2 rounded-xl border border-border/30">
+                                                                        <div className="col-span-6">
+                                                                            <input
+                                                                                className="w-full bg-muted/30 border-none rounded-lg px-2 py-1.5 text-xs font-bold focus:ring-1 focus:ring-emerald-500/20"
+                                                                                placeholder="Item Name (e.g. Soft Close Hinges)"
+                                                                                value={item.name}
+                                                                                onChange={(e) => setUpsellItems(prev => prev.map(ui => ui.id === item.id ? { ...ui, name: e.target.value } : ui))}
+                                                                            />
+                                                                        </div>
+                                                                        <div className="col-span-2">
+                                                                            <input
+                                                                                type="number"
+                                                                                className="w-full bg-muted/30 border-none rounded-lg px-2 py-1.5 text-xs font-bold text-center"
+                                                                                placeholder="Qty"
+                                                                                value={item.quantity || ""}
+                                                                                onChange={(e) => setUpsellItems(prev => prev.map(ui => ui.id === item.id ? { ...ui, quantity: Number(e.target.value) || 0 } : ui))}
+                                                                            />
+                                                                        </div>
+                                                                        <div className="col-span-3 relative">
+                                                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted-foreground">₱</span>
+                                                                            <input
+                                                                                type="number"
+                                                                                className="w-full bg-muted/30 border-none rounded-lg pl-5 pr-2 py-1.5 text-xs font-bold"
+                                                                                placeholder="Price"
+                                                                                value={item.price || ""}
+                                                                                onChange={(e) => setUpsellItems(prev => prev.map(ui => ui.id === item.id ? { ...ui, price: Number(e.target.value) || 0 } : ui))}
+                                                                            />
+                                                                        </div>
+                                                                        <div className="col-span-1 flex justify-center">
+                                                                            <button
+                                                                                className="p-1 text-muted-foreground hover:text-rose-500 transition-colors"
+                                                                                onClick={() => setUpsellItems(prev => prev.filter(ui => ui.id !== item.id))}
+                                                                            >
+                                                                                <X className="w-3.5 h-3.5" />
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                ))
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Additional Costs */}
+                                                    <div className="space-y-3">
+                                                        <p className="text-[10px] font-black uppercase tracking-widest text-secondary/70 border-b border-border/20 pb-2">Additional Costs</p>
+                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                            <div className="space-y-2">
+                                                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Transportation</label>
+                                                                <div className="relative">
+                                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">₱</span>
+                                                                    <input
+                                                                        type="number"
+                                                                        value={transportCost || ""}
+                                                                        onChange={(e) => setTransportCost(Number(e.target.value) || 0)}
+                                                                        className="w-full bg-background border border-border/40 rounded-xl pl-8 pr-4 py-3 font-bold focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+                                                                        placeholder="0"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Design Fee</label>
+                                                                <div className="relative">
+                                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">₱</span>
+                                                                    <input
+                                                                        type="number"
+                                                                        value={designFee || ""}
+                                                                        onChange={(e) => setDesignFee(Number(e.target.value) || 0)}
+                                                                        className="w-full bg-background border border-border/40 rounded-xl pl-8 pr-4 py-3 font-bold focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+                                                                        placeholder="0"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Miscellaneous</label>
+                                                                <div className="relative">
+                                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">₱</span>
+                                                                    <input
+                                                                        type="number"
+                                                                        value={miscCosts || ""}
+                                                                        onChange={(e) => setMiscCosts(Number(e.target.value) || 0)}
+                                                                        className="w-full bg-background border border-border/40 rounded-xl pl-8 pr-4 py-3 font-bold focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+                                                                        placeholder="0"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Material Markup</label>
+                                                                <div className="relative">
+                                                                    <input
+                                                                        type="number"
+                                                                        value={materialMarkup || ""}
+                                                                        onChange={(e) => setMaterialMarkup(Number(e.target.value) || 0)}
+                                                                        className="w-full bg-background border border-border/40 rounded-xl pl-4 pr-8 py-3 font-bold focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+                                                                        placeholder="0"
+                                                                    />
+                                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">%</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Notes / Terms</label>
+                                                        <textarea
+                                                            value={boqNotes}
+                                                            onChange={(e) => setBoqNotes(e.target.value)}
+                                                            className="w-full bg-background border border-border/40 rounded-xl px-4 py-3 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all resize-none"
+                                                            rows={2}
+                                                            placeholder="e.g., 50% downpayment required, delivery within 2-3 weeks..."
+                                                        />
+                                                    </div>
+
+                                                    {/* BOQ Summary */}
+                                                    <div className="p-5 rounded-xl bg-secondary/10 border border-secondary/20 space-y-4">
+                                                        <p className="text-[10px] font-black uppercase tracking-widest text-secondary/70 border-b border-secondary/20 pb-2">Cost Breakdown</p>
+                                                        <div className="grid grid-cols-2 gap-3 text-sm">
+                                                            <div className="flex justify-between">
+                                                                <span className="font-medium opacity-70">Materials (Boards)</span>
+                                                                <span className="font-bold">₱{Object.entries(boardPrices).reduce((sum, [group, price]) => {
+                                                                    const count = sheetsMetadata.filter(m => m.materialGroup === group).length;
+                                                                    return sum + (price * count);
+                                                                }, 0).toLocaleString()}</span>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span className="font-medium opacity-70">Hardware</span>
+                                                                <span className="font-bold">₱{(
+                                                                    (hardwarePrices.hinges * aggregateBOM.hardware.hinges) +
+                                                                    (hardwarePrices.handles * aggregateBOM.hardware.handles) +
+                                                                    (hardwarePrices.slides * aggregateBOM.hardware.slides) +
+                                                                    (hardwarePrices.shelfPins * aggregateBOM.hardware.shelfPins)
+                                                                ).toLocaleString()}</span>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span className="font-medium opacity-70">Fasteners</span>
+                                                                <span className="font-bold">₱{(
+                                                                    (fastenerPrices.confirmat * aggregateBOM.fasteners.confirmat) +
+                                                                    (fastenerPrices.camLocks * aggregateBOM.fasteners.camLocks) +
+                                                                    (fastenerPrices.nails * aggregateBOM.fasteners.nails)
+                                                                ).toLocaleString()}</span>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span className="font-medium opacity-70">Labor & Installation</span>
+                                                                <span className="font-bold">₱{(usedSheets * LABOR_RATE_PER_BOARD).toLocaleString()}</span>
+                                                            </div>
+                                                            {upsellItems.length > 0 && (
+                                                                <div className="flex justify-between">
+                                                                    <span className="font-medium opacity-70">Upsell / Additional Items</span>
+                                                                    <span className="font-bold">₱{upsellItems.reduce((sum, item) => sum + (item.quantity * item.price), 0).toLocaleString()}</span>
+                                                                </div>
+                                                            )}
+                                                            <div className="flex justify-between">
+                                                                <span className="font-medium opacity-70">Transport + Design + Misc</span>
+                                                                <span className="font-bold">₱{(transportCost + designFee + miscCosts).toLocaleString()}</span>
+                                                            </div>
+                                                            {materialMarkup > 0 && (
+                                                                <div className="flex justify-between">
+                                                                    <span className="font-medium opacity-70">Material Markup ({materialMarkup}%)</span>
+                                                                    <span className="font-bold text-primary">+₱{(
+                                                                        (Object.entries(boardPrices).reduce((sum, [group, price]) => {
+                                                                            const count = sheetsMetadata.filter(m => m.materialGroup === group).length;
+                                                                            return sum + (price * count);
+                                                                        }, 0) +
+                                                                            (hardwarePrices.hinges * aggregateBOM.hardware.hinges) +
+                                                                            (hardwarePrices.handles * aggregateBOM.hardware.handles) +
+                                                                            (hardwarePrices.slides * aggregateBOM.hardware.slides) +
+                                                                            (hardwarePrices.shelfPins * aggregateBOM.hardware.shelfPins) +
+                                                                            (fastenerPrices.confirmat * aggregateBOM.fasteners.confirmat) +
+                                                                            (fastenerPrices.camLocks * aggregateBOM.fasteners.camLocks) +
+                                                                            (fastenerPrices.nails * aggregateBOM.fasteners.nails)
+                                                                        ) * (materialMarkup / 100)
+                                                                    ).toLocaleString()}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="border-t border-secondary/30 pt-3 flex justify-between items-center">
+                                                            <p className="text-sm font-black uppercase tracking-widest text-secondary">Grand Total</p>
+                                                            <p className="text-3xl font-black text-secondary">
+                                                                ₱{(() => {
+                                                                    const boardTotal = Object.entries(boardPrices).reduce((sum, [group, price]) => {
+                                                                        const count = sheetsMetadata.filter(m => m.materialGroup === group).length;
+                                                                        return sum + (price * count);
+                                                                    }, 0);
+                                                                    const hardwareTotal = (hardwarePrices.hinges * aggregateBOM.hardware.hinges) +
+                                                                        (hardwarePrices.handles * aggregateBOM.hardware.handles) +
+                                                                        (hardwarePrices.slides * aggregateBOM.hardware.slides) +
+                                                                        (hardwarePrices.shelfPins * aggregateBOM.hardware.shelfPins);
+                                                                    const fastenerTotal = (fastenerPrices.confirmat * aggregateBOM.fasteners.confirmat) +
+                                                                        (fastenerPrices.camLocks * aggregateBOM.fasteners.camLocks) +
+                                                                        (fastenerPrices.nails * aggregateBOM.fasteners.nails);
+                                                                    const upsellTotal = upsellItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+                                                                    const materialTotal = boardTotal + hardwareTotal + fastenerTotal;
+                                                                    const markup = materialTotal * (materialMarkup / 100);
+                                                                    const laborTotal = usedSheets * LABOR_RATE_PER_BOARD;
+                                                                    const additionalTotal = transportCost + designFee + miscCosts;
+                                                                    return (materialTotal + markup + laborTotal + additionalTotal + upsellTotal).toLocaleString();
+                                                                })()}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     </>
                                 ) : (
                                     <div id="production-report-print" className="bg-white rounded-3xl shadow-2xl p-0 !mt-0 min-h-[1000px] border border-primary/5 overflow-hidden scale-[0.85] origin-top translate-y-[-10%] transition-transform duration-500 hover:scale-[0.9] hover:translate-y-[-5%] group/report">
@@ -3136,9 +3908,9 @@ export default function CutlistGeneratorPage() {
                                         `}} />
                                         <div className="max-w-[800px] mx-auto p-16 text-primary font-sans bg-white">
                                             {/* Report Header */}
-                                            <div className="flex justify-between items-start border-b-[3px] border-primary pb-10 mb-10">
+                                            <div className="flex justify-between items-start border-b-[3px] border-primary pb-8 mb-8">
                                                 <div>
-                                                    <div className="flex items-center gap-4 mb-6">
+                                                    <div className="flex items-center gap-4 mb-4">
                                                         <img src="https://res.cloudinary.com/dbviya1rj/image/upload/v1757004631/nlir90vrzv0qywleruvv.png" alt="ModuLux" className="h-10 w-auto" />
                                                         <h1 className="text-3xl font-black uppercase tracking-tighter italic text-primary">ModuLux <span className="not-italic opacity-50">Fabricator</span></h1>
                                                     </div>
@@ -3146,7 +3918,38 @@ export default function CutlistGeneratorPage() {
                                                 </div>
                                                 <div className="text-right">
                                                     <p className="text-base font-black uppercase tracking-tight">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-                                                    <p className="text-[10px] font-bold opacity-30 uppercase tracking-[0.2em] mt-1">Ref ID: PRD-{Math.random().toString(36).substring(7).toUpperCase()}</p>
+                                                    <p className="text-[10px] font-bold opacity-30 uppercase tracking-[0.2em] mt-1">Ref ID: PRD-{projectId?.substring(0, 6).toUpperCase() || Math.random().toString(36).substring(2, 8).toUpperCase()}</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Project & Client Details */}
+                                            <div className="grid grid-cols-2 gap-8 mb-10 p-6 bg-primary/[0.02] rounded-2xl border border-primary/10">
+                                                <div>
+                                                    <p className="text-[8px] font-black uppercase tracking-widest opacity-30 mb-2">Project Details</p>
+                                                    <h2 className="text-xl font-black tracking-tight text-primary mb-1">{projectName || "Untitled Project"}</h2>
+                                                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-secondary/10 rounded-full">
+                                                        <span className="w-2 h-2 rounded-full bg-secondary"></span>
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-secondary">
+                                                            {bomSubject === "kitchen" && "Kitchen Cabinetry"}
+                                                            {bomSubject === "wardrobe" && "Wardrobe System"}
+                                                            {bomSubject === "vanity" && "Vanity Unit"}
+                                                            {bomSubject === "entertainment" && "Entertainment Center"}
+                                                            {bomSubject === "office" && "Office Furniture"}
+                                                            {bomSubject === "custom" && "Custom Build"}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-[8px] font-black uppercase tracking-widest opacity-30 mb-2">Client Information</p>
+                                                    {clientName ? (
+                                                        <>
+                                                            <p className="text-lg font-bold tracking-tight text-primary">{clientName}</p>
+                                                            {clientContact && <p className="text-[11px] font-medium opacity-60 text-primary">{clientContact}</p>}
+                                                            {clientAddress && <p className="text-[10px] font-medium opacity-40 text-primary mt-1">{clientAddress}</p>}
+                                                        </>
+                                                    ) : (
+                                                        <p className="text-sm font-medium opacity-40 text-primary italic">No client specified</p>
+                                                    )}
                                                 </div>
                                             </div>
 
@@ -3323,43 +4126,98 @@ export default function CutlistGeneratorPage() {
                             </div>
 
                             {/* footer */}
-                            <div className="p-8 border-t border-border/20 bg-muted/30 flex justify-between items-center print:hidden">
-                                <div className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em]">
-                                    ModuLux Fabrication Management System
-                                </div>
-                                <div className="flex gap-4">
-                                    <Button variant="outline" className="rounded-xl px-8" onClick={() => {
-                                        if (showReportPreview) setShowReportPreview(false);
-                                        else setShowBOMModal(false);
-                                    }}>
-                                        {showReportPreview ? "Back to Summary" : "Close"}
-                                    </Button>
-                                    <Button variant="outline" className="rounded-xl px-8 border-primary/20 hover:bg-primary/5 group" onClick={() => setShowReportPreview(!showReportPreview)}>
-                                        {showReportPreview ? (
-                                            <><Calculator className="w-4 h-4 mr-2" /> Show Summary</>
-                                        ) : (
-                                            <><FileText className="w-4 h-4 mr-2" /> Preview Document</>
-                                        )}
-                                    </Button>
-                                    <Button variant="outline" className="rounded-xl px-8 border-primary/20 hover:bg-primary/5 group" onClick={() => {
-                                        if (!showReportPreview) {
-                                            setShowReportPreview(true);
-                                            setTimeout(() => handlePrintReport(), 300);
-                                        } else {
-                                            handlePrintReport();
-                                        }
-                                    }}>
-                                        <Printer className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" /> Print PDF
-                                    </Button>
-                                    <Button className="rounded-xl px-10 font-bold shadow-xl shadow-primary/20" onClick={saveProject}>
-                                        <Save className="w-4 h-4 mr-2" /> {isSaving ? "Saving..." : "Save Project"}
-                                    </Button>
-                                    <Button className="rounded-xl px-10 font-bold shadow-xl shadow-primary/20" onClick={() => {
-                                        toast.success("BOM Exported to Production Queue");
-                                        setShowBOMModal(false);
-                                    }}>
-                                        <Download className="w-4 h-4 mr-2" /> Finalize & Export
-                                    </Button>
+                            <div className="p-6 border-t border-border/20 bg-muted/30 print:hidden">
+                                <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                                    <div className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em] hidden md:block">
+                                        ModuLux Fabrication Management System
+                                    </div>
+                                    <div className="flex flex-wrap items-center justify-center md:justify-end gap-3">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="rounded-xl px-4"
+                                            onClick={() => {
+                                                if (showReportPreview) setShowReportPreview(false);
+                                                else setShowBOMModal(false);
+                                            }}
+                                        >
+                                            {showReportPreview ? "Back to Summary" : "Close"}
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="rounded-xl px-4 border-primary/20 hover:bg-primary/5"
+                                            onClick={() => setShowReportPreview(!showReportPreview)}
+                                        >
+                                            {showReportPreview ? (
+                                                <><Calculator className="w-4 h-4 mr-2" /> Summary</>
+                                            ) : (
+                                                <><FileText className="w-4 h-4 mr-2" /> Preview</>
+                                            )}
+                                        </Button>
+                                        <div className="relative group">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="rounded-xl px-4 border-primary/20 hover:bg-primary/5 group-hover:bg-primary/5"
+                                            >
+                                                <Printer className="w-4 h-4 mr-2" /> Print <ChevronDown className="w-3 h-3 ml-1 transition-transform group-hover:rotate-180" />
+                                            </Button>
+                                            <div className="absolute bottom-full left-0 mb-2 w-56 bg-white border border-border/60 rounded-2xl shadow-2xl p-1.5 opacity-0 invisible group-hover:opacity-100 group-hover:visible translate-y-2 group-hover:translate-y-0 scale-95 group-hover:scale-100 transition-all duration-300 z-[100] origin-bottom-left">
+                                                <div className="absolute -bottom-1.5 left-6 w-3 h-3 bg-white border-r border-b border-border/60 rotate-45"></div>
+                                                <button
+                                                    className="w-full px-4 py-3 text-left rounded-xl text-sm font-semibold hover:bg-primary/5 transition-colors flex items-center gap-3 relative z-10"
+                                                    onClick={() => {
+                                                        if (!showReportPreview) {
+                                                            setShowReportPreview(true);
+                                                            setTimeout(() => handlePrintReport(), 300);
+                                                        } else {
+                                                            handlePrintReport();
+                                                        }
+                                                    }}
+                                                >
+                                                    <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+                                                        <FileText className="w-4 h-4 text-emerald-600" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-extrabold text-[#1e3a2e]">BOM Report</p>
+                                                        <p className="text-[10px] text-muted-foreground">Production cutlist</p>
+                                                    </div>
+                                                </button>
+                                                <div className="h-px bg-border/40 my-1 mx-2"></div>
+                                                <button
+                                                    className="w-full px-4 py-3 text-left rounded-xl text-sm font-semibold hover:bg-secondary/5 transition-colors flex items-center gap-3 relative z-10"
+                                                    onClick={() => handlePrintBOQ()}
+                                                >
+                                                    <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                                                        <Calculator className="w-4 h-4 text-amber-600" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-extrabold text-[#1a1a1a]">BOQ Quotation</p>
+                                                        <p className="text-[10px] text-muted-foreground">Client pricing sheet</p>
+                                                    </div>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="h-6 w-px bg-border/40 hidden md:block"></div>
+                                        <Button
+                                            size="sm"
+                                            className="rounded-xl px-5 font-bold shadow-lg shadow-primary/20"
+                                            onClick={saveProject}
+                                        >
+                                            <Save className="w-4 h-4 mr-2" /> {isSaving ? "Saving..." : "Save"}
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            className="rounded-xl px-5 font-bold bg-secondary hover:bg-secondary/90 shadow-lg shadow-secondary/20"
+                                            onClick={() => {
+                                                toast.success("BOM Exported to Production Queue");
+                                                setShowBOMModal(false);
+                                            }}
+                                        >
+                                            <Download className="w-4 h-4 mr-2" /> Export
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -3372,15 +4230,18 @@ export default function CutlistGeneratorPage() {
             {
                 isProjectSettingsOpen && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
-                        <div className="bg-card w-full max-w-md overflow-hidden rounded-3xl border-2 border-primary/20 shadow-2xl scale-in-95 animate-in zoom-in-95 duration-300">
-                            <div className="p-8 space-y-6">
+                        <div className="bg-card w-full max-w-lg overflow-hidden rounded-3xl border-2 border-primary/20 shadow-2xl scale-in-95 animate-in zoom-in-95 duration-300">
+                            <div className="p-8 space-y-6 max-h-[85vh] overflow-y-auto custom-scrollbar">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-xl font-black uppercase tracking-tight">Project Settings</h2>
                                     <button onClick={() => setIsProjectSettingsOpen(false)} className="p-2 hover:bg-muted rounded-full transition-colors">
                                         <X className="w-5 h-5 text-muted-foreground" />
                                     </button>
                                 </div>
+
+                                {/* Project Details Section */}
                                 <div className="space-y-4">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-primary/50 border-b border-border/20 pb-2">Project Details</p>
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Project Name</label>
                                         <input
@@ -3391,11 +4252,71 @@ export default function CutlistGeneratorPage() {
                                             placeholder="Enter project name..."
                                         />
                                     </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Project Type</label>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {[
+                                                { value: "kitchen", label: "Kitchen" },
+                                                { value: "wardrobe", label: "Wardrobe" },
+                                                { value: "vanity", label: "Vanity" },
+                                                { value: "entertainment", label: "Entertainment" },
+                                                { value: "office", label: "Office" },
+                                                { value: "custom", label: "Custom" },
+                                            ].map((type) => (
+                                                <button
+                                                    key={type.value}
+                                                    onClick={() => setBomSubject(type.value as typeof bomSubject)}
+                                                    className={`px-3 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wide transition-all ${bomSubject === type.value
+                                                        ? "bg-primary text-white shadow-lg shadow-primary/20"
+                                                        : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                                                        }`}
+                                                >
+                                                    {type.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
                                     <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
                                         <p className="text-[10px] font-bold text-primary uppercase mb-1">Project ID</p>
                                         <p className="text-[10px] font-mono opacity-50 truncate">{projectId || "Pending Save..."}</p>
                                     </div>
                                 </div>
+
+                                {/* Client Details Section */}
+                                <div className="space-y-4">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-secondary/70 border-b border-border/20 pb-2">Client Information</p>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Client Name</label>
+                                        <input
+                                            type="text"
+                                            value={clientName}
+                                            onChange={(e) => setClientName(e.target.value)}
+                                            className="w-full bg-muted/50 border border-border/40 rounded-xl px-4 py-3 font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                                            placeholder="e.g., John Smith"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Contact (Phone/Email)</label>
+                                        <input
+                                            type="text"
+                                            value={clientContact}
+                                            onChange={(e) => setClientContact(e.target.value)}
+                                            className="w-full bg-muted/50 border border-border/40 rounded-xl px-4 py-3 font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                                            placeholder="e.g., +63 917 123 4567"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Delivery Address</label>
+                                        <textarea
+                                            value={clientAddress}
+                                            onChange={(e) => setClientAddress(e.target.value)}
+                                            className="w-full bg-muted/50 border border-border/40 rounded-xl px-4 py-3 font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none"
+                                            rows={2}
+                                            placeholder="e.g., 123 Main St, Makati City"
+                                        />
+                                    </div>
+                                </div>
+
                                 <Button
                                     onClick={() => {
                                         saveProject();
@@ -3403,7 +4324,7 @@ export default function CutlistGeneratorPage() {
                                     }}
                                     className="w-full rounded-2xl h-12 font-black uppercase tracking-tight shadow-lg shadow-primary/20"
                                 >
-                                    Done
+                                    Save & Close
                                 </Button>
 
                             </div>
@@ -3411,6 +4332,7 @@ export default function CutlistGeneratorPage() {
                     </div>
                 )
             }
+
 
             {/* AI Plan Parser Modal */}
 

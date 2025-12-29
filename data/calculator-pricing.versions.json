@@ -1,5 +1,266 @@
 [
   {
+    "ts": 1767028013031,
+    "data": {
+      "baseRates": {
+        "base": 2,
+        "hanging": 1.6,
+        "tall": 2.2
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      },
+      "cabinetTypeMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "basic": 0.8
+      },
+      "prefill": {
+        "formData": {
+          "projectType": "bedroom",
+          "roomSize": "",
+          "cabinetType": "basic",
+          "material": "",
+          "finish": "",
+          "hardware": "",
+          "installation": false,
+          "linearMeter": "",
+          "kitchenScope": ""
+        },
+        "units": [
+          {
+            "enabled": false,
+            "category": "base",
+            "meters": 0,
+            "material": "",
+            "finish": "",
+            "hardware": "",
+            "tier": "",
+            "roomType": "bedroom",
+            "customRoomName": "",
+            "setId": 0
+          },
+          {
+            "enabled": false,
+            "category": "hanging",
+            "meters": 0,
+            "material": "",
+            "finish": "",
+            "hardware": "",
+            "tier": "",
+            "roomType": "bedroom",
+            "customRoomName": "",
+            "setId": 0
+          },
+          {
+            "enabled": true,
+            "category": "tall",
+            "meters": 1.8,
+            "material": "melamine",
+            "finish": "standard",
+            "hardware": "basic",
+            "tier": "",
+            "roomType": "bedroom",
+            "customRoomName": "",
+            "setId": 0
+          },
+          {
+            "enabled": true,
+            "category": "base",
+            "meters": 5.3,
+            "material": "melamine",
+            "finish": "standard",
+            "hardware": "basic",
+            "tier": "",
+            "roomType": "kitchen",
+            "customRoomName": "",
+            "setId": 1
+          },
+          {
+            "enabled": true,
+            "category": "hanging",
+            "meters": 5.3,
+            "material": "melamine",
+            "finish": "standard",
+            "hardware": "basic",
+            "tier": "",
+            "roomType": "kitchen",
+            "customRoomName": "",
+            "setId": 1
+          },
+          {
+            "enabled": true,
+            "category": "tall",
+            "meters": 1.7,
+            "material": "melamine",
+            "finish": "standard",
+            "hardware": "basic",
+            "tier": "",
+            "roomType": "kitchen",
+            "customRoomName": "",
+            "setId": 1
+          },
+          {
+            "enabled": true,
+            "category": "base",
+            "meters": 1.6,
+            "material": "",
+            "finish": "standard",
+            "hardware": "basic",
+            "tier": "",
+            "roomType": "custom",
+            "customRoomName": "Island",
+            "setId": 2
+          },
+          {
+            "enabled": false,
+            "category": "hanging",
+            "meters": 0,
+            "material": "",
+            "finish": "",
+            "hardware": "",
+            "tier": "",
+            "roomType": "custom",
+            "customRoomName": "Island",
+            "setId": 2
+          },
+          {
+            "enabled": false,
+            "category": "tall",
+            "meters": 0,
+            "material": "",
+            "finish": "",
+            "hardware": "",
+            "tier": "",
+            "roomType": "custom",
+            "customRoomName": "Island",
+            "setId": 2
+          }
+        ],
+        "applyTax": true,
+        "taxRate": 0.12,
+        "discount": 0,
+        "cabinetCategory": "base",
+        "tier": "standard",
+        "includeFees": true,
+        "importSurcharge": false,
+        "downgradeMFC": true,
+        "estimate": 724025,
+        "subtotal": 646451,
+        "tax": 77574
+      }
+    }
+  },
+  {
+    "ts": 1767027344293,
+    "data": {
+      "baseRates": {
+        "base": 2,
+        "hanging": 1.6,
+        "tall": 2.2
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      },
+      "cabinetTypeMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "basic": 0.8
+      },
+      "prefill": {
+        "formData": {
+          "projectType": "kitchen",
+          "roomSize": "",
+          "cabinetType": "luxury",
+          "material": "",
+          "finish": "",
+          "hardware": "",
+          "installation": false,
+          "linearMeter": "",
+          "kitchenScope": ""
+        },
+        "units": [
+          {
+            "enabled": true,
+            "category": "base",
+            "meters": 0,
+            "material": "",
+            "finish": "",
+            "hardware": "",
+            "tier": "",
+            "roomType": "kitchen",
+            "customRoomName": "",
+            "setId": 0
+          },
+          {
+            "enabled": false,
+            "category": "hanging",
+            "meters": 0,
+            "material": "",
+            "finish": "",
+            "hardware": "",
+            "tier": "",
+            "roomType": "kitchen",
+            "customRoomName": "",
+            "setId": 0
+          },
+          {
+            "enabled": true,
+            "category": "tall",
+            "meters": 1.8,
+            "material": "",
+            "finish": "",
+            "hardware": "",
+            "tier": "",
+            "roomType": "kitchen",
+            "customRoomName": "",
+            "setId": 0
+          }
+        ],
+        "applyTax": true,
+        "taxRate": 0.12,
+        "discount": 0,
+        "cabinetCategory": "base",
+        "tier": "luxury",
+        "includeFees": true,
+        "importSurcharge": false,
+        "downgradeMFC": false
+      }
+    }
+  },
+  {
     "ts": 1766453967590,
     "data": {
       "baseRates": {
