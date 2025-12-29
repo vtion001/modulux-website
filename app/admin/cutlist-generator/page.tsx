@@ -333,7 +333,330 @@ export default function CutlistGeneratorPage() {
         )
     }
 
+    // Print Report Function - Opens new window for reliable PDF printing
+    const handlePrintReport = () => {
+        const reportElement = document.getElementById('production-report-print');
+        if (!reportElement) {
+            toast.error("Report not found. Please switch to Preview Document first.");
+            return;
+        }
+
+        // Clone the report content
+        const reportContent = reportElement.querySelector('div')?.innerHTML;
+        if (!reportContent) {
+            toast.error("Report content not found.");
+            return;
+        }
+
+        // Open a new window for printing
+        const printWindow = window.open('', '_blank', 'width=800,height=1000');
+        if (!printWindow) {
+            toast.error("Could not open print window. Please allow popups.");
+            return;
+        }
+
+        // Write the print document with ModuLux brand colors
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>ModuLux Production Report</title>
+                <style>
+                    /* === PAGE SETUP === */
+                    @page {
+                        size: A4;
+                        margin: 15mm;
+                    }
+                    
+                    /* === RESET & BASE === */
+                    * {
+                        margin: 0;
+                        padding: 0;
+                        box-sizing: border-box;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+                    
+                    html, body {
+                        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        background: #ffffff;
+                        color: #1e3a2e;
+                        line-height: 1.5;
+                        font-size: 14px;
+                    }
+                    
+                    .report-container {
+                        max-width: 100%;
+                        margin: 0 auto;
+                        padding: 20px;
+                    }
+                    
+                    /* === MODULUX BRAND COLORS === */
+                    /* Primary: Dark Forest Green #1e3a2e */
+                    /* Secondary: Copper/Bronze #b8860b */
+                    /* Accent: Light Copper #cd853f */
+                    /* Text: #1f2937 */
+                    
+                    .text-primary { color: #1e3a2e !important; }
+                    .text-secondary { color: #b8860b !important; }
+                    .text-accent { color: #cd853f !important; }
+                    .text-white { color: #ffffff !important; }
+                    .text-muted-foreground { color: #6b7280 !important; }
+                    
+                    .bg-primary { background-color: #1e3a2e !important; }
+                    .bg-secondary { background-color: #b8860b !important; }
+                    .bg-accent { background-color: #cd853f !important; }
+                    .bg-white { background-color: #ffffff !important; }
+                    
+                    /* Background opacity variants */
+                    .bg-primary\\/\\[0\\.01\\] { background-color: rgba(30, 58, 46, 0.01) !important; }
+                    .bg-primary\\/\\[0\\.02\\] { background-color: rgba(30, 58, 46, 0.02) !important; }
+                    .bg-primary\\/5 { background-color: rgba(30, 58, 46, 0.05) !important; }
+                    .bg-primary\\/10 { background-color: rgba(30, 58, 46, 0.1) !important; }
+                    .bg-secondary\\/\\[0\\.02\\] { background-color: rgba(184, 134, 11, 0.02) !important; }
+                    .bg-secondary\\/30 { background-color: rgba(184, 134, 11, 0.3) !important; }
+                    .bg-white\\/50 { background-color: rgba(255, 255, 255, 0.5) !important; }
+                    
+                    /* Status colors */
+                    .bg-emerald-500 { background-color: #10b981 !important; }
+                    .bg-blue-500 { background-color: #3b82f6 !important; }
+                    .bg-amber-500 { background-color: #f59e0b !important; }
+                    
+                    /* === TYPOGRAPHY === */
+                    .font-black { font-weight: 900 !important; }
+                    .font-bold { font-weight: 700 !important; }
+                    .font-medium { font-weight: 500 !important; }
+                    .font-mono { font-family: ui-monospace, SFMono-Regular, monospace !important; }
+                    
+                    .uppercase { text-transform: uppercase !important; }
+                    .italic { font-style: italic !important; }
+                    .not-italic { font-style: normal !important; }
+                    
+                    .tracking-tight { letter-spacing: -0.025em !important; }
+                    .tracking-tighter { letter-spacing: -0.05em !important; }
+                    .tracking-widest { letter-spacing: 0.1em !important; }
+                    .tracking-\\[0\\.2em\\] { letter-spacing: 0.2em !important; }
+                    .tracking-\\[0\\.3em\\] { letter-spacing: 0.3em !important; }
+                    .tracking-\\[0\\.4em\\] { letter-spacing: 0.4em !important; }
+                    .tracking-\\[0\\.5em\\] { letter-spacing: 0.5em !important; }
+                    
+                    .leading-tight { line-height: 1.25 !important; }
+                    
+                    .text-\\[8px\\] { font-size: 8px !important; }
+                    .text-\\[9px\\] { font-size: 9px !important; }
+                    .text-\\[10px\\] { font-size: 10px !important; }
+                    .text-\\[11px\\] { font-size: 11px !important; }
+                    .text-xs { font-size: 12px !important; }
+                    .text-sm { font-size: 14px !important; }
+                    .text-base { font-size: 16px !important; }
+                    .text-lg { font-size: 18px !important; }
+                    .text-xl { font-size: 20px !important; }
+                    .text-2xl { font-size: 24px !important; }
+                    .text-3xl { font-size: 30px !important; }
+                    .text-4xl { font-size: 36px !important; }
+                    
+                    .opacity-10 { opacity: 0.1 !important; }
+                    .opacity-20 { opacity: 0.2 !important; }
+                    .opacity-30 { opacity: 0.3 !important; }
+                    .opacity-40 { opacity: 0.4 !important; }
+                    .opacity-50 { opacity: 0.5 !important; }
+                    
+                    /* === LAYOUT === */
+                    .flex { display: flex !important; }
+                    .inline-flex { display: inline-flex !important; }
+                    .grid { display: grid !important; }
+                    .block { display: block !important; }
+                    
+                    .flex-col { flex-direction: column !important; }
+                    .flex-1 { flex: 1 1 0% !important; }
+                    
+                    .items-start { align-items: flex-start !important; }
+                    .items-center { align-items: center !important; }
+                    .items-end { align-items: flex-end !important; }
+                    .items-baseline { align-items: baseline !important; }
+                    
+                    .justify-start { justify-content: flex-start !important; }
+                    .justify-center { justify-content: center !important; }
+                    .justify-between { justify-content: space-between !important; }
+                    .justify-end { justify-content: flex-end !important; }
+                    
+                    .text-left { text-align: left !important; }
+                    .text-center { text-align: center !important; }
+                    .text-right { text-align: right !important; }
+                    
+                    .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+                    .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+                    .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+                    
+                    .gap-1 { gap: 4px !important; }
+                    .gap-2 { gap: 8px !important; }
+                    .gap-3 { gap: 12px !important; }
+                    .gap-4 { gap: 16px !important; }
+                    .gap-6 { gap: 24px !important; }
+                    .gap-10 { gap: 40px !important; }
+                    
+                    /* === SPACING === */
+                    .p-3 { padding: 12px !important; }
+                    .p-4 { padding: 16px !important; }
+                    .p-6 { padding: 24px !important; }
+                    .p-8 { padding: 32px !important; }
+                    .p-16 { padding: 64px !important; }
+                    
+                    .px-4 { padding-left: 16px !important; padding-right: 16px !important; }
+                    .py-2 { padding-top: 8px !important; padding-bottom: 8px !important; }
+                    .pt-8 { padding-top: 32px !important; }
+                    .pb-2 { padding-bottom: 8px !important; }
+                    .pb-10 { padding-bottom: 40px !important; }
+                    
+                    .m-0 { margin: 0 !important; }
+                    .mx-auto { margin-left: auto !important; margin-right: auto !important; }
+                    .mt-1 { margin-top: 4px !important; }
+                    .mt-16 { margin-top: 64px !important; }
+                    .mb-0\\.5 { margin-bottom: 2px !important; }
+                    .mb-1 { margin-bottom: 4px !important; }
+                    .mb-2 { margin-bottom: 8px !important; }
+                    .mb-4 { margin-bottom: 16px !important; }
+                    .mb-6 { margin-bottom: 24px !important; }
+                    .mb-10 { margin-bottom: 40px !important; }
+                    .mb-12 { margin-bottom: 48px !important; }
+                    
+                    .space-y-2 > * + * { margin-top: 8px !important; }
+                    .space-y-4 > * + * { margin-top: 16px !important; }
+                    
+                    /* === SIZING === */
+                    .w-1 { width: 4px !important; }
+                    .w-10 { width: 40px !important; }
+                    .w-12 { width: 48px !important; }
+                    .w-16 { width: 64px !important; }
+                    .w-full { width: 100% !important; }
+                    .max-w-\\[800px\\] { max-width: 800px !important; }
+                    
+                    .h-1 { height: 4px !important; }
+                    .h-1\\.5 { height: 6px !important; }
+                    .h-3 { height: 12px !important; }
+                    .h-6 { height: 24px !important; }
+                    .h-10 { height: 40px !important; }
+                    .h-12 { height: 48px !important; }
+                    .h-full { height: 100% !important; }
+                    
+                    /* === BORDERS === */
+                    .border { border: 1px solid rgba(30, 58, 46, 0.1) !important; }
+                    .border-t { border-top: 1px solid rgba(30, 58, 46, 0.1) !important; }
+                    .border-b { border-bottom: 1px solid rgba(30, 58, 46, 0.1) !important; }
+                    .border-b-\\[3px\\] { border-bottom: 3px solid #1e3a2e !important; }
+                    .border-\\[2px\\] { border-width: 2px !important; }
+                    
+                    .border-primary { border-color: #1e3a2e !important; }
+                    .border-primary\\/5 { border-color: rgba(30, 58, 46, 0.05) !important; }
+                    .border-primary\\/10 { border-color: rgba(30, 58, 46, 0.1) !important; }
+                    .border-primary\\/20 { border-color: rgba(30, 58, 46, 0.2) !important; }
+                    .border-secondary\\/10 { border-color: rgba(184, 134, 11, 0.1) !important; }
+                    .border-secondary\\/20 { border-color: rgba(184, 134, 11, 0.2) !important; }
+                    
+                    .border-r-0 { border-right: 0 !important; }
+                    .border-l-0 { border-left: 0 !important; }
+                    
+                    .rounded-full { border-radius: 9999px !important; }
+                    .rounded-lg { border-radius: 8px !important; }
+                    .rounded-xl { border-radius: 12px !important; }
+                    .rounded-2xl { border-radius: 16px !important; }
+                    .rounded-l-2xl { border-top-left-radius: 16px !important; border-bottom-left-radius: 16px !important; }
+                    .rounded-r-2xl { border-top-right-radius: 16px !important; border-bottom-right-radius: 16px !important; }
+                    
+                    /* === TABLE STYLING === */
+                    table { 
+                        width: 100% !important; 
+                        border-collapse: collapse !important;
+                    }
+                    
+                    th, td { 
+                        padding: 12px 16px !important; 
+                        text-align: left !important;
+                    }
+                    
+                    thead { 
+                        background-color: #1e3a2e !important; 
+                        color: #ffffff !important;
+                    }
+                    
+                    thead th {
+                        font-weight: 900 !important;
+                        text-transform: uppercase !important;
+                        letter-spacing: 0.1em !important;
+                        font-size: 10px !important;
+                    }
+                    
+                    tbody tr { 
+                        border-bottom: 1px solid rgba(30, 58, 46, 0.1) !important;
+                    }
+                    
+                    .divide-y > * + * {
+                        border-top: 1px solid rgba(30, 58, 46, 0.1) !important;
+                    }
+                    
+                    .divide-primary\\/10 > * + * {
+                        border-color: rgba(30, 58, 46, 0.1) !important;
+                    }
+                    
+                    /* === MISC === */
+                    .overflow-hidden { overflow: hidden !important; }
+                    
+                    .shadow-lg, .shadow-xl, .shadow-2xl { 
+                        box-shadow: none !important; 
+                    }
+                    
+                    img { 
+                        max-width: 100% !important; 
+                        height: auto !important;
+                    }
+                    
+                    /* === PAGE BREAK CONTROL === */
+                    .avoid-break { 
+                        break-inside: avoid !important; 
+                        page-break-inside: avoid !important;
+                    }
+                    
+                    /* Ensure sections don't break awkwardly */
+                    .mb-12 {
+                        break-inside: avoid !important;
+                        page-break-inside: avoid !important;
+                    }
+                    
+                    /* === HEADER BORDER === */
+                    .border-b-\\[3px\\].border-primary {
+                        border-bottom: 3px solid #1e3a2e !important;
+                    }
+                    
+                    /* === LAST CHILD BORDER REMOVAL === */
+                    .last\\:border-0:last-child {
+                        border: 0 !important;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="report-container">
+                    ${reportContent}
+                </div>
+                <script>
+                    window.onload = function() {
+                        // Small delay to ensure styles are applied
+                        setTimeout(function() {
+                            window.print();
+                            window.onafterprint = function() {
+                                window.close();
+                            };
+                        }, 300);
+                    };
+                </script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
+
     // Cabinet Builder functions
+
     // Handle AI extracted cabinets
     const handleApplyExtractedCabinets = (extracted: Array<{
         id: string
@@ -809,13 +1132,11 @@ export default function CutlistGeneratorPage() {
             if (projError) throw projError
 
             // 2. Save Stock Sheets (Globally)
-            // We delete all global sheets and replace with current ones to maintain a global library
-            await supabase.from('cutlist_stock_sheets').delete().not('id', 'is', null)
-
+            // We use upsert to maintain the global library without breaking foreign key relationships
             if (stockSheets.length > 0) {
-                const { error: stockInsertError } = await supabase
+                const { error: stockUpsertError } = await supabase
                     .from('cutlist_stock_sheets')
-                    .insert(stockSheets.map(s => ({
+                    .upsert(stockSheets.map(s => ({
                         id: s.id,
                         label: s.label,
                         width: s.width,
@@ -823,8 +1144,8 @@ export default function CutlistGeneratorPage() {
                         thickness: s.thickness,
                         quantity: s.quantity,
                         material_group: s.materialGroup
-                    })))
-                if (stockInsertError) throw stockInsertError
+                    })), { onConflict: 'id' })
+                if (stockUpsertError) throw stockUpsertError
             }
 
 
@@ -2680,8 +3001,140 @@ export default function CutlistGeneratorPage() {
                                         </div>
                                     </>
                                 ) : (
-                                    <div className="bg-white rounded-3xl shadow-2xl p-0 !mt-0 min-h-[1000px] border border-primary/5 overflow-hidden print:hidden scale-[0.85] origin-top translate-y-[-10%] transition-transform duration-500 hover:scale-[0.9] hover:translate-y-[-5%] group/report">
-                                        <div className="max-w-[800px] mx-auto p-16 text-primary font-sans bg-white min-h-[1100px] relative">
+                                    <div id="production-report-print" className="bg-white rounded-3xl shadow-2xl p-0 !mt-0 min-h-[1000px] border border-primary/5 overflow-hidden scale-[0.85] origin-top translate-y-[-10%] transition-transform duration-500 hover:scale-[0.9] hover:translate-y-[-5%] group/report">
+                                        <style dangerouslySetInnerHTML={{
+                                            __html: `
+                                            @page { 
+                                                size: A4; 
+                                                margin: 15mm; 
+                                            }
+                                            @media print {
+                                                /* === NUCLEAR RESET === */
+                                                html, body {
+                                                    height: auto !important;
+                                                    width: 100% !important;
+                                                    overflow: visible !important;
+                                                    margin: 0 !important;
+                                                    padding: 0 !important;
+                                                    background: white !important;
+                                                    -webkit-print-color-adjust: exact !important;
+                                                    print-color-adjust: exact !important;
+                                                }
+
+                                                /* === HIDE ALL APP CHROME === */
+                                                body > *:not([data-radix-portal]),
+                                                header, footer, nav, aside,
+                                                .print\\:hidden,
+                                                [data-radix-portal] > div > div:first-child,
+                                                [class*="backdrop"],
+                                                [class*="modal"]:not(:has(#production-report-print)),
+                                                button, .btn {
+                                                    display: none !important;
+                                                }
+
+                                                /* === PRESERVE PORTAL STRUCTURE === */
+                                                [data-radix-portal],
+                                                [data-radix-portal] > div {
+                                                    display: block !important;
+                                                    position: static !important;
+                                                    background: transparent !important;
+                                                    width: 100% !important;
+                                                    height: auto !important;
+                                                    overflow: visible !important;
+                                                    padding: 0 !important;
+                                                    margin: 0 !important;
+                                                }
+
+                                                /* === FORCE REPORT VISIBILITY === */
+                                                #production-report-print {
+                                                    display: block !important;
+                                                    visibility: visible !important;
+                                                    position: static !important;
+                                                    width: 100% !important;
+                                                    max-width: 100% !important;
+                                                    height: auto !important;
+                                                    min-height: auto !important;
+                                                    margin: 0 !important;
+                                                    padding: 0 !important;
+                                                    transform: none !important;
+                                                    box-shadow: none !important;
+                                                    border: none !important;
+                                                    border-radius: 0 !important;
+                                                    background: white !important;
+                                                    overflow: visible !important;
+                                                    opacity: 1 !important;
+                                                }
+
+                                                #production-report-print *,
+                                                #production-report-print > div,
+                                                #production-report-print > div * {
+                                                    visibility: visible !important;
+                                                    display: revert !important;
+                                                    opacity: 1 !important;
+                                                    color: inherit !important;
+                                                    background-color: inherit !important;
+                                                }
+
+                                                /* === A4 INNER WRAPPER === */
+                                                #production-report-print > div {
+                                                    display: block !important;
+                                                    width: 100% !important;
+                                                    max-width: 100% !important;
+                                                    min-height: auto !important;
+                                                    height: auto !important;
+                                                    margin: 0 !important;
+                                                    padding: 10mm !important;
+                                                    box-shadow: none !important;
+                                                    border: none !important;
+                                                    background: white !important;
+                                                    position: relative !important;
+                                                }
+
+                                                /* === CONTENT FLOW === */
+                                                #production-report-print table,
+                                                #production-report-print .grid,
+                                                #production-report-print .flex {
+                                                    display: revert !important;
+                                                }
+
+                                                #production-report-print table {
+                                                    width: 100% !important;
+                                                    border-collapse: collapse !important;
+                                                }
+
+                                                #production-report-print th,
+                                                #production-report-print td {
+                                                    padding: 8px !important;
+                                                }
+
+                                                /* === PAGE BREAK CONTROL === */
+                                                .avoid-break,
+                                                #production-report-print .avoid-break { 
+                                                    break-inside: avoid !important;
+                                                    page-break-inside: avoid !important;
+                                                }
+
+                                                #production-report-print .mb-12 {
+                                                    margin-bottom: 20px !important;
+                                                }
+
+                                                /* === FOOTER POSITION FIX === */
+                                                #production-report-print > div > div:last-child {
+                                                    position: relative !important;
+                                                    bottom: auto !important;
+                                                    left: auto !important;
+                                                    right: auto !important;
+                                                    margin-top: 30px !important;
+                                                }
+
+                                                /* === FORCE COLORS === */
+                                                * {
+                                                    -webkit-print-color-adjust: exact !important;
+                                                    print-color-adjust: exact !important;
+                                                }
+                                            }
+                                        `}} />
+                                        <div className="max-w-[800px] mx-auto p-16 text-primary font-sans bg-white">
                                             {/* Report Header */}
                                             <div className="flex justify-between items-start border-b-[3px] border-primary pb-10 mb-10">
                                                 <div>
@@ -2854,7 +3307,7 @@ export default function CutlistGeneratorPage() {
                                             </div>
 
                                             {/* Branded Watermark/Footer */}
-                                            <div className="absolute bottom-16 left-16 right-16 flex justify-between items-end">
+                                            <div className="mt-16 pt-8 border-t border-primary/10 flex justify-between items-end avoid-break">
                                                 <div className="opacity-30">
                                                     <div className="w-16 h-1.5 bg-secondary mb-2 rounded-full"></div>
                                                     <p className="text-[8px] font-black uppercase tracking-[0.5em] text-primary">APPROVED FOR FABRICATION</p>
@@ -2869,8 +3322,8 @@ export default function CutlistGeneratorPage() {
                                 )}
                             </div>
 
-                            {/* Footer */}
-                            <div className="p-8 border-t border-border/20 bg-muted/30 flex justify-between items-center">
+                            {/* footer */}
+                            <div className="p-8 border-t border-border/20 bg-muted/30 flex justify-between items-center print:hidden">
                                 <div className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em]">
                                     ModuLux Fabrication Management System
                                 </div>
@@ -2889,8 +3342,12 @@ export default function CutlistGeneratorPage() {
                                         )}
                                     </Button>
                                     <Button variant="outline" className="rounded-xl px-8 border-primary/20 hover:bg-primary/5 group" onClick={() => {
-                                        if (!showReportPreview) setShowReportPreview(true);
-                                        setTimeout(() => window.print(), 100);
+                                        if (!showReportPreview) {
+                                            setShowReportPreview(true);
+                                            setTimeout(() => handlePrintReport(), 300);
+                                        } else {
+                                            handlePrintReport();
+                                        }
                                     }}>
                                         <Printer className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" /> Print PDF
                                     </Button>
@@ -2903,180 +3360,6 @@ export default function CutlistGeneratorPage() {
                                     }}>
                                         <Download className="w-4 h-4 mr-2" /> Finalize & Export
                                     </Button>
-                                </div>
-                            </div>
-
-
-                            {/* HIDDEN PRINT-ONLY PRODUCTION REPORT (FULL VERSION) */}
-                            <div className="hidden print:block bg-white text-primary overflow-visible">
-                                <style dangerouslySetInnerHTML={{
-                                    __html: `
-                                    @page { 
-                                        size: A4; 
-                                        margin: 15mm; 
-                                    }
-                                    @media print {
-                                        body, html { 
-                                            margin: 0 !important; 
-                                            padding: 0 !important;
-                                            overflow: visible !important;
-                                            height: auto !important;
-                                        }
-                                        /* Hide everything except print-root */
-                                        body > *:not(.print-root-wrap) {
-                                            display: none !important;
-                                        }
-                                        .print-root-wrap {
-                                            display: block !important;
-                                            width: 190mm !important;
-                                            margin: 0 auto !important;
-                                            position: static !important;
-                                        }
-                                        .avoid-break { 
-                                            break-inside: avoid !important;
-                                            page-break-inside: avoid !important;
-                                            position: relative !important;
-                                            display: block !important;
-                                            margin-bottom: 30px !important;
-                                        }
-                                        .page-break { 
-                                            page-break-before: always !important; 
-                                        }
-                                        * {
-                                            -webkit-print-color-adjust: exact !important;
-                                            print-color-adjust: exact !important;
-                                        }
-                                    }
-                                `}} />
-                                <div className="print-root-wrap font-sans bg-white py-10 px-4">
-                                    {/* Branded Header */}
-                                    <div className="flex justify-between items-start border-b-[4px] border-primary pb-10 mb-12 avoid-break">
-                                        <div className="flex items-center gap-6">
-                                            <img src="https://res.cloudinary.com/dbviya1rj/image/upload/v1757004631/nlir90vrzv0qywleruvv.png" alt="ModuLux" className="h-12 w-auto" />
-                                            <div>
-                                                <h1 className="text-4xl font-black uppercase tracking-tighter italic text-primary">ModuLux <span className="not-italic opacity-40">Fabricator</span></h1>
-                                                <p className="text-[10px] font-black opacity-30 tracking-[0.4em] uppercase mt-2">Certified Production Protocol</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-xl font-black uppercase tracking-tight text-primary font-mono">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-                                            <p className="text-[11px] font-bold opacity-30 uppercase tracking-[0.3em] mt-2">ID: PRD-{Math.random().toString(36).substring(7).toUpperCase()}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Board Inventory Section */}
-                                    <div className="mb-16">
-                                        <h2 className="text-lg font-black uppercase tracking-[0.6em] border-b-2 border-primary/20 pb-6 mb-10 flex items-center gap-4 text-primary avoid-break">
-                                            <div className="w-5 h-5 bg-secondary rounded-full"></div> 01 / Boards Requirements
-                                        </h2>
-                                        <div className="grid grid-cols-1 gap-8">
-                                            {Object.entries(
-                                                sheetsMetadata.reduce((acc, meta) => {
-                                                    const key = `${meta.materialGroup}|${meta.label}|${meta.width}x${meta.height}`;
-                                                    acc[key] = (acc[key] || 0) + 1;
-                                                    return acc;
-                                                }, {} as Record<string, number>)
-                                            ).map(([key, count]) => {
-                                                const [group, label, dims] = key.split('|');
-                                                return (
-                                                    <div key={key} className="flex items-center justify-between p-10 border-4 border-primary/5 rounded-[2.5rem] bg-primary/[0.01] avoid-break">
-                                                        <div>
-                                                            <p className="text-[11px] font-black uppercase opacity-40 tracking-widest mb-3 text-primary">{group} Component</p>
-                                                            <p className="font-black text-4xl leading-none text-primary tracking-tighter">{label}</p>
-                                                            <p className="text-sm font-mono opacity-60 mt-4 text-primary tracking-widest">{dims}mm Standard Stock</p>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <p className="text-7xl font-black italic tracking-tighter text-primary">×{count}</p>
-                                                            <p className="text-xs font-bold opacity-50 uppercase tracking-[0.3em] text-primary">Units</p>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-
-                                    {/* Hardware & Assembly Sections (Print Only) */}
-                                    <div className="grid grid-cols-2 gap-10 mb-16 avoid-break">
-                                        <div className="p-8 rounded-3xl bg-primary/[0.02] border-2 border-primary/10">
-                                            <h3 className="text-xs font-black uppercase tracking-[0.4em] border-b-2 border-secondary/20 pb-4 mb-6 text-primary">03 / Fittings Required</h3>
-                                            <div className="space-y-4">
-                                                <div className="flex justify-between items-baseline py-2 border-b border-primary/5">
-                                                    <span className="text-[10px] uppercase font-bold opacity-50 text-primary">Soft-Close Hinges</span>
-                                                    <span className="font-black italic text-2xl text-primary">{aggregateBOM.hardware.hinges} <span className="text-[10px] not-italic opacity-40">pcs</span></span>
-                                                </div>
-                                                <div className="flex justify-between items-baseline py-2 border-b border-primary/5">
-                                                    <span className="text-[10px] uppercase font-bold opacity-50 text-primary">Precision Handles</span>
-                                                    <span className="font-black italic text-2xl text-primary">{aggregateBOM.hardware.handles} <span className="text-[10px] not-italic opacity-40">pcs</span></span>
-                                                </div>
-                                                <div className="flex justify-between items-baseline py-2 border-b border-primary/5">
-                                                    <span className="text-[10px] uppercase font-bold opacity-50 text-primary">Full Extension Slides</span>
-                                                    <span className="font-black italic text-2xl text-primary">{aggregateBOM.hardware.slides} <span className="text-[10px] not-italic opacity-40">sets</span></span>
-                                                </div>
-                                                <div className="flex justify-between items-baseline py-2 border-b border-primary/5">
-                                                    <span className="text-[10px] uppercase font-bold opacity-50 text-primary">Shelf Support Pins</span>
-                                                    <span className="font-black italic text-2xl text-primary">{aggregateBOM.hardware.shelfPins} <span className="text-[10px] not-italic opacity-40">pcs</span></span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="p-8 rounded-3xl bg-secondary/[0.03] border-2 border-secondary/10">
-                                            <h3 className="text-xs font-black uppercase tracking-[0.4em] border-b-2 border-primary/20 pb-4 mb-6 text-secondary">04 / Assembly Connections</h3>
-                                            <div className="space-y-4">
-                                                <div className="flex justify-between items-baseline py-2 border-b border-primary/5">
-                                                    <span className="text-[10px] uppercase font-bold opacity-50 text-primary">Confirmat Screws</span>
-                                                    <span className="font-black italic text-2xl text-primary">{aggregateBOM.fasteners.confirmat}</span>
-                                                </div>
-                                                <div className="flex justify-between items-baseline py-2 border-b border-primary/5">
-                                                    <span className="text-[10px] uppercase font-bold opacity-50 text-primary">Cam & Bolt Sets</span>
-                                                    <span className="font-black italic text-2xl text-primary">{aggregateBOM.fasteners.camLocks}</span>
-                                                </div>
-                                                <div className="flex justify-between items-baseline py-2 border-b border-primary/5">
-                                                    <span className="text-[10px] uppercase font-bold opacity-50 text-primary">Backing Pin Nails</span>
-                                                    <span className="font-black italic text-2xl text-primary">{aggregateBOM.fasteners.nails}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Components Cuts Table */}
-                                    <div className="mb-16">
-                                        <h2 className="text-lg font-black uppercase tracking-[0.6em] border-b-2 border-primary/20 pb-6 mb-10 flex items-center gap-4 text-primary avoid-break">
-                                            <div className="w-5 h-5 bg-secondary rounded-full"></div> 02 / Component Cuts List & Dimensions
-                                        </h2>
-                                        <div className="border-4 border-primary/10 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-primary/5 avoid-break">
-                                            <table className="w-full text-xs">
-                                                <thead>
-                                                    <tr className="bg-primary text-white text-left font-black uppercase tracking-widest">
-                                                        <th className="p-6">Part Specification</th>
-                                                        <th className="p-6">Material Group</th>
-                                                        <th className="p-6">Finish Dim (L×W)</th>
-                                                        <th className="p-6 text-right">Qty</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y-2 divide-primary/5 font-bold">
-                                                    {aggregateBOM.panels.map((p, i) => (
-                                                        <tr key={i} className="align-middle">
-                                                            <td className="p-6 bg-primary/[0.02] text-primary">{p.name}</td>
-                                                            <td className="p-6 uppercase opacity-50 text-primary tracking-widest text-[10px]">{p.materialGroup}</td>
-                                                            <td className="p-6 font-mono font-black italic text-primary tracking-tighter text-sm">{p.l} × {p.w}mm</td>
-                                                            <td className="p-6 text-right font-black text-2xl italic text-primary tracking-tighter">×{p.qty}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-
-                                    {/* Watermark Footer */}
-                                    <div className="mt-20 pt-12 border-t-2 border-primary/10 flex justify-between items-center opacity-40 avoid-break">
-                                        <div className="flex items-center gap-4">
-                                            <img src="https://res.cloudinary.com/dbviya1rj/image/upload/v1757004631/nlir90vrzv0qywleruvv.png" alt="ModuLux Logo" className="h-8 w-auto grayscale" />
-                                            <p className="text-[10px] font-black uppercase tracking-[0.4em] italic leading-tight text-primary">ModuLux Digital Ecosystem <br /> <span className="text-[8px] opacity-60">PROPRIETARY REPORT — NOT FOR PUBLIC DISTRIBUTION</span></p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2 italic opacity-60 text-primary">Verified Precision Accuracy</p>
-                                            <div className="w-32 h-1 bg-secondary rounded-full"></div>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
