@@ -133,6 +133,7 @@ export default function CutlistGeneratorPage() {
     const [isEditingName, setIsEditingName] = useState(false)
     const [savedProjects, setSavedProjects] = useState<Array<{ id: string; name: string; updated_at: string; metrics: any }>>([])
     const [cutsTab, setCutsTab] = useState<"cuts" | "projects">("cuts")
+    const [projectToDelete, setProjectToDelete] = useState<{ id: string; name: string } | null>(null)
 
     // Client & Project Details for BOM Report
     const [clientName, setClientName] = useState("")
@@ -142,6 +143,59 @@ export default function CutlistGeneratorPage() {
 
     // Bill of Quantity (BOQ) Costs
     const LABOR_RATE_PER_BOARD = 2800 // ₱2,800 per board (includes installation)
+    const BOQ_STANDARD_TERMS = `1. ACCEPTANCE OF PROPOSAL
+This Bill of Quantities (BOQ) constitutes a formal offer by Prime Home Palawan (hereinafter referred to as the "Contractor"). The Client ("Client") accepts this offer by signing below or by paying the initial deposit. Upon acceptance, these Terms and Conditions shall form a binding contract between the Client and the Contractor.
+
+2. SCOPE OF WORK & EXCLUSIONS
+2.1. The services and materials listed in the attached BOQ are the only items included in the quoted price.
+2.2. Exclusions: Unless explicitly stated, the quotation excludes electrical modifications, plumbing alterations, major demolition (beyond specific items listed), appliance installation, and government permit fees (e.g., Barangay permits).
+2.3. Pest Control Specific: The quotation covers the treatment of specific areas identified during the site assessment. It does not guarantee the 100% elimination of pests in unreachable areas (e.g., inside sealed concrete walls) or future infestations caused by neighboring properties.
+
+3. PRICING & ESTIMATES
+3.1. Validity: This quotation is valid for fifteen (15) days from the date of issue.
+3.2. Firm Price: The prices for labor and materials are fixed unless otherwise noted. However, should the Client request changes (Change Orders) or unforeseen site conditions arise (see Clause 5), prices will be adjusted accordingly.
+3.3. Price Fluctuation: For projects lasting longer than thirty (30) days, the Contractor reserves the right to adjust prices for materials in the event of significant increases in supplier costs beyond the Contractor’s control, provided the Client is notified in writing.
+
+4. PAYMENT TERMS
+4.1. Schedule: Payment shall be made according to the milestone schedule agreed upon (typically 50% Downpayment, 40% Progress Billing, 10% Final Turnover).
+4.2. Mode of Payment: Payments shall be made in Cash, Bank Transfer, or G-Cash to official accounts only. No checks shall be deemed payment until cleared.
+4.3. Late Payment: A service charge of two percent (2%) per month shall be applied to overdue amounts. The Contractor reserves the right to suspend work or delivery of materials if payments are delayed beyond five (5) working days without prior notice.
+4.4. Cancellation: If the Client cancels the project after work has commenced or materials have been procured, the Client shall pay for the cost of materials procured and labor rendered, plus a cancellation fee of twenty percent (20%) of the remaining contract balance.
+
+5. VARIATIONS AND CHANGE ORDERS
+5.1. Any changes, additions, or deletions to the original scope must be requested in writing (email or SMS).
+5.2. The Contractor shall provide an updated estimate for the change ("Change Order"). Work on the change will only proceed upon written approval and payment of any associated additional costs.
+5.3. Reductions in scope after the start of the project will not reduce the cost of fixed overheads or preliminary expenses already incurred.
+
+6. SITE CONDITIONS AND HIDDEN DEFECTS (Crucial for Renovation)
+6.1. The BOQ is based on a visual assessment of the site. The Client warrants that the information provided regarding the site is accurate.
+6.2. Hidden Conditions: In the event of structural defects, termite damage, mold, or electrical hazards discovered during the work that were not visible during the initial assessment (e.g., upon opening a wall), the Contractor shall notify the Client immediately.
+6.3. Rectifying these hidden conditions is considered a "Change Order" and will be billed as an additional cost to the Client. The Contractor shall not be liable for delays caused by such hidden conditions.
+
+7. SITE ACCESS AND SAFETY
+7.1. The Client shall ensure the Contractor has safe, reasonable, and uninterrupted access to the work site during agreed working hours (8:00 AM – 5:00 PM).
+7.2. The Client is responsible for securing valuables, pets, and clearing the work area of furniture/personal items prior to the commencement of work.
+7.3. The Contractor shall not be liable for loss or damage to the Client’s personal property left in the work area.
+
+8. WARRANTIES AND LIABILITY
+8.1. Workmanship Warranty: The Contractor warrants that all work will be performed in a good and workmanlike manner. Defects arising from poor workmanship shall be rectified by the Contractor free of charge within a period of one (1) year for carpentry and thirty (30) days for pest control service check-ups from the date of completion.
+8.2. Material Warranty: Manufacturer warranties on materials (e.g., hinges, granite, treatment chemicals) are passed directly to the Client to the extent assignable.
+8.3. Limitation of Liability: The Contractor’s liability is limited to the contract price. The Contractor shall not be liable for consequential, indirect, or special damages (e.g., loss of business income, spoiled food in cabinets).
+8.4. Pest Control Disclaimer: While we use premium treatments, pest control involves living organisms and environmental factors. We do not warrant against future re-infestations caused by poor sanitation, structural breaches introduced by the Client after treatment, or acts of neighboring properties.
+
+9. DELAYS AND FORCE MAJEURE
+9.1. The Contractor shall not be liable for delays in completion caused by events beyond their reasonable control, including but not limited to: typhoons, floods, strikes, pandemics, or late delivery of materials by suppliers.
+9.2. Delays caused by the Client (e.g., failure to provide access, change orders) may extend the project deadline at the Contractor’s discretion.
+
+10. TERMINATION
+10.1. The Contractor may terminate this contract immediately if:
+a) The Client fails to make payments when due;
+b) The Client interferes with the work or violates safety regulations;
+c) The Client breaches any of these Terms and Conditions.
+10.2. Upon termination, the Client shall pay for all work done and materials ordered up to the date of termination.
+
+11. GOVERNING LAW AND JURISDICTION
+These Terms and Conditions shall be governed by the laws of the Republic of the Philippines. Any dispute arising from this contract shall be subject to the exclusive jurisdiction of the courts in Puerto Princesa City, Palawan.`;
     const [showBOQSection, setShowBOQSection] = useState(false)
     const [transportCost, setTransportCost] = useState(0)
     const [designFee, setDesignFee] = useState(0)
@@ -1150,6 +1204,17 @@ export default function CutlistGeneratorPage() {
                                 </tr>` : ''}
                             </tbody>
                         </table>
+                        <div style="margin-top: 10px; padding: 12px; border-radius: 8px; border: 1px solid #e5e7eb; background: #f9fafb;">
+                            <div style="font-size: 9px; color: #4b5563; margin-bottom: 8px; line-height: 1.4;">
+                                <strong>Note on Labor:</strong> Fabrication and installation are performed using high-precision portable power tools. Rate reflects industry standard manual fabrication complexity.
+                            </div>
+                            <div style="font-size: 9px; color: #b8860b; margin-bottom: 8px; line-height: 1.4; border-top: 1px solid #e5e7eb; pt-8;">
+                                <strong>Optional Premium CNC Processing:</strong> Extreme 0.1mm dimensional accuracy and "factory-fit" quality available for an additional fee. Logistics and handling costs from Manila facility apply.
+                            </div>
+                            <div style="font-size: 9px; color: #1e3a2e; line-height: 1.4; border-top: 1px solid #e5e7eb; pt-8;">
+                                <strong>Material Sourcing Option:</strong> Clients may opt for <em>self-acquisition of materials</em> to manage project budgeting. All materials listed in this BOQ are verified premium-grade selections from our trusted supply chain.
+                            </div>
+                        </div>
                     </div>
                     
                     <table>
@@ -1168,10 +1233,7 @@ export default function CutlistGeneratorPage() {
                     </div>` : `
                     <div class="notes-section">
                         <div class="notes-title">Terms & Conditions</div>
-                        <div class="notes-content">• 50% downpayment required upon confirmation
-• Balance due upon completion before delivery
-• Quotation valid for 15 days
-• Lead time: 2-3 weeks after confirmation</div>
+                        <div class="notes-content">${BOQ_STANDARD_TERMS}</div>
                     </div>`}
                     
                     <div class="signature-section">
@@ -1601,7 +1663,7 @@ export default function CutlistGeneratorPage() {
                 const { error: panelError } = await supabase
                     .from('cutlist_panels')
                     .insert(panels.map(p => ({
-                        id: p.id,
+                        id: crypto.randomUUID(), // Always generate new UUID to avoid duplicate key conflicts
                         project_id: activeProjectId,
                         name: p.label || 'Untitled Panel',
                         width: p.width,
@@ -2395,31 +2457,30 @@ export default function CutlistGeneratorPage() {
                                                     </p>
                                                 </div>
                                                 <div className="flex items-center gap-1">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-7 text-[10px] px-2"
-                                                        onClick={() => {
-                                                            loadProject(proj.id)
-                                                            setCutsTab("cuts")
+                                                    <button
+                                                        type="button"
+                                                        className="inline-flex items-center justify-center whitespace-nowrap font-medium transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px] active:translate-y-0 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 rounded-md gap-1.5 has-[>svg]:px-2.5 h-7 text-[10px] px-2"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            loadProject(proj.id);
+                                                            setCutsTab("cuts");
                                                         }}
                                                         disabled={proj.id === projectId}
                                                     >
                                                         {proj.id === projectId ? "Active" : "Load"}
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-7 text-[10px] px-2 text-destructive hover:bg-destructive/10"
-                                                        onClick={async () => {
-                                                            if (!confirm(`Delete "${proj.name}"?`)) return
-                                                            await supabase.from('cutlist_projects').delete().eq('id', proj.id)
-                                                            loadSavedProjects()
-                                                            toast.success("Project deleted")
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="inline-flex items-center justify-center whitespace-nowrap font-medium transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px] active:translate-y-0 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:text-accent-foreground dark:hover:bg-accent/50 rounded-md gap-1.5 has-[>svg]:px-2.5 h-7 text-[10px] px-2 text-destructive hover:bg-destructive/10"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            setProjectToDelete({ id: proj.id, name: proj.name });
                                                         }}
                                                     >
                                                         <Trash2 className="w-3 h-3" />
-                                                    </Button>
+                                                    </button>
                                                 </div>
                                             </div>
                                         ))}
@@ -3451,6 +3512,13 @@ export default function CutlistGeneratorPage() {
                                                                 </div>
                                                             </div>
                                                         </div>
+
+                                                        {/* Material Acquisition Disclaimer */}
+                                                        <div className="mt-2 p-3 rounded-lg border border-primary/10 bg-primary/[0.02]">
+                                                            <p className="text-[9px] text-primary/80 leading-relaxed">
+                                                                <span className="font-bold text-primary">Material Sourcing:</span> Clients have the option for <span className="italic">self-acquisition of materials</span> to better align with their specific budget requirements. Please be assured that all materials specified in this BOQ represent the <span className="font-bold">premium grade selections</span> sourced from our direct chain of trusted suppliers, ensuring long-term durability and aesthetic excellence.
+                                                            </p>
+                                                        </div>
                                                     </div>
 
                                                     {/* Material Pricing Section */}
@@ -3599,10 +3667,15 @@ export default function CutlistGeneratorPage() {
                                                                         </div>
                                                                         <div className="col-span-1 flex justify-center">
                                                                             <button
-                                                                                className="p-1 text-muted-foreground hover:text-rose-500 transition-colors"
-                                                                                onClick={() => setUpsellItems(prev => prev.filter(ui => ui.id !== item.id))}
+                                                                                type="button"
+                                                                                className="inline-flex items-center justify-center whitespace-nowrap font-medium transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px] active:translate-y-0 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:text-accent-foreground dark:hover:bg-accent/50 rounded-md gap-1.5 has-[>svg]:px-2.5 h-7 text-[10px] px-2 text-destructive hover:bg-destructive/10"
+                                                                                onClick={(e) => {
+                                                                                    e.preventDefault();
+                                                                                    e.stopPropagation();
+                                                                                    setUpsellItems(prev => prev.filter(ui => ui.id !== item.id));
+                                                                                }}
                                                                             >
-                                                                                <X className="w-3.5 h-3.5" />
+                                                                                <Trash2 className="w-3.5 h-3.5" />
                                                                             </button>
                                                                         </div>
                                                                     </div>
@@ -3671,12 +3744,22 @@ export default function CutlistGeneratorPage() {
                                                     </div>
 
                                                     <div className="space-y-2">
-                                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Notes / Terms</label>
+                                                        <div className="flex justify-between items-center">
+                                                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Notes / Terms</label>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-6 px-2 text-[10px] font-bold text-secondary hover:text-secondary hover:bg-secondary/10 rounded-lg"
+                                                                onClick={() => setBoqNotes(BOQ_STANDARD_TERMS)}
+                                                            >
+                                                                <FileText className="w-3 h-3 mr-1" /> Load Standard Terms
+                                                            </Button>
+                                                        </div>
                                                         <textarea
                                                             value={boqNotes}
                                                             onChange={(e) => setBoqNotes(e.target.value)}
                                                             className="w-full bg-background border border-border/40 rounded-xl px-4 py-3 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all resize-none"
-                                                            rows={2}
+                                                            rows={6}
                                                             placeholder="e.g., 50% downpayment required, delivery within 2-3 weeks..."
                                                         />
                                                     </div>
@@ -4355,6 +4438,47 @@ export default function CutlistGeneratorPage() {
                     </div>
                 )
             }
+            {/* Delete Confirmation Modal */}
+            {projectToDelete && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setProjectToDelete(null)} />
+                    <div className="relative bg-card border border-border/40 rounded-xl shadow-2xl p-6 w-full max-w-md animate-in zoom-in-95 duration-200">
+                        <h3 className="text-lg font-bold mb-2">Delete Project</h3>
+                        <p className="text-sm text-muted-foreground mb-6">
+                            Are you sure you want to delete <span className="font-bold text-foreground">"{projectToDelete.name}"</span>? This action cannot be undone.
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <Button
+                                variant="ghost"
+                                onClick={() => setProjectToDelete(null)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                variant="destructive"
+                                onClick={async () => {
+                                    try {
+                                        await supabase.from('cutlist_cabinet_configs').delete().eq('project_id', projectToDelete.id);
+                                        await supabase.from('cutlist_results').delete().eq('project_id', projectToDelete.id);
+                                        const { error } = await supabase.from('cutlist_projects').delete().eq('id', projectToDelete.id);
+                                        if (error) throw error;
+                                        loadSavedProjects();
+                                        if (projectToDelete.id === projectId) startNewProject();
+                                        toast.success("Project deleted successfully");
+                                    } catch (error: any) {
+                                        console.error("Delete Error:", error);
+                                        toast.error(`Delete failed: ${error.message}`);
+                                    } finally {
+                                        setProjectToDelete(null);
+                                    }
+                                }}
+                            >
+                                Delete
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     )
 }

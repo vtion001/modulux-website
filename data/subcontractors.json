@@ -1,5 +1,66 @@
 [
   {
+    "id": "fab-011",
+    "name": "TEODORO BARROS JR.",
+    "email": "",
+    "phone": "09124813249",
+    "category": "Cabinet Installer",
+    "notes": "assembling rate\r\nbase cab 300\r\nwall cab 300\r\ntall cab 1000\r\ndrawer 150",
+    "rates": {
+      "board_cut": 0,
+      "edge_band": 0,
+      "assembly": 0,
+      "design": 0,
+      "install": 0,
+      "countertop": 0,
+      "drawer": 350,
+      "base_cabinet": 400,
+      "wall_cabinet": 500,
+      "closet": 1800
+    },
+    "units": {
+      "board_cut": "per job",
+      "edge_band": "per job",
+      "assembly": "per job",
+      "design": "per job",
+      "install": "per job",
+      "countertop": "per job",
+      "drawer": "per module",
+      "base_cabinet": "per module",
+      "wall_cabinet": "per module",
+      "closet": "per module"
+    },
+    "history": [
+      {
+        "ts": 1767035022366,
+        "rates": {
+          "board_cut": 0,
+          "edge_band": 0,
+          "assembly": 0,
+          "design": 0,
+          "install": 0,
+          "countertop": 0,
+          "drawer": 350,
+          "base_cabinet": 400,
+          "wall_cabinet": 500,
+          "closet": 1800
+        },
+        "units": {
+          "board_cut": "per job",
+          "edge_band": "per job",
+          "assembly": "per job",
+          "design": "per job",
+          "install": "per job",
+          "countertop": "per job",
+          "drawer": "per module",
+          "base_cabinet": "per module",
+          "wall_cabinet": "per module",
+          "closet": "per module"
+        }
+      }
+    ]
+  },
+  {
     "id": "fab-010",
     "name": "Randy Cuizon",
     "email": "cuizonrandy26@gmail.com",
