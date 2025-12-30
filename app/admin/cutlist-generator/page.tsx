@@ -1657,7 +1657,7 @@ These Terms and Conditions shall be governed by the laws of the Republic of the 
                 })))
             if (cabError) throw cabError
 
-            // 4. Save Panels (Individual/Custom)
+            // 4. Save Panels (Individual/Custom)   
             await supabase.from('cutlist_panels').delete().eq('project_id', activeProjectId)
             if (panels.length > 0) {
                 const { error: panelError } = await supabase
