@@ -80,7 +80,10 @@ export function SubcontractorManager({
         const counts = {
             installers: 0,
             fabricators: 0,
-            programmers: 0
+            programmers: 0,
+            total: list.length,
+            rfqsCount: rfqs.length,
+            successRate: rfqs.length > 0 ? Math.round((rfqs.filter((r: any) => r.ok).length / rfqs.length) * 100) : 100
         }
         list.forEach((f: any) => {
             if (f.category === "Cabinet Installer") counts.installers++
@@ -88,7 +91,7 @@ export function SubcontractorManager({
             else if (f.category === "CNC Programmer") counts.programmers++
         })
         return counts
-    }, [list])
+    }, [list, rfqs])
 
     const closeModal = () => {
         const params = new URLSearchParams(searchParams.toString())
@@ -113,230 +116,312 @@ export function SubcontractorManager({
     });
 
     const renderSubcontractorItem = (f: any) => (
-        <div key={f.id} className="rounded-xl border border-border/40 p-3 transition-all duration-200 hover:shadow-md hover:-translate-y-[1px] bg-card/50">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <div className="font-medium text-foreground">{f.name}</div>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${f.category
-                        ? "bg-primary/10 text-primary border-primary/20"
-                        : "bg-muted text-muted-foreground border-border/50"
-                        }`}>
-                        {f.category || "Uncategorized"}
-                    </span>
+        <div key={f.id} className="bg-white rounded-2xl border border-slate-100 p-5 transition-all duration-300 hover:shadow-[0_10px_30px_rgba(0,0,0,0.05)] hover:-translate-y-0.5 group">
+            <div className="flex items-start justify-between">
+                <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-center text-primary font-black text-xl shadow-sm group-hover:scale-110 transition-transform">
+                        {f.name.charAt(0)}
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className="font-black text-slate-900 text-[16px] tracking-tight">{f.name}</div>
+                            <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border ${f.category
+                                ? "bg-primary text-white border-primary shadow-sm"
+                                : "bg-slate-50 text-slate-300 border-slate-100"
+                                }`}>
+                                {f.category || "Unclassified"}
+                            </span>
+                        </div>
+                        <div className="text-[11px] text-slate-400 font-bold flex gap-3">
+                            <span className="flex items-center gap-1"><span className="opacity-50 font-medium">ID:</span> {f.id}</span>
+                            {f.email && <span className="flex items-center gap-1"><span className="opacity-50 font-medium">@</span> {f.email}</span>}
+                        </div>
+                    </div>
                 </div>
-                <div className="text-xs text-muted-foreground font-mono">ID: {f.id}</div>
-            </div>
-            <div className="mt-2 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2 text-sm">
-                <div className="flex items-center gap-1.5"><span className="opacity-60">Board:</span> ₱{f?.rates?.board_cut || 0} <span className="text-[10px] opacity-40">({f?.units?.board_cut || 'job'})</span></div>
-                <div className="flex items-center gap-1.5"><span className="opacity-60">Edge:</span> ₱{f?.rates?.edge_band || 0} <span className="text-[10px] opacity-40">({f?.units?.edge_band || 'job'})</span></div>
-                <div className="flex items-center gap-1.5"><span className="opacity-60">Asm:</span> ₱{f?.rates?.assembly || 0} <span className="text-[10px] opacity-40">({f?.units?.assembly || 'job'})</span></div>
-                <div className="flex items-center gap-1.5"><span className="opacity-60">Design:</span> ₱{f?.rates?.design || 0} <span className="text-[10px] opacity-40">({f?.units?.design || 'job'})</span></div>
-                <div className="flex items-center gap-1.5"><span className="opacity-60">Inst:</span> ₱{f?.rates?.install || 0} <span className="text-[10px] opacity-40">({f?.units?.install || 'job'})</span></div>
-                <div className="flex items-center gap-1.5"><span className="opacity-60">Counter:</span> ₱{f?.rates?.countertop || 0} <span className="text-[10px] opacity-40">({f?.units?.countertop || 'job'})</span></div>
-            </div>
-            {(f?.rates?.drawer > 0 || f?.rates?.base_cabinet > 0 || f?.rates?.wall_cabinet > 0 || f?.rates?.closet > 0) && (
-                <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px] bg-muted/30 p-2 rounded-lg border border-border/10">
-                    {f?.rates?.drawer > 0 && <div className="flex items-center gap-1"><span className="opacity-60">Drawer:</span> ₱{f.rates.drawer}</div>}
-                    {f?.rates?.base_cabinet > 0 && <div className="flex items-center gap-1"><span className="opacity-60">Base:</span> ₱{f.rates.base_cabinet}</div>}
-                    {f?.rates?.wall_cabinet > 0 && <div className="flex items-center gap-1"><span className="opacity-60">Wall:</span> ₱{f.rates.wall_cabinet}</div>}
-                    {f?.rates?.closet > 0 && <div className="flex items-center gap-1"><span className="opacity-60">Closet:</span> ₱{f.rates.closet}</div>}
-                </div>
-            )}
-            <div className="mt-2 text-[11px] text-muted-foreground flex flex-wrap gap-x-4 border-t border-border/20 pt-2">
-                <div>Email: {f?.email || "—"}</div>
-                <div>Phone: {f?.phone || "—"}</div>
-                {f.notes && <div className="italic opacity-70 truncate max-w-[200px]">Note: {f.notes}</div>}
-            </div>
-
-            <div className="mt-3 flex items-center justify-between border-t border-border/20 pt-3">
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Link
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-border/50 text-xs transition-all duration-200 hover:bg-muted"
                         href={`/admin/subcontractors?editId=${f.id}`}
                         scroll={false}
                         onClick={() => setShowFullList(false)}
+                        className="p-2 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-primary transition-all"
                     >
-                        Edit
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></svg>
                     </Link>
                     <SaveForm action={deleteAction} onSubmitted={closeModal}>
                         <input type="hidden" name="id" value={f.id} />
                         <SubmitButton
                             confirm={`Delete ${f.name}?`}
                             type="danger"
-                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md border border-border/50 text-xs transition-all duration-200 hover:bg-red-500/10 hover:text-red-500"
+                            className="p-2 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-all border-none shadow-none bg-transparent"
                         >
-                            Delete
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></svg>
                         </SubmitButton>
                     </SaveForm>
+                </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+                {[
+                    { label: 'Board', key: 'board_cut' },
+                    { label: 'Edge', key: 'edge_band' },
+                    { label: 'Asm', key: 'assembly' },
+                    { label: 'Design', key: 'design' },
+                    { label: 'Inst', key: 'install' },
+                    { label: 'Cnt', key: 'countertop' }
+                ].map(rate => (
+                    <div key={rate.key} className="bg-[#FAFBFB] p-3 rounded-2xl border border-slate-50 text-center transition-colors group-hover:border-slate-200">
+                        <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{rate.label}</div>
+                        <div className="text-[13px] font-black text-primary">₱{f?.rates?.[rate.key] || 0}</div>
+                        <div className="text-[8px] font-bold text-slate-300 uppercase mt-0.5">{f?.units?.[rate.key] || 'job'}</div>
+                    </div>
+                ))}
+            </div>
+
+            {(f?.rates?.drawer > 0 || f?.rates?.base_cabinet > 0 || f?.rates?.wall_cabinet > 0 || f?.rates?.closet > 0) && (
+                <div className="mt-3 flex gap-3 text-[10px] bg-slate-50/50 p-2.5 rounded-xl border border-slate-100/50">
+                    <span className="font-black text-slate-400 uppercase tracking-widest text-[8px] pt-1 border-r border-slate-200 pr-2 mr-1">Granular</span>
+                    {f?.rates?.drawer > 0 && <span className="flex items-center gap-1">Draw: <b className="text-slate-700">₱{f.rates.drawer}</b></span>}
+                    {f?.rates?.base_cabinet > 0 && <span className="flex items-center gap-1">Base: <b className="text-slate-700">₱{f.rates.base_cabinet}</b></span>}
+                    {f?.rates?.wall_cabinet > 0 && <span className="flex items-center gap-1">Wall: <b className="text-slate-700">₱{f.rates.wall_cabinet}</b></span>}
+                    {f?.rates?.closet > 0 && <span className="flex items-center gap-1">Cls: <b className="text-slate-700">₱{f.rates.closet}</b></span>}
+                </div>
+            )}
+
+            <div className="mt-5 pt-4 border-t border-slate-50 flex items-center justify-between">
+                <div className="flex items-center gap-6">
+                    {f.phone && (
+                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-300"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
+                            {f.phone}
+                        </div>
+                    )}
+                    {f.notes && (
+                        <div className="text-[11px] italic font-medium text-slate-400 truncate max-w-[240px]">
+                            "{f.notes}"
+                        </div>
+                    )}
                 </div>
 
                 <Link
                     href={`/admin/subcontractors?showRFQ=true&rfqSubId=${f.id}`}
                     scroll={false}
                     onClick={() => setShowFullList(false)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-all shadow-sm"
+                    className="flex items-center gap-2 bg-primary text-white px-4 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-900 transition-all transform active:scale-95 shadow-sm"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
-                    Quick RFQ
+                    Draft RFQ
                 </Link>
             </div>
             {lastById[f.id] && (
-                <div className="mt-2 text-[10px] text-muted-foreground/60 border-t border-border/10 pt-2 flex justify-between">
-                    <span>Last RFQ: {new Date(lastById[f.id].ts).toLocaleString()}</span>
-                    <span className={lastById[f.id].ok ? "text-green-500 font-bold" : "text-red-500 font-bold"}>{lastById[f.id].ok ? "SENT" : "FAILED"}</span>
+                <div className="mt-3 pt-3 border-t border-slate-50 flex items-center justify-between text-[9px] font-bold uppercase tracking-widest">
+                    <span className="text-slate-300">Last communication: <span className="text-slate-400 font-black ml-1">{new Date(lastById[f.id].ts).toLocaleDateString()}</span></span>
+                    <span className={lastById[f.id].ok ? "text-primary bg-primary/5 px-2 py-0.5 rounded" : "text-red-500 bg-red-50 px-2 py-0.5 rounded"}>{lastById[f.id].ok ? "Delivered" : "Attempt Failed"}</span>
                 </div>
             )}
         </div>
     )
 
     return (
-        <div className="max-w-6xl mx-auto px-4 space-y-8">
-            <div className="relative isolate overflow-hidden rounded-2xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
-                <div className="px-6 py-8">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Subcontractors</h1>
-                            <p className="text-sm md:text-base/relaxed opacity-90">Manage third-party subcontractor cost profiles and rates</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <Link href="/admin/subcontractors?showRFQ=true" scroll={false} className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-sm font-medium hover:bg-white/20 transition-all flex items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-send"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
-                                Send RFQ
-                            </Link>
-                            <Link href="/admin/subcontractors?showAdd=true" scroll={false} className="px-4 py-2 rounded-lg bg-white text-primary text-sm font-bold hover:bg-white/90 transition-all shadow-lg flex items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
-                                Add Subcontractor
-                            </Link>
-                            <span className="hidden md:inline-flex px-3 py-1 rounded-md bg-black/10 border border-white/10 text-xs font-medium ml-2">Total: {list.length}</span>
-                        </div>
+        <div className="min-h-screen bg-[#F8FAFC] text-slate-900 font-sans selection:bg-secondary/20 selection:text-secondary pb-20">
+            {/* Sticky Header Bar */}
+            <div className="bg-white/80 backdrop-blur-xl px-8 py-4 flex items-center justify-between border-b border-slate-100 sticky top-0 z-50">
+                <div className="flex items-center gap-2 text-[13px] font-medium">
+                    <span className="text-slate-400">Operations /</span>
+                    <span className="text-primary font-bold">Subcontractors</span>
+                </div>
+                <div className="flex items-center gap-4">
+                    <div className="flex -space-x-2.5 mr-2">
+                        {[11, 12, 13].map(i => (
+                            <div key={i} className="w-8 h-8 rounded-full border-[2.5px] border-white bg-slate-200 flex items-center justify-center overflow-hidden shadow-sm">
+                                <img src={`https://i.pravatar.cc/100?u=${i}`} alt="user" className="w-full h-full object-cover" />
+                            </div>
+                        ))}
+                        <div className="w-8 h-8 rounded-full border-[2.5px] border-white bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400 shadow-sm">+8</div>
                     </div>
+                    <Link href="/admin/subcontractors?showRFQ=true" scroll={false} className="flex items-center gap-2 bg-primary hover:bg-slate-900 text-white px-5 py-2.5 rounded-2xl text-[13px] font-black uppercase tracking-widest transition-all shadow-xl shadow-primary/20">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><path d="m22 2-7 20-4-9-9-4Z"></path><path d="M22 2 11 13"></path></svg>
+                        <span>Send RFQ</span>
+                    </Link>
+                    <Link href="/admin/subcontractors?showAdd=true" scroll={false} className="flex items-center gap-2 bg-secondary hover:bg-secondary/90 text-white px-5 py-2.5 rounded-2xl text-[13px] font-black uppercase tracking-widest transition-all shadow-xl shadow-secondary/20">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>
+                        <span>Add New</span>
+                    </Link>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-card border border-border/40 rounded-xl p-4 shadow-sm">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-sm font-semibold text-foreground">Subcontractors List</h2>
-                            <button
-                                onClick={() => setShowFullList(true)}
-                                className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1 uppercase tracking-wider"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>
-                                Full View Modal
-                            </button>
+            <div className="max-w-[1600px] mx-auto p-8 space-y-10">
+                {/* Hero section removed and integrated into header for cleaner look */}
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="lg:col-span-2 space-y-8">
+                        {/* Search & Statistics Bar */}
+                        <div className="flex flex-col lg:flex-row items-center justify-between gap-5 bg-white p-6 rounded-[24px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                            <div className="relative w-full lg:w-[480px]">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-search absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+                                <input
+                                    placeholder="Search subcontractors"
+                                    className="w-full bg-[#FAFBFB] border border-slate-200 rounded-xl pl-11 pr-4 py-2.5 text-[13px] font-medium transition-all focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary/50 placeholder:text-slate-300"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Category</span>
+                                <select
+                                    value={categoryFilter}
+                                    onChange={(e) => setCategoryFilter(e.target.value)}
+                                    className="bg-[#FAFBFB] border border-slate-200 rounded-xl px-4 py-2.5 text-[13px] font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/10"
+                                >
+                                    <option value="">All Types</option>
+                                    <option value="CNC Cutting Services">CNC Cutting</option>
+                                    <option value="CNC Programmer">Programmers</option>
+                                    <option value="Cabinet Installer">Installers</option>
+                                </select>
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-3 max-h-[700px] overflow-y-auto pr-2 custom-scrollbar">
-                            {list.slice(0, 3).map(renderSubcontractorItem)}
+                        <div className="bg-white rounded-[40px] border border-slate-100 shadow-[0_12px_40px_rgb(0,0,0,0.03)] overflow-hidden">
+                            <div className="p-8 border-b border-slate-50 flex items-center justify-between">
+                                <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                                    Subcontractors Directory
+                                </h2>
+                                <button
+                                    onClick={() => setShowFullList(true)}
+                                    className="text-[10px] font-black text-primary hover:bg-primary/5 px-3 py-1.5 rounded-lg flex items-center gap-2 uppercase tracking-widest transition-all"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6" /><path d="M10 14 21 3" /><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /></svg>
+                                    Registry Viewer
+                                </button>
+                            </div>
 
-                            {list.length > 3 && (
-                                <div className="pt-4 mt-2 border-t border-dashed border-border/40 flex justify-center">
-                                    <button
-                                        onClick={() => setShowFullList(true)}
-                                        className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-primary/20 bg-primary/5 text-primary text-xs font-bold hover:bg-primary/10 transition-all group shadow-sm hover:shadow"
-                                    >
-                                        View All {list.length} Subcontractors
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-1"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
-                                    </button>
-                                </div>
-                            )}
+                            <div className="p-8 space-y-6 max-h-[1000px] overflow-y-auto custom-scrollbar">
+                                {list.length === 0 ? (
+                                    <div className="text-[13px] text-slate-400 py-20 text-center italic border border-dashed border-slate-100 rounded-[32px]">No collaborators registered in the registry.</div>
+                                ) : (
+                                    list.slice(0, 5).map(renderSubcontractorItem)
+                                )}
 
-                            {list.length === 0 && (
-                                <div className="text-sm text-muted-foreground py-12 text-center italic border border-dashed rounded-xl">No subcontractors registered yet.</div>
-                            )}
+                                {list.length > 5 && (
+                                    <div className="pt-8 border-t border-dashed border-slate-100 flex justify-center">
+                                        <button
+                                            onClick={() => setShowFullList(true)}
+                                            className="inline-flex items-center gap-2.5 px-10 py-4 rounded-2xl border border-secondary bg-white text-secondary text-[11px] font-black uppercase tracking-widest hover:bg-secondary hover:text-white hover:shadow-[0_20px_50px_rgba(184,134,11,0.2)] transition-all group scale-100 hover:scale-[1.02] active:scale-95"
+                                        >
+                                            Explore Master Registry ({list.length} Partners)
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-1"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="space-y-6">
-                    <div className="bg-card border border-border/40 rounded-xl p-4 shadow-sm">
-                        <h2 className="text-sm font-semibold text-foreground mb-3">Guidelines</h2>
-                        <ul className="text-sm text-muted-foreground space-y-2">
-                            <li>Use unique IDs to prevent conflicts.</li>
-                            <li>All rates should be per job or per meter basis.</li>
-                            <li>Update history is stored automatically for audit.</li>
-                        </ul>
-                        <div className="mt-4">
-                            <h3 className="text-sm font-semibold text-foreground mb-2 font-bold">RFQ Message Template</h3>
-                            <SaveForm action={updateTemplateAction} className="space-y-2">
-                                <textarea name="rfq_template_text" placeholder="Default RFQ email body…" className="w-full p-2 border border-border/40 rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm min-h-[100px]" />
-                                <SubmitButton confirm="Save template?" className="w-full py-2 bg-muted text-foreground rounded-md border text-xs font-bold hover:bg-muted/80 transition-colors">Save Template</SubmitButton>
-                            </SaveForm>
+                    <div className="space-y-8">
+                        <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-6">
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="w-1.5 h-4 bg-primary rounded-full"></div>
+                                <h2 className="text-[13px] font-black uppercase tracking-[0.15em] text-slate-800">Operational Guidelines</h2>
+                            </div>
+                            <ul className="text-[13px] text-slate-500 space-y-4 font-medium">
+                                <li className="flex gap-4 items-start">
+                                    <span className="w-6 h-6 rounded-lg bg-primary/5 text-primary font-black text-[10px] flex items-center justify-center shrink-0 border border-primary/10">01</span>
+                                    <span>Maintain unique identifiers to ensure integrity of the master registry.</span>
+                                </li>
+                                <li className="flex gap-4 items-start">
+                                    <span className="w-6 h-6 rounded-lg bg-primary/5 text-primary font-black text-[10px] flex items-center justify-center shrink-0 border border-primary/10">02</span>
+                                    <span>Labor rates are structured by project-specific metrics (SQM, LM, JOB).</span>
+                                </li>
+                                <li className="flex gap-4 items-start">
+                                    <span className="w-6 h-6 rounded-lg bg-primary/5 text-primary font-black text-[10px] flex items-center justify-center shrink-0 border border-primary/10">03</span>
+                                    <span>All communication logs are archived for quality assurance and audit.</span>
+                                </li>
+                            </ul>
+                            <div className="pt-6 border-t border-slate-50">
+                                <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-4">RFQ Global Template</h3>
+                                <SaveForm action={updateTemplateAction} className="space-y-3">
+                                    <textarea
+                                        name="rfq_template_text"
+                                        placeholder="Default RFQ email body…"
+                                        className="w-full p-4 border border-slate-200 rounded-xl bg-[#FAFBFB] text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/10 text-[13px] min-h-[120px] resize-none"
+                                    />
+                                    <SubmitButton confirm="Save template?" className="w-full py-4 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest transform active:scale-[0.98] transition-all shadow-lg shadow-primary/10">Save Registry Template</SubmitButton>
+                                </SaveForm>
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="bg-card border border-border/40 rounded-xl p-4 shadow-sm">
-                        <h2 className="text-sm font-semibold text-foreground mb-3">Recent RFQs</h2>
-                        <div className="overflow-x-auto rounded-md border border-border/20">
-                            <table className="min-w-full text-[10px]">
-                                <thead className="bg-muted/30">
-                                    <tr className="border-b border-border/20">
-                                        <th className="text-left p-2">Subcon</th>
-                                        <th className="text-left p-2">Status</th>
-                                        <th className="text-left p-2">Date</th>
-                                        <th className="text-left p-2">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {rfqs.slice(0, 10).map((e: any) => (
-                                        <tr key={`${e.gmail_id || e.ts}-${e.to_email || e.to}`} className="border-b border-border/10 last:border-0 hover:bg-muted/10 transition-colors">
-                                            <td className="p-2 font-medium truncate max-w-[80px]">{e.name || e.subcontractor_id || e.fabricator_id}</td>
-                                            <td className="p-2">
-                                                <span className={e.ok ? "text-green-500" : "text-red-500"}>{e.ok ? "OK" : "Err"}</span>
-                                            </td>
-                                            <td className="p-2 opacity-60 font-mono">{new Date(Number(e.ts) || Date.now()).toLocaleDateString()}</td>
-                                            <td className="p-2">
-                                                <SaveForm action={resendAction}>
-                                                    {e.id ? <input type="hidden" name="event_id" value={e.id} /> : null}
-                                                    {!e.id ? <input type="hidden" name="ts" value={String(e.ts || "")} /> : null}
-                                                    <SubmitButton confirm="Resend this RFQ?" className="text-[9px] underline text-primary hover:opacity-70">Resend</SubmitButton>
-                                                </SaveForm>
-                                            </td>
+                        <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-[13px] font-black uppercase tracking-widest text-slate-800">Recent Transactions</h2>
+                                <span className="text-[10px] font-bold bg-slate-100 text-slate-400 px-2 py-0.5 rounded uppercase">History</span>
+                            </div>
+                            <div className="overflow-hidden rounded-xl border border-slate-100">
+                                <table className="min-w-full text-[11px]">
+                                    <thead className="bg-[#FAFBFB]">
+                                        <tr className="border-b border-slate-100">
+                                            <th className="text-left p-3 font-black text-slate-400">Subcon</th>
+                                            <th className="text-left p-3 font-black text-slate-400 text-center">Stat</th>
+                                            <th className="text-right p-3 font-black text-slate-400">Date</th>
                                         </tr>
-                                    ))}
-                                    {rfqs.length === 0 && (
-                                        <tr><td className="p-4 text-muted-foreground text-center italic" colSpan={4}>No RFQs sent yet.</td></tr>
-                                    )}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-50">
+                                        {rfqs.slice(0, 6).map((e: any) => (
+                                            <tr key={`${e.gmail_id || e.ts}-${e.to_email || e.to}`} className="hover:bg-slate-50 transition-colors">
+                                                <td className="p-3 font-extrabold text-slate-700 truncate max-w-[100px]">{e.name || e.subcontractor_id}</td>
+                                                <td className="p-3 text-center">
+                                                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${e.ok ? "bg-primary/10 text-primary" : "bg-red-50 text-red-500"}`}>
+                                                        {e.ok ? "Sent" : "Err"}
+                                                    </span>
+                                                </td>
+                                                <td className="p-3 text-right opacity-60 font-bold whitespace-nowrap">{new Date(Number(e.ts) || Date.now()).toLocaleDateString()}</td>
+                                            </tr>
+                                        ))}
+                                        {rfqs.length === 0 && (
+                                            <tr><td className="p-6 text-slate-400 text-center italic" colSpan={3}>No activity recorded.</td></tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="bg-card border border-border/40 rounded-xl p-4 shadow-sm">
-                        <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
-                            <span className="w-1.5 h-4 bg-primary rounded-full"></span>
-                            Subcontractor Analytics
-                        </h2>
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border/10">
-                                <div className="flex items-center gap-2">
-                                    <div className="p-1.5 bg-emerald-500/10 text-emerald-600 rounded">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                        <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-[0_8px_40px_rgb(0,0,0,0.03)] ring-1 ring-slate-100/50">
+                            <div className="flex items-center justify-between mb-8">
+                                <h2 className="text-[13px] font-black uppercase tracking-[0.2em] text-slate-800 flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
+                                    Network Distribution
+                                </h2>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{analytics.total} Active</span>
+                            </div>
+                            <div className="space-y-6">
+                                {[
+                                    { label: "Cabinet Installers", count: analytics.installers, color: "bg-emerald-500", text: "text-emerald-500", progress: analytics.total > 0 ? (analytics.installers / analytics.total) * 100 : 0 },
+                                    { label: "CNC Cutting", count: analytics.fabricators, color: "bg-amber-500", text: "text-amber-500", progress: analytics.total > 0 ? (analytics.fabricators / analytics.total) * 100 : 0 },
+                                    { label: "Programmers", count: analytics.programmers, color: "bg-slate-900", text: "text-slate-900", progress: analytics.total > 0 ? (analytics.programmers / analytics.total) * 100 : 0 }
+                                ].map((stat, idx) => (
+                                    <div key={idx} className="space-y-2 group">
+                                        <div className="flex items-center justify-between px-1">
+                                            <span className="text-[11px] font-black text-slate-500 uppercase tracking-tight">{stat.label}</span>
+                                            <span className={`text-[13px] font-black ${stat.text}`}>{stat.count}</span>
+                                        </div>
+                                        <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100/50 p-[1px]">
+                                            <div
+                                                className={`h-full ${stat.color} rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(0,0,0,0.05)]`}
+                                                style={{ width: `${stat.progress}%` }}
+                                            ></div>
+                                        </div>
                                     </div>
-                                    <span className="text-xs font-medium">Cabinet Installers</span>
-                                </div>
-                                <span className="text-sm font-black text-emerald-600">{analytics.installers}</span>
+                                ))}
                             </div>
 
-                            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border/10">
-                                <div className="flex items-center gap-2">
-                                    <div className="p-1.5 bg-blue-500/10 text-blue-600 rounded">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21 11-8-8" /><path d="M21 3v8" /><path d="M13 3h8" /><path d="M10.6 19a2 2 0 1 1-2.8-2.8l10.4-10.4" /><path d="m15.8 4.6 2.8 2.8" /><path d="m10.2 15.4 5.2-5.2" /><path d="m4.6 15.8 2.8 2.8" /><path d="M19 10.6a2 2 0 1 1-2.8 2.8l-10.4 10.4" /><path d="m4.6 15.8-2.8-2.8" /><path d="M5.4 10.2l5.2 5.2" /></svg>
-                                    </div>
-                                    <span className="text-xs font-medium">CNC Fabricators / Service Providers</span>
+                            <div className="mt-10 pt-8 border-t border-slate-50 grid grid-cols-2 gap-4">
+                                <div className="p-4 bg-[#FAFBFB] rounded-2xl border border-slate-50 text-center">
+                                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Success</div>
+                                    <div className="text-xl font-black text-slate-900 tracking-tighter">{analytics.successRate}%</div>
                                 </div>
-                                <span className="text-sm font-black text-blue-600">{analytics.fabricators}</span>
-                            </div>
-
-                            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border/10">
-                                <div className="flex items-center gap-2">
-                                    <div className="p-1.5 bg-amber-500/10 text-amber-600 rounded">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /><line x1="12" y1="22" x2="12" y2="2" /></svg>
-                                    </div>
-                                    <span className="text-xs font-medium">CNC Programmers</span>
+                                <div className="p-4 bg-[#FAFBFB] rounded-2xl border border-slate-50 text-center">
+                                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total RFQs</div>
+                                    <div className="text-xl font-black text-slate-900 tracking-tighter">{analytics.rfqsCount}</div>
                                 </div>
-                                <span className="text-sm font-black text-amber-600">{analytics.programmers}</span>
                             </div>
                         </div>
                     </div>
@@ -345,83 +430,89 @@ export function SubcontractorManager({
 
             {/* Edit Modal */}
             {editItem && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="relative w-full max-w-2xl bg-card border border-border/40 rounded-2xl shadow-2xl p-6 animate-in zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between mb-6">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="relative w-full max-w-3xl bg-white rounded-[40px] shadow-[0_32px_120px_rgba(0,0,0,0.2)] p-10 animate-in zoom-in-[0.98] duration-300 border border-slate-100 max-h-[90vh] overflow-y-auto custom-scrollbar">
+                        <div className="flex items-center justify-between mb-10">
                             <div>
-                                <h2 className="text-xl font-bold text-foreground">Edit Subcontractor</h2>
-                                <p className="text-sm text-muted-foreground italic">Updating {editItem.name} ({editItem.id})</p>
+                                <div className="flex items-center gap-3 mb-1">
+                                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+                                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">Modify Profile</h2>
+                                </div>
+                                <p className="text-[13px] text-slate-400 font-bold uppercase tracking-widest">Editing {editItem.name} — <span className="font-mono text-primary/60">{editItem.id}</span></p>
                             </div>
-                            <button onClick={closeModal} className="p-2 rounded-full hover:bg-muted transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+                            <button onClick={closeModal} className="p-3 rounded-2xl hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-all bg-white border border-slate-100 shadow-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
                             </button>
                         </div>
-                        <SaveForm action={saveAction} onSubmitted={closeModal} className="space-y-6">
+                        <SaveForm action={saveAction} onSubmitted={closeModal} className="space-y-10">
                             <input type="hidden" name="id" defaultValue={editItem.id} />
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Name</label>
-                                    <input name="name" defaultValue={editItem.name} className="w-full p-2.5 border border-border/40 rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+
+                            <div className="space-y-6">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="w-1 h-3 bg-primary rounded-full"></span>
+                                    <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Core Identity</h3>
                                 </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Email</label>
-                                    <input name="email" type="email" defaultValue={editItem.email || ""} className="w-full p-2.5 border border-border/40 rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Contact Number</label>
-                                    <input name="phone" defaultValue={editItem.phone || ""} className="w-full p-2.5 border border-border/40 rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Category</label>
-                                    <select name="category" defaultValue={editItem.category || ""} className="w-full p-2.5 border border-border/40 rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all">
-                                        <option value="">Select Category</option>
-                                        <option value="CNC Cutting Services">CNC Cutting Services</option>
-                                        <option value="CNC Programmer">CNC Programmer</option>
-                                        <option value="Cabinet Installer">Cabinet Installer</option>
-                                    </select>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 ml-1">Legal Entity Name</label>
+                                        <input name="name" defaultValue={editItem.name} className="w-full px-5 py-3.5 border border-slate-100 rounded-2xl bg-[#FAFBFB] text-slate-800 font-bold focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all placeholder:text-slate-300" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 ml-1">Primary Email Address</label>
+                                        <input name="email" type="email" defaultValue={editItem.email || ""} className="w-full px-5 py-3.5 border border-slate-100 rounded-2xl bg-[#FAFBFB] text-slate-800 font-bold focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all placeholder:text-slate-300" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 ml-1">Contact Number</label>
+                                        <input name="phone" defaultValue={editItem.phone || ""} className="w-full px-5 py-3.5 border border-slate-100 rounded-2xl bg-[#FAFBFB] text-slate-800 font-bold focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all placeholder:text-slate-300" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 ml-1">Service Classification</label>
+                                        <select name="category" defaultValue={editItem.category || ""} className="w-full px-5 py-3.5 border border-slate-100 rounded-2xl bg-[#FAFBFB] text-slate-800 font-black focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all">
+                                            <option value="">Select Category</option>
+                                            <option value="CNC Cutting Services">CNC Cutting Services</option>
+                                            <option value="CNC Programmer">CNC Programmer</option>
+                                            <option value="Cabinet Installer">Cabinet Installer</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
-                            <div className="space-y-1.5 pt-2 border-t border-border/40">
-                                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary mb-3 block">Rate Configuration (per unit/m)</label>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
+
+                            <div className="space-y-6">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="w-1 h-3 bg-primary rounded-full"></span>
+                                    <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Rate Architecture</h3>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {['board_cut', 'edge_band', 'assembly', 'design', 'install', 'countertop'].map(rId => (
                                         <React.Fragment key={rId}>
-                                            <div className="flex gap-2">
-                                                <div className="flex-1 space-y-1">
-                                                    <label className="text-[10px] text-muted-foreground font-medium ml-1 capitalize text-nowrap flex items-center justify-between">
-                                                        {rId.replace('_', ' ')}
-                                                        {rId === 'install' && (
-                                                            <span className="text-[9px] text-primary cursor-pointer hover:underline font-bold bg-primary/5 px-1.5 py-0.5 rounded">Granular ▼</span>
-                                                        )}
-                                                    </label>
-                                                    <div className="relative">
-                                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-semibold">₱</span>
-                                                        <input name={rId} type="number" step="0.01" defaultValue={editItem.rates?.[rId] || 0} className="w-full p-2 pl-6 border border-border/40 rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm" />
+                                            <div className="bg-[#FAFBFB] p-5 rounded-3xl border border-slate-50 space-y-4">
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center justify-between">
+                                                    {rId.replace('_', ' ')}
+                                                    {rId === 'install' && <span className="bg-primary/10 text-[8px] px-2 py-0.5 rounded-full">Variable</span>}
+                                                </label>
+                                                <div className="flex gap-3">
+                                                    <div className="relative flex-1">
+                                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-sm font-black">₱</span>
+                                                        <input name={rId} type="number" step="0.01" defaultValue={editItem.rates?.[rId] || 0} className="w-full pl-8 pr-4 py-3 border border-slate-100 rounded-xl bg-white text-slate-800 font-black text-sm focus:outline-none focus:ring-2 focus:ring-primary/10" />
                                                     </div>
-                                                </div>
-                                                <div className="w-32 space-y-1 pt-[18px]">
-                                                    <select name={`unit_${rId}`} defaultValue={editItem.units?.[rId] || (['drawer', 'base_cabinet', 'wall_cabinet', 'closet'].includes(rId) ? "per module" : "per job")} className="w-full p-2 border border-border/40 rounded bg-background text-[10px] focus:outline-none focus:ring-2 focus:ring-primary/20 h-[38px]">
-                                                        <option value="per job">per job</option>
-                                                        <option value="per sqm">per sqm</option>
-                                                        <option value="per linear meter">per linear m</option>
-                                                        <option value="per feet">per feet</option>
-                                                        <option value="per project">per project</option>
-                                                        <option value="per board">per board</option>
-                                                        <option value="per module">per module</option>
+                                                    <select name={`unit_${rId}`} defaultValue={editItem.units?.[rId] || "per job"} className="w-24 px-2 border border-slate-100 rounded-xl bg-white text-[9px] font-black uppercase focus:outline-none">
+                                                        {['per job', 'per sqm', 'per linear meter', 'per feet', 'per project', 'per board', 'per module'].map(u => (
+                                                            <option key={u} value={u}>{u.replace('per ', '')}</option>
+                                                        ))}
                                                     </select>
                                                 </div>
                                             </div>
                                             {rId === 'install' && (
-                                                <div className="col-span-1 md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 bg-muted/20 p-3 rounded-xl border border-dashed border-border/60">
+                                                <div className="col-span-full grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50 p-6 rounded-[32px] border border-dashed border-slate-200">
                                                     {['drawer', 'base_cabinet', 'wall_cabinet', 'closet'].map(sub => (
-                                                        <div key={sub} className="space-y-1">
-                                                            <label className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter opacity-70 ml-1">{sub.replace('_', ' ')}</label>
-                                                            <div className="flex gap-1.5">
+                                                        <div key={sub} className="space-y-2">
+                                                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">{sub.replace('_', ' ')}</label>
+                                                            <div className="flex gap-2">
                                                                 <div className="relative flex-1">
-                                                                    <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-muted-foreground text-[10px] font-semibold">₱</span>
-                                                                    <input name={sub} type="number" step="0.01" defaultValue={editItem.rates?.[sub] || 0} className="w-full p-1.5 pl-4 border border-border/40 rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 text-[11px]" placeholder="0" />
+                                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs font-black">₱</span>
+                                                                    <input name={sub} type="number" step="0.01" defaultValue={editItem.rates?.[sub] || 0} className="w-full pl-6 pr-2 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-black text-[11px] focus:outline-none" placeholder="0" />
                                                                 </div>
-                                                                <select name={`unit_${sub}`} defaultValue={editItem.units?.[sub] || "per module"} className="w-16 p-1 border border-border/40 rounded bg-background text-[9px] focus:outline-none h-[28px]">
+                                                                <select name={`unit_${sub}`} defaultValue={editItem.units?.[sub] || "per module"} className="w-14 px-1 border border-slate-100 rounded-lg bg-white text-[8px] font-black uppercase focus:outline-none">
                                                                     <option value="per module">pc</option>
                                                                     <option value="per linear meter">lm</option>
                                                                     <option value="per feet">ft</option>
@@ -435,13 +526,15 @@ export function SubcontractorManager({
                                     ))}
                                 </div>
                             </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Notes</label>
-                                <textarea name="notes" defaultValue={editItem.notes || ""} className="w-full p-3 border border-border/40 rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all min-h-[80px] text-sm" />
+
+                            <div className="space-y-3">
+                                <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 ml-1">Administrative Notes</label>
+                                <textarea name="notes" defaultValue={editItem.notes || ""} className="w-full px-5 py-4 border border-slate-100 rounded-2xl bg-[#FAFBFB] text-slate-800 font-medium focus:outline-none focus:ring-4 focus:ring-primary/5 min-h-[120px] text-[13px] resize-none" placeholder="Enter confidential notes about performance, reliability, etc..." />
                             </div>
-                            <div className="flex gap-3 pt-4 justify-end">
-                                <button type="button" onClick={closeModal} className="px-4 py-2 bg-muted text-foreground rounded-lg text-sm font-medium">Cancel</button>
-                                <SubmitButton confirm={`Save changes?`} className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-bold text-sm">Save Changes</SubmitButton>
+
+                            <div className="flex gap-4 pt-10 justify-end items-center border-t border-slate-50">
+                                <button type="button" onClick={closeModal} className="px-8 py-3.5 text-slate-400 hover:text-slate-900 text-[13px] font-black uppercase tracking-widest transition-colors">Abort Changes</button>
+                                <SubmitButton confirm={`Commit profile updates?`} className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-[13px] uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-primary transition-all transform active:scale-95 leading-none">Save Records</SubmitButton>
                             </div>
                         </SaveForm>
                     </div>
@@ -450,86 +543,85 @@ export function SubcontractorManager({
 
             {/* Add Modal */}
             {showAdd && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="relative w-full max-w-3xl bg-card border border-border/40 rounded-2xl shadow-2xl p-6 animate-in zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between mb-6">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="relative w-full max-w-4xl bg-white rounded-[40px] shadow-[0_32px_120px_rgba(0,0,0,0.2)] p-10 animate-in zoom-in-[0.98] duration-300 border border-slate-100 max-h-[90vh] overflow-y-auto custom-scrollbar">
+                        <div className="flex items-center justify-between mb-10">
                             <div>
-                                <h2 className="text-xl font-bold text-foreground">Add New Subcontractor</h2>
-                                <p className="text-sm text-muted-foreground">Register a new third-party service provider</p>
+                                <div className="flex items-center gap-3 mb-1">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-secondary shadow-[0_0_10px_rgba(184,134,11,0.3)]"></div>
+                                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">New Partner Onboarding</h2>
+                                </div>
+                                <p className="text-[13px] text-slate-400 font-bold uppercase tracking-widest">Registering professional service provider</p>
                             </div>
-                            <button onClick={closeModal} className="p-2 rounded-full hover:bg-muted transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+                            <button onClick={closeModal} className="p-3 rounded-2xl hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-all bg-white border border-slate-100 shadow-sm font-black">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
                             </button>
                         </div>
-                        <SaveForm action={addAction} onSubmitted={closeModal} className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">ID</label>
-                                    <input name="id" defaultValue={nextId} required className="w-full p-2.5 border border-border/40 rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-mono" />
+                        <SaveForm action={addAction} onSubmitted={closeModal} className="space-y-12">
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+                                <div className="md:col-span-3 space-y-2">
+                                    <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 ml-1">Registry ID</label>
+                                    <input name="id" defaultValue={nextId} required className="w-full px-5 py-4 border border-slate-100 rounded-2xl bg-[#FAFBFB] text-primary font-black focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all font-mono" />
                                 </div>
-                                <div className="space-y-1.5 md:col-span-2">
-                                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1 text-nowrap">Company Name</label>
-                                    <input name="name" placeholder="Acme Subcontractor" required className="w-full p-2.5 border border-border/40 rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                                <div className="md:col-span-9 space-y-2">
+                                    <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 ml-1">Company / Individual Name</label>
+                                    <input name="name" placeholder="Acme Fabrication & Services" required className="w-full px-5 py-4 border border-slate-100 rounded-2xl bg-[#FAFBFB] text-slate-800 font-bold focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all" />
                                 </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Email</label>
-                                    <input name="email" type="email" placeholder="subcon@example.com" className="w-full p-2.5 border border-border/40 rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                                <div className="md:col-span-4 space-y-2">
+                                    <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 ml-1">Email Address</label>
+                                    <input name="email" type="email" placeholder="contact@provider.com" className="w-full px-5 py-4 border border-slate-100 rounded-2xl bg-[#FAFBFB] text-slate-800 font-bold focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all" />
                                 </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Phone</label>
-                                    <input name="phone" placeholder="+63 9xx..." className="w-full p-2.5 border border-border/40 rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                                <div className="md:col-span-4 space-y-2">
+                                    <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 ml-1">Phone Number</label>
+                                    <input name="phone" placeholder="+63 9xx..." className="w-full px-5 py-4 border border-slate-100 rounded-2xl bg-[#FAFBFB] text-slate-800 font-bold focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all" />
                                 </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Category</label>
-                                    <select name="category" className="w-full p-2.5 border border-border/40 rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all">
+                                <div className="md:col-span-4 space-y-2">
+                                    <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 ml-1">Service Sphere</label>
+                                    <select name="category" className="w-full px-5 py-4 border border-slate-100 rounded-2xl bg-[#FAFBFB] text-slate-800 font-black focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all">
                                         <option value="">Select Category</option>
-                                        <option value="CNC Cutting Services">CNC Cutting Services</option>
-                                        <option value="CNC Programmer">CNC Programmer</option>
-                                        <option value="Cabinet Installer">Cabinet Installer</option>
+                                        <option value="CNC Cutting Services">CNC Fabrication</option>
+                                        <option value="CNC Programmer">Programming</option>
+                                        <option value="Cabinet Installer">Installation</option>
                                     </select>
                                 </div>
                             </div>
-                            <div className="space-y-3 pt-2 border-t border-border/40">
-                                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary block">Default Rates</label>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-3">
+
+                            <div className="space-y-8">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="w-1 h-3 bg-primary rounded-full"></span>
+                                    <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Yield Configuration (Labor Rates)</h3>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {['board_cut', 'edge_band', 'assembly', 'design', 'install', 'countertop'].map(r => (
                                         <React.Fragment key={r}>
-                                            <div className="flex gap-2">
-                                                <div className="flex-1 space-y-1">
-                                                    <label className="text-[10px] text-muted-foreground font-medium ml-1 capitalize text-nowrap flex items-center justify-between">
-                                                        {r.replace('_', ' ')}
-                                                        {r === 'install' && (
-                                                            <span className="text-[9px] text-primary font-bold bg-primary/5 px-1.5 py-0.5 rounded">Granular ▼</span>
-                                                        )}
-                                                    </label>
-                                                    <div className="relative">
-                                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-semibold">₱</span>
-                                                        <input name={r} type="number" step="0.01" placeholder="0" className="w-full p-2 pl-6 border border-border/40 rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm" />
+                                            <div className="bg-[#FAFBFB] p-5 rounded-3xl border border-slate-50 space-y-4">
+                                                <label className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center justify-between">
+                                                    {r.replace('_', ' ')}
+                                                    {r === 'install' && <span className="bg-primary/10 text-[8px] px-2 py-0.5 rounded-full">Variable</span>}
+                                                </label>
+                                                <div className="flex gap-3">
+                                                    <div className="relative flex-1">
+                                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-sm font-black">₱</span>
+                                                        <input name={r} type="number" step="0.01" placeholder="0.00" className="w-full pl-8 pr-4 py-3 border border-slate-100 rounded-xl bg-white text-slate-800 font-black text-sm focus:outline-none focus:ring-2 focus:ring-primary/10" />
                                                     </div>
-                                                </div>
-                                                <div className="w-32 space-y-1 pt-[18px]">
-                                                    <select name={`unit_${r}`} className="w-full p-2 border border-border/40 rounded bg-background text-[10px] focus:outline-none focus:ring-2 focus:ring-primary/20 h-[38px]">
-                                                        <option value="per job">per job</option>
-                                                        <option value="per sqm">per sqm</option>
-                                                        <option value="per linear meter">per linear m</option>
-                                                        <option value="per feet">per feet</option>
-                                                        <option value="per project">per project</option>
-                                                        <option value="per board">per board</option>
-                                                        <option value="per module">per module</option>
+                                                    <select name={`unit_${r}`} className="w-24 px-2 border border-slate-100 rounded-xl bg-white text-[9px] font-black uppercase focus:outline-none">
+                                                        {['per job', 'per sqm', 'per linear meter', 'per feet', 'per project', 'per board', 'per module'].map(u => (
+                                                            <option key={u} value={u}>{u.replace('per ', '')}</option>
+                                                        ))}
                                                     </select>
                                                 </div>
                                             </div>
                                             {r === 'install' && (
-                                                <div className="col-span-1 md:col-span-2 lg:col-span-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 bg-muted/20 p-3 rounded-xl border border-dashed border-border/60">
+                                                <div className="col-span-full grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50 p-6 rounded-[32px] border border-dashed border-slate-200">
                                                     {['drawer', 'base_cabinet', 'wall_cabinet', 'closet'].map(sub => (
-                                                        <div key={sub} className="space-y-1">
-                                                            <label className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter opacity-70 ml-1">{sub.replace('_', ' ')}</label>
-                                                            <div className="flex gap-1.5">
+                                                        <div key={sub} className="space-y-2">
+                                                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">{sub.replace('_', ' ')}</label>
+                                                            <div className="flex gap-2">
                                                                 <div className="relative flex-1">
-                                                                    <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-muted-foreground text-[10px] font-semibold">₱</span>
-                                                                    <input name={sub} type="number" step="0.01" className="w-full p-1.5 pl-4 border border-border/40 rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 text-[11px]" placeholder="0" />
+                                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs font-black">₱</span>
+                                                                    <input name={sub} type="number" step="0.01" className="w-full pl-6 pr-2 py-2 border border-slate-100 rounded-lg bg-white text-slate-800 font-black text-[11px] focus:outline-none" placeholder="0" />
                                                                 </div>
-                                                                <select name={`unit_${sub}`} defaultValue="per module" className="w-16 p-1 border border-border/40 rounded bg-background text-[9px] focus:outline-none h-[28px]">
+                                                                <select name={`unit_${sub}`} defaultValue="per module" className="w-14 px-1 border border-slate-100 rounded-lg bg-white text-[8px] font-black uppercase focus:outline-none">
                                                                     <option value="per module">pc</option>
                                                                     <option value="per linear meter">lm</option>
                                                                     <option value="per feet">ft</option>
@@ -543,13 +635,15 @@ export function SubcontractorManager({
                                     ))}
                                 </div>
                             </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Notes</label>
-                                <textarea name="notes" placeholder="Notes..." className="w-full p-3 border border-border/40 rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all min-h-[60px] text-sm" />
+
+                            <div className="space-y-3">
+                                <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 ml-1">Onboarding Observations</label>
+                                <textarea name="notes" placeholder="Initial findings, background check notes, special capabilities..." className="w-full px-5 py-4 border border-slate-100 rounded-2xl bg-[#FAFBFB] text-slate-800 font-medium focus:outline-none focus:ring-4 focus:ring-primary/5 min-h-[120px] text-[13px] resize-none" />
                             </div>
-                            <div className="flex gap-3 pt-4 justify-end">
-                                <button type="button" onClick={closeModal} className="px-4 py-2 bg-muted text-foreground rounded-lg transition-colors text-sm font-medium">Cancel</button>
-                                <SubmitButton className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-bold shadow-lg shadow-primary/20 text-sm">Add Subcontractor</SubmitButton>
+
+                            <div className="flex gap-4 pt-12 justify-end items-center border-t border-slate-50">
+                                <button type="button" onClick={closeModal} className="px-8 py-3.5 text-slate-400 hover:text-slate-900 text-[13px] font-black uppercase tracking-widest transition-colors">Discard Draft</button>
+                                <SubmitButton className="px-10 py-4 bg-secondary text-white rounded-2xl font-black text-[13px] uppercase tracking-widest shadow-xl shadow-secondary/20 hover:bg-secondary/90 transition-all transform active:scale-95 leading-none">Complete Registration</SubmitButton>
                             </div>
                         </SaveForm>
                     </div>
@@ -558,68 +652,68 @@ export function SubcontractorManager({
 
             {/* Global RFQ Modal */}
             {showRFQ && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
-                    <div className="relative w-full max-w-2xl bg-card border border-border/40 rounded-2xl shadow-2xl p-7 animate-in zoom-in-95 duration-300">
-                        <div className="flex items-center justify-between mb-8 pb-4 border-b border-border/20">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2.5 rounded-xl bg-primary/10 text-primary">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-send"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="relative w-full max-w-3xl bg-white rounded-[40px] shadow-[0_32px_120px_rgba(0,0,0,0.2)] p-10 animate-in zoom-in-[0.98] duration-300 border border-slate-100 max-h-[90vh] overflow-y-auto custom-scrollbar">
+                        <div className="flex items-center justify-between mb-10 pb-6 border-b border-slate-50">
+                            <div className="flex items-center gap-5">
+                                <div className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl font-bold tracking-tight text-foreground">Send RFQ</h2>
-                                    <p className="text-sm text-muted-foreground">Request for quotation with plans and profile</p>
+                                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">Dispatch RFQ</h2>
+                                    <p className="text-[13px] text-slate-400 font-bold uppercase tracking-widest">Request for Quote — Official Protocol</p>
                                 </div>
                             </div>
-                            <button onClick={closeModal} className="p-2 rounded-full hover:bg-muted transition-colors bg-background border shadow-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+                            <button onClick={closeModal} className="p-3 rounded-2xl hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-all bg-white border border-slate-100 shadow-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
                             </button>
                         </div>
-                        <SaveForm action={sendAction} onSubmitted={closeModal} className="space-y-6" successMessage="RFQ Sent Successfully!">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <SaveForm action={sendAction} onSubmitted={closeModal} className="space-y-10" successMessage="RFQ Sent Successfully!">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Select Subcontractor</label>
-                                    <select name="subcontractor_id" value={rfqSubId} onChange={(e) => setRfqSubId(e.target.value)} className="w-full p-3 border border-border/40 rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium">
-                                        <option value="">Choose from list...</option>
+                                    <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 ml-1">Target Professional</label>
+                                    <select name="subcontractor_id" value={rfqSubId} onChange={(e) => setRfqSubId(e.target.value)} className="w-full px-5 py-4 border border-slate-100 rounded-2xl bg-[#FAFBFB] text-slate-800 font-black focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all">
+                                        <option value="">Choose from registry...</option>
                                         {list.map((f: any) => (
                                             <option key={f.id} value={f.id}>{f.name}</option>
                                         ))}
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Or Direct Email</label>
-                                    <input name="email" type="email" value={rfqEmail} onChange={(e) => setRfqEmail(e.target.value)} placeholder="subcontractor@example.com" className="w-full p-3 border border-border/40 rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                                    <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 ml-1">Direct Outreach Email</label>
+                                    <input name="email" type="email" value={rfqEmail} onChange={(e) => setRfqEmail(e.target.value)} placeholder="provider@domain.com" className="w-full px-5 py-4 border border-slate-100 rounded-2xl bg-[#FAFBFB] text-slate-800 font-bold focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all" />
                                 </div>
                                 <div className="md:col-span-2 space-y-2">
-                                    <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Custom Name / Attention To</label>
-                                    <input name="name" value={rfqName} onChange={(e) => setRfqName(e.target.value)} placeholder="Name to appear in email..." className="w-full p-3 border border-border/40 rounded-xl bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium" />
+                                    <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 ml-1">Recipient Name / Attention To</label>
+                                    <input name="name" value={rfqName} onChange={(e) => setRfqName(e.target.value)} placeholder="Full name for formal address..." className="w-full px-5 py-4 border border-slate-100 rounded-2xl bg-[#FAFBFB] text-slate-800 font-bold focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all" />
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-4 border-t border-border/20">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-slate-50">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Cabinet Plan (PDF/IMAGE)</label>
-                                    <div className="relative group">
-                                        <input name="plan_pdf" type="file" accept="application/pdf,image/png,image/jpeg" className="w-full p-2.5 border border-border/40 rounded-xl text-xs bg-muted/20 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:bg-primary/20 file:text-primary hover:file:bg-primary/30 transition-all cursor-pointer" />
+                                    <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 ml-1">Technical Specifications (PDF)</label>
+                                    <div className="relative">
+                                        <input name="plan_pdf" type="file" accept="application/pdf,image/png,image/jpeg" className="w-full px-5 py-3 border border-slate-100 rounded-2xl bg-[#FAFBFB] text-[11px] font-bold file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:bg-primary/10 file:text-primary transition-all cursor-pointer" />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Subcon Profile (PDF/IMAGE)</label>
-                                    <div className="relative group">
-                                        <input name="profile_pdf" type="file" accept="application/pdf,image/png,image/jpeg" className="w-full p-2.5 border border-border/40 rounded-xl text-xs bg-muted/20 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-[10px] file:font-bold file:bg-primary/20 file:text-primary hover:file:bg-primary/30 transition-all cursor-pointer" />
+                                    <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 ml-1">Company Credentials (PDF)</label>
+                                    <div className="relative">
+                                        <input name="profile_pdf" type="file" accept="application/pdf,image/png,image/jpeg" className="w-full px-5 py-3 border border-slate-100 rounded-2xl bg-[#FAFBFB] text-[11px] font-bold file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:bg-primary/10 file:text-primary transition-all cursor-pointer" />
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Personalized Message</label>
-                                <textarea name="message" placeholder="Write a professional request for quotation..." className="w-full p-4 border border-border/40 rounded-xl bg-background text-foreground min-h-[140px] text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none shadow-inner" />
+                            <div className="space-y-3">
+                                <label className="text-[11px] font-black uppercase tracking-widest text-slate-500 ml-1">Briefing / Project Context</label>
+                                <textarea name="message" placeholder="Draft your professional request here. Be specific about timelines and deliverables..." className="w-full px-5 py-5 border border-slate-100 rounded-2xl bg-[#FAFBFB] text-slate-800 text-[13px] font-medium focus:outline-none focus:ring-4 focus:ring-primary/5 transition-all min-h-[160px] resize-none" />
                             </div>
 
-                            <div className="flex gap-3 pt-6 justify-end items-center">
-                                <button type="button" onClick={closeModal} className="px-5 py-2.5 bg-muted text-foreground rounded-xl transition-all text-sm font-semibold hover:bg-muted/80">Cancel</button>
-                                <SubmitButton confirm="Ready to send this RFQ?" className="px-8 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold shadow-xl shadow-primary/20 text-sm flex items-center gap-2.5 hover:scale-[1.02] active:scale-[0.98] transition-all">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
-                                    Send RFQ Now
+                            <div className="flex gap-4 pt-10 justify-end items-center border-t border-slate-50">
+                                <button type="button" onClick={closeModal} className="px-8 py-3.5 text-slate-400 hover:text-slate-900 text-[13px] font-black uppercase tracking-widest transition-colors">Discard</button>
+                                <SubmitButton confirm="Execute dispatch of this RFQ package?" className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-[13px] uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-primary transition-all transform active:scale-95 leading-none flex items-center gap-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
+                                    Protocol Dispatch
                                 </SubmitButton>
                             </div>
                         </SaveForm>
@@ -629,62 +723,69 @@ export function SubcontractorManager({
 
             {/* Full View Modal */}
             {showFullList && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="relative w-full max-w-5xl h-[90vh] bg-card border border-border/40 rounded-2xl shadow-2xl flex flex-col animate-in zoom-in-95 duration-300 overflow-hidden">
-                        <div className="p-6 border-b border-border/40 flex flex-col md:flex-row md:items-center justify-between bg-muted/20 gap-4">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="relative w-full max-w-6xl h-[92vh] bg-white rounded-[40px] shadow-[0_32px_120px_rgba(0,0,0,0.1)] flex flex-col animate-in zoom-in-[0.98] duration-300 overflow-hidden border border-slate-100">
+                        <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white shrink-0">
                             <div>
-                                <h2 className="text-2xl font-bold text-foreground">Subcontractor Database</h2>
-                                <p className="text-sm text-muted-foreground uppercase tracking-widest font-bold opacity-60 mt-1">Full Inventory View — {filteredList.length} of {list.length} Records</p>
+                                <div className="flex items-center gap-3 mb-1">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_10px_rgba(30,58,46,0.3)]"></div>
+                                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">Database Explorer</h2>
+                                </div>
+                                <p className="text-[13px] text-slate-400 font-extrabold uppercase tracking-[0.2em]">Master Registry — {filteredList.length} Records Found</p>
                             </div>
 
-                            <div className="flex flex-1 max-w-2xl items-center gap-3">
-                                <div className="relative flex-1">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground opacity-50"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
+                            <div className="flex flex-1 max-w-2xl items-center gap-4">
+                                <div className="relative flex-1 group">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
                                     <input
                                         type="text"
-                                        placeholder="Search by name, ID, or email..."
+                                        placeholder="Scan by name, ID, or contact meta..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-border/40 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                                        className="w-full pl-12 pr-5 py-3.5 rounded-2xl border border-slate-100 bg-[#FAFBFB] text-[13px] font-bold focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all placeholder:text-slate-300"
                                     />
                                 </div>
                                 <select
                                     value={categoryFilter}
                                     onChange={(e) => setCategoryFilter(e.target.value)}
-                                    className="px-3 py-2 rounded-lg border border-border/40 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all min-w-[160px]"
+                                    className="px-5 py-3.5 rounded-2xl border border-slate-100 bg-[#FAFBFB] text-[13px] font-black text-slate-600 focus:outline-none focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all min-w-[200px]"
                                 >
-                                    <option value="">All Categories</option>
-                                    <option value="CNC Cutting Services">CNC Cutting Services</option>
-                                    <option value="CNC Programmer">CNC Programmer</option>
-                                    <option value="Cabinet Installer">Cabinet Installer</option>
+                                    <option value="">Filter All Types</option>
+                                    <option value="CNC Cutting Services">CNC Fabrication</option>
+                                    <option value="CNC Programmer">Programming</option>
+                                    <option value="Cabinet Installer">Installation</option>
                                 </select>
                             </div>
 
                             <div className="flex items-center gap-4">
-                                <Link href="/admin/subcontractors?showAdd=true" scroll={false} onClick={() => setShowFullList(false)} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-all shadow-lg flex items-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-plus"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
-                                    Add New
-                                </Link>
-                                <button onClick={() => setShowFullList(false)} className="p-2 rounded-full hover:bg-muted transition-colors bg-background" aria-label="Close modal">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+                                <button onClick={() => setShowFullList(false)} className="p-3.5 rounded-2xl hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-all bg-white border border-slate-100 shadow-sm" aria-label="Close modal">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
                                 </button>
                             </div>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-muted/5 custom-scrollbar">
-                            <div className="grid grid-cols-1 gap-4">
+                        <div className="flex-1 overflow-y-auto p-10 space-y-6 bg-[#FAFBFB]/30 custom-scrollbar overscroll-contain">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
                                 {filteredList.map(renderSubcontractorItem)}
                             </div>
                             {filteredList.length === 0 && (
-                                <div className="text-center py-20 text-muted-foreground italic border border-dashed rounded-2xl mx-auto max-w-md">
-                                    No subcontractors match your current search criteria.
+                                <div className="flex flex-col items-center justify-center py-40 text-center animate-in fade-in slide-in-from-bottom-4">
+                                    <div className="w-20 h-20 rounded-[32px] bg-slate-50 border border-slate-100 flex items-center justify-center mb-6 shadow-sm">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-200"><path d="m21 21-4.3-4.3" /><circle cx="11" cy="11" r="8" /><path d="M8 11h6" /></svg>
+                                    </div>
+                                    <p className="text-[15px] font-black text-slate-800 mb-1">No matching subcontractors</p>
+                                    <p className="text-[13px] text-slate-400 font-medium">Try broadening your search or adjusting filters.</p>
                                 </div>
                             )}
                         </div>
 
-                        <div className="p-4 border-t border-border/40 bg-muted/20 flex justify-between items-center text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
-                            <div>ModuLux Fabrication Management System v1.0</div>
-                            <div>Records Found: {filteredList.length}</div>
+                        <div className="px-10 py-6 border-t border-slate-50 bg-white flex justify-between items-center text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] shrink-0">
+                            <div className="flex items-center gap-6">
+                                <span>ModuLux Fabrication OS</span>
+                                <span className="w-1 h-1 rounded-full bg-slate-200"></span>
+                                <span>Session active</span>
+                            </div>
+                            <div className="bg-slate-50 px-4 py-1.5 rounded-full border border-slate-100">Records Found: {filteredList.length}</div>
                         </div>
                     </div>
                 </div>

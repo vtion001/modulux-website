@@ -686,147 +686,353 @@ export default function AdminProposalsPage() {
   }, [])
 
   return (
-    <div className="max-w-7xl mx-auto px-4 space-y-8">
-      <div className="relative isolate overflow-hidden rounded-2xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
-        <div className="px-6 py-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <FileText className="w-6 h-6" />
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Proposal Creator</h1>
-                <p className="text-sm md:text-base/relaxed opacity-90">Compose proposals with a live document preview</p>
-              </div>
+    <div className="max-w-[1600px] mx-auto p-8 space-y-10 bg-[#FAFBFB] min-h-screen font-sans">
+      <div className="bg-white rounded-[32px] border border-slate-100 shadow-[0_12px_40px_rgb(0,0,0,0.03)] overflow-hidden transition-all hover:shadow-[0_20px_50px_rgb(0,0,0,0.05)]">
+        <div className="p-6 md:p-8 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-8">
+          <div className="flex items-center gap-6">
+            <div className="w-16 h-16 rounded-[20px] bg-primary/5 border border-primary/10 flex items-center justify-center text-primary shadow-sm group">
+              <FileText className="w-7 h-7 group-hover:scale-110 transition-transform duration-500" />
             </div>
-            <div className="flex items-center gap-2">
-              <SaveForm action={saveDraft}>
-                <SubmitButton
-                  confirm="Save this proposal as a draft?"
-                  disabled={savingDraft}
-                  aria-busy={savingDraft}
-                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px] active:translate-y-0 disabled:pointer-events-none disabled:opacity-50 border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-10 px-4 py-2 text-black dark:text-white"
-                >
-                  <Save className="w-4 h-4" />
-                  {savingDraft ? "Saving…" : "Save Draft"}
-                </SubmitButton>
-              </SaveForm>
-              <SaveForm action={async () => {
-                const payload = {
-                  client: { name: clientName, email: clientEmail, company: clientCompany, phone: clientPhone },
-                  crmId: crmSelectedId,
-                  title,
-                  items,
-                  taxRate,
-                  discount,
-                  notes,
-                }
-                try {
-                  setSubmitting(true)
-                  const res = await fetch("/api/proposals/create", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
-                  const data = await res.json().catch(() => ({}))
-                  if (res.ok && data?.id) {
-                    try {
-                      if (crmSelectedId) {
-                        const dres = await fetch("/api/crm/deals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, contact_id: crmSelectedId, value: total, next_activity: "Proposal submitted", due_date: validUntil }) })
-                        const djson = await dres.json().catch(() => ({}))
-                        if (dres.ok && djson?.ok && djson?.id) {
-                          toast.success(
-                            <span>
-                              Deal created: {String(djson.id)} •{" "}
-                              <a href={`/admin/crm?deal=${encodeURIComponent(String(djson.id))}`} className="underline">Open</a>
-                            </span>,
-                            {
-                              action: {
-                                label: "Copy Link",
-                                onClick: () => {
-                                  const url = `${window.location.origin}/admin/crm?deal=${encodeURIComponent(String(djson.id))}`
-                                  navigator.clipboard.writeText(url)
-                                },
-                              },
-                            }
-                          )
-                        }
-                      } else if (clientName.trim() || clientEmail.trim()) {
-                        const lres = await fetch("/api/crm/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: clientName, email: clientEmail, phone: clientPhone, company: clientCompany, source: "Proposal", notes: title }) })
-                        const ljson = await lres.json().catch(() => ({}))
-                        if (lres.ok && ljson?.ok && ljson?.id) {
-                          toast.success(
-                            <span>
-                              Lead created: {String(ljson.id)} •{" "}
-                              <a href={`/admin/crm?lead=${encodeURIComponent(String(ljson.id))}`} className="underline">Open</a>
-                            </span>,
-                            {
-                              action: {
-                                label: "Copy Link",
-                                onClick: () => {
-                                  const url = `${window.location.origin}/admin/crm?lead=${encodeURIComponent(String(ljson.id))}`
-                                  navigator.clipboard.writeText(url)
-                                },
-                              },
-                            }
-                          )
-                        }
-                      }
-                    } catch { }
-                    toast.success("Proposal submitted")
-                    loadSentProposals()
-                    window.location.href = `/admin/proposals?id=${encodeURIComponent(data.id)}`
-                  } else {
-                    toast.error(String(data?.error || "Submission failed"))
-                  }
-                } catch { }
-                finally {
-                  setSubmitting(false)
-                }
-              }}>
-                <SubmitButton
-                  confirm="Are you sure you want to submit this proposal? This will also create a Deal/Lead in the CRM."
-                  disabled={submitting}
-                  aria-busy={submitting}
-                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px] active:translate-y-0 disabled:pointer-events-none disabled:opacity-50 border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-10 px-4 py-2 text-black dark:text-white"
-                >
-                  <Send className="w-4 h-4" />
-                  {submitting ? "Submitting…" : "Submit"}
-                </SubmitButton>
-              </SaveForm>
+            <div className="space-y-1">
+              <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                Proposal Creator
+                <span className="flex h-2.5 w-2.5 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
+                </span>
+              </h1>
+              <p className="text-[13px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                Premium Suite
+                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                Live Preview
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+            <div className="flex items-center gap-2 mr-4 border-r border-slate-100 pr-6">
               <Button
-                variant="outline"
-                onClick={() => {
-                  if (!clientEmail || !clientEmail.trim()) { toast.error("Add a client email first"); return }
-                  const subject = `Proposal Preview: ${String(title || "Proposal")}`
-                  const text = buildEmailText()
-                  setEmailSubject(subject)
-                  setEmailBody(text)
-                  setEmailPreviewOpen(true)
-                }}
-                className="inline-flex items-center justify-center gap-2 h-10 px-4 text-black dark:text-white"
-              >
-                <Mail className="w-4 h-4" />
-                Email Preview
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setAiOpen(true)}
-                className="inline-flex items-center justify-center gap-2 h-10 px-4 text-black dark:text-white"
-              >
-                <Sparkles className="w-4 h-4" />
-                AI Fill
-              </Button>
-              <Button
-                variant="outline"
+                variant="ghost"
                 onClick={() => setDraftsOpen(true)}
-                className="inline-flex items-center justify-center gap-2 h-10 px-4 text-black dark:text-white"
+                className="h-10 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-all gap-2"
               >
                 <FolderOpen className="w-4 h-4" />
-                View Drafts
+                Drafts
               </Button>
               <Button
-                variant="outline"
+                variant="ghost"
                 onClick={() => setSentOpen(true)}
-                className="inline-flex items-center justify-center gap-2 h-10 px-4 text-black dark:text-white"
+                className="h-10 px-4 rounded-xl text-[11px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-all gap-2"
               >
                 <History className="w-4 h-4" />
-                View Sent
+                History
               </Button>
+            </div>
+
+            <Button
+              variant="outline"
+              onClick={() => setAiOpen(true)}
+              className="h-11 px-5 rounded-xl border-slate-200 text-[11px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-primary transition-all gap-2 shadow-sm"
+            >
+              <Sparkles className="w-4 h-4" />
+              AI Auto-Fill
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (!clientEmail || !clientEmail.trim()) { toast.error("Add a client email first"); return }
+                const subject = `Proposal Preview: ${String(title || "Proposal")}`
+                const text = buildEmailText()
+                setEmailSubject(subject)
+                setEmailBody(text)
+                setEmailPreviewOpen(true)
+              }}
+              className="h-11 px-5 rounded-xl border-slate-200 text-[11px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-primary transition-all gap-2 shadow-sm"
+            >
+              <Mail className="w-4 h-4" />
+              Preview Email
+            </Button>
+
+            <SaveForm action={saveDraft}>
+              <SubmitButton
+                confirm="Save this proposal as a draft?"
+                disabled={savingDraft}
+                aria-busy={savingDraft}
+                className="h-11 px-6 rounded-xl bg-white border border-slate-200 text-[11px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-primary hover:border-primary/20 transition-all gap-2 shadow-sm flex items-center justify-center min-w-[140px]"
+              >
+                <Save className="w-4 h-4" />
+                {savingDraft ? "Saving..." : "Save Draft"}
+              </SubmitButton>
+            </SaveForm>
+
+            <SaveForm action={async () => {
+              const payload = {
+                client: { name: clientName, email: clientEmail, company: clientCompany, phone: clientPhone },
+                crmId: crmSelectedId,
+                title,
+                items,
+                taxRate,
+                discount,
+                notes,
+              }
+              try {
+                setSubmitting(true)
+                const res = await fetch("/api/proposals/create", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
+                const data = await res.json().catch(() => ({}))
+                if (res.ok && data?.id) {
+                  try {
+                    if (crmSelectedId) {
+                      const dres = await fetch("/api/crm/deals", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, contact_id: crmSelectedId, value: total, next_activity: "Proposal submitted", due_date: validUntil }) })
+                      const djson = await dres.json().catch(() => ({}))
+                      if (dres.ok && djson?.ok && djson?.id) {
+                        toast.success(
+                          <span>
+                            Deal created: {String(djson.id)} •{" "}
+                            <a href={`/admin/crm?deal=${encodeURIComponent(String(djson.id))}`} className="underline">Open</a>
+                          </span>,
+                          {
+                            action: {
+                              label: "Copy Link",
+                              onClick: () => {
+                                const url = `${window.location.origin}/admin/crm?deal=${encodeURIComponent(String(djson.id))}`
+                                navigator.clipboard.writeText(url)
+                              },
+                            },
+                          }
+                        )
+                      }
+                    } else if (clientName.trim() || clientEmail.trim()) {
+                      const lres = await fetch("/api/crm/leads", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: clientName, email: clientEmail, phone: clientPhone, company: clientCompany, source: "Proposal", notes: title }) })
+                      const ljson = await lres.json().catch(() => ({}))
+                      if (lres.ok && ljson?.ok && ljson?.id) {
+                        toast.success(
+                          <span>
+                            Lead created: {String(ljson.id)} •{" "}
+                            <a href={`/admin/crm?lead=${encodeURIComponent(String(ljson.id))}`} className="underline">Open</a>
+                          </span>,
+                          {
+                            action: {
+                              label: "Copy Link",
+                              onClick: () => {
+                                const url = `${window.location.origin}/admin/crm?lead=${encodeURIComponent(String(ljson.id))}`
+                                navigator.clipboard.writeText(url)
+                              },
+                            },
+                          }
+                        )
+                      }
+                    }
+                  } catch { }
+                  toast.success("Proposal submitted")
+                  loadSentProposals()
+                  window.location.href = `/admin/proposals?id=${encodeURIComponent(data.id)}`
+                } else {
+                  toast.error(String(data?.error || "Submission failed"))
+                }
+              } catch { }
+              finally {
+                setSubmitting(false)
+              }
+            }}>
+              <SubmitButton
+                confirm="Are you sure you want to submit this proposal? This will also create a Deal/Lead in the CRM."
+                disabled={submitting}
+                aria-busy={submitting}
+                className="h-11 px-8 rounded-xl bg-primary text-white text-[11px] font-black uppercase tracking-widest hover:bg-slate-900 transition-all gap-2 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center min-w-[160px]"
+              >
+                <Send className="w-4 h-4" />
+                {submitting ? "Sending..." : "Submit Proposal"}
+              </SubmitButton>
+            </SaveForm>
+          </div>
+        </div>
+      </div>
+      {/* Search & Filter Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-5 bg-white p-6 rounded-[24px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+            <div className="relative w-full lg:w-[480px]">
+              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+              </div>
+              <input
+                placeholder="Search proposals"
+                className="w-full bg-[#FAFBFB] border border-slate-200 rounded-xl pl-11 pr-4 py-2.5 text-[13px] font-medium transition-all focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary/50 placeholder:text-slate-300"
+                value={draftQuery}
+                onChange={(e) => setDraftQuery(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Sort By</span>
+              <select
+                className="bg-[#FAFBFB] border border-slate-200 rounded-xl px-4 py-2.5 text-[13px] font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/10"
+                value={sortKey}
+                onChange={(e) => setSortKey(e.target.value)}
+              >
+                <option value="updated_desc">Newest</option>
+                <option value="updated_asc">Oldest</option>
+                <option value="title_asc">Title</option>
+                <option value="client_asc">Client</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[40px] border border-slate-100 shadow-[0_12px_40px_rgb(0,0,0,0.03)] overflow-hidden">
+            <div className="p-8 border-b border-slate-50 flex items-center justify-between">
+              <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+                Recent Drafts
+              </h2>
+              <button
+                onClick={() => setDraftsOpen(true)}
+                className="text-[10px] font-black text-primary hover:bg-primary/5 px-3 py-1.5 rounded-lg flex items-center gap-2 uppercase tracking-widest transition-all"
+              >
+                <FolderOpen className="w-3.5 h-3.5" />
+                View All Drafts
+              </button>
+            </div>
+            <div className="p-8 space-y-6 max-h-[1000px] overflow-y-auto custom-scrollbar">
+              {draftsLoading ? (
+                <div className="p-8 text-center text-sm text-slate-500">Loading drafts...</div>
+              ) : drafts.length === 0 ? (
+                <div className="p-8 text-center text-sm text-slate-500">No drafts found.</div>
+              ) : (
+                drafts.slice(0, 5).map((draft: any) => (
+                  <div key={draft.id} className="bg-white rounded-2xl border border-slate-100 p-5 transition-all duration-300 hover:shadow-[0_10px_30px_rgba(0,0,0,0.05)] hover:-translate-y-0.5 group">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-center text-primary font-black text-xl shadow-sm group-hover:scale-110 transition-transform">
+                          {(draft.title || "P").charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="font-black text-slate-900 text-[16px] tracking-tight truncate max-w-[200px]">{draft.title || "Untitled Proposal"}</div>
+                            <span className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border bg-primary text-white border-primary shadow-sm">Draft</span>
+                          </div>
+                          <div className="text-[11px] text-slate-400 font-bold flex gap-3">
+                            <span className="flex items-center gap-1">
+                              <span className="opacity-50 font-medium">Updated:</span> {new Date(draft.updatedAt).toLocaleDateString()}
+                            </span>
+                            {draft.client?.name && (
+                              <span className="flex items-center gap-1">
+                                <span className="opacity-50 font-medium">To:</span> {draft.client.name}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            window.location.href = `/admin/proposals?id=${draft.id}`
+                          }}
+                          className="hover:bg-primary/5 hover:text-primary rounded-xl"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></svg>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+
+              <div className="pt-8 border-t border-dashed border-slate-100 flex justify-center">
+                <button
+                  onClick={() => setDraftsOpen(true)}
+                  className="inline-flex items-center gap-2.5 px-10 py-4 rounded-2xl border border-secondary bg-white text-secondary text-[11px] font-black uppercase tracking-widest hover:bg-secondary hover:text-white hover:shadow-[0_20px_50px_rgba(184,134,11,0.2)] transition-all group scale-100 hover:scale-[1.02] active:scale-95"
+                >
+                  Explore All Drafts ({draftTotal})
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:translate-x-1"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-8">
+          <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-6">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-1.5 h-4 bg-primary rounded-full"></div>
+              <h2 className="text-[13px] font-black uppercase tracking-[0.15em] text-slate-800">Operational Guidelines</h2>
+            </div>
+            <ul className="text-[13px] text-slate-500 space-y-4 font-medium">
+              <li className="flex gap-4 items-start">
+                <span className="w-6 h-6 rounded-lg bg-primary/5 text-primary font-black text-[10px] flex items-center justify-center shrink-0 border border-primary/10">01</span>
+                <span>All proposals must be reviewed for pricing accuracy before submission.</span>
+              </li>
+              <li className="flex gap-4 items-start">
+                <span className="w-6 h-6 rounded-lg bg-primary/5 text-primary font-black text-[10px] flex items-center justify-center shrink-0 border border-primary/10">02</span>
+                <span>Include valid expiration dates relative to material cost fluctuations.</span>
+              </li>
+              <li className="flex gap-4 items-start">
+                <span className="w-6 h-6 rounded-lg bg-primary/5 text-primary font-black text-[10px] flex items-center justify-center shrink-0 border border-primary/10">03</span>
+                <span>Drafts are automatically saved but should be manually confirmed.</span>
+              </li>
+            </ul>
+            <div className="pt-6 border-t border-slate-50">
+              <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-4">Snippet Quick Access</h3>
+              <button
+                onClick={() => setSnippetManagerOpen(true)}
+                className="w-full py-4 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest transform active:scale-[0.98] transition-all shadow-lg shadow-primary/10 flex items-center justify-center gap-2"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Manage Snippets
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-[13px] font-black uppercase tracking-widest text-slate-800">Recent Sent</h2>
+              <button onClick={() => setSentOpen(true)} className="text-[10px] font-bold bg-slate-100 text-slate-400 px-2 py-0.5 rounded uppercase hover:bg-slate-200 transition-colors">View All</button>
+            </div>
+            <div className="overflow-hidden rounded-xl border border-slate-100">
+              <table className="min-w-full text-[11px]">
+                <thead className="bg-[#FAFBFB]">
+                  <tr className="border-b border-slate-100">
+                    <th className="text-left p-3 font-black text-slate-400">Client</th>
+                    <th className="text-left p-3 font-black text-slate-400 text-center">Stat</th>
+                    <th className="text-right p-3 font-black text-slate-400">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {sentLoading ? (
+                    <tr><td colSpan={3} className="p-3 text-center text-slate-400">Loading...</td></tr>
+                  ) : sentProposals.length === 0 ? (
+                    <tr><td colSpan={3} className="p-3 text-center text-slate-400">No sent proposals.</td></tr>
+                  ) : (
+                    sentProposals.slice(0, 5).map((p: any) => (
+                      <tr key={p.id} className="hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => window.open(`/admin/proposals/view/${p.id}`, '_blank')}>
+                        <td className="p-3 font-extrabold text-slate-700 truncate max-w-[100px]">{p.client?.name || "Unknown"}</td>
+                        <td className="p-3 text-center"><span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-primary/10 text-primary">Sent</span></td>
+                        <td className="p-3 text-right opacity-60 font-bold whitespace-nowrap">{new Date(p.createdAt).toLocaleDateString()}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-[0_8px_40px_rgb(0,0,0,0.03)] ring-1 ring-slate-100/50">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-[13px] font-black uppercase tracking-[0.2em] text-slate-800 flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
+                Overview
+              </h2>
+            </div>
+            <div className="mt-2 pt-2 grid grid-cols-2 gap-4">
+              <div className="p-4 bg-[#FAFBFB] rounded-2xl border border-slate-50 text-center">
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Drafts</div>
+                <div className="text-xl font-black text-slate-900 tracking-tighter">{draftTotal}</div>
+              </div>
+              <div className="p-4 bg-[#FAFBFB] rounded-2xl border border-slate-50 text-center">
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Sent</div>
+                <div className="text-xl font-black text-slate-900 tracking-tighter">{sentTotal}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -1114,14 +1320,17 @@ export default function AdminProposalsPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="space-y-6">
-          <div className="bg-card border border-border/40 rounded-xl p-4 shadow-sm">
-            <div className="text-sm font-semibold text-foreground mb-3">Client Information</div>
+          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] transition-all ease-out duration-300 transform hover:-translate-y-1">
+            <div className="text-[13px] font-black uppercase tracking-[0.15em] text-slate-800 mb-6 flex items-center gap-2">
+              <span className="w-1.5 h-4 bg-primary rounded-full"></span>
+              Client Information
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="md:col-span-2 relative" ref={crmRef}>
                 <input
-                  className="p-2 border border-border/40 rounded-md bg-background text-foreground w-full"
+                  className="bg-[#FAFBFB] border border-slate-200 rounded-xl px-4 py-3 text-[13px] font-medium transition-all focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary/50 placeholder:text-slate-300 w-full"
                   placeholder="Search CRM (name/email/company)"
                   value={crmQuery}
                   onChange={(e) => setCrmQuery(e.target.value)}
@@ -1170,25 +1379,25 @@ export default function AdminProposalsPage() {
                 </div>
               )}
               <input
-                className="p-2 border border-border/40 rounded-md bg-background text-foreground"
+                className="bg-[#FAFBFB] border border-slate-200 rounded-xl px-4 py-3 text-[13px] font-medium transition-all focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary/50 placeholder:text-slate-300"
                 placeholder="Client name"
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
               />
               <input
-                className="p-2 border border-border/40 rounded-md bg-background text-foreground"
+                className="bg-[#FAFBFB] border border-slate-200 rounded-xl px-4 py-3 text-[13px] font-medium transition-all focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary/50 placeholder:text-slate-300"
                 placeholder="Client email"
                 value={clientEmail}
                 onChange={(e) => setClientEmail(e.target.value)}
               />
               <input
-                className="p-2 border border-border/40 rounded-md bg-background text-foreground"
+                className="bg-[#FAFBFB] border border-slate-200 rounded-xl px-4 py-3 text-[13px] font-medium transition-all focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary/50 placeholder:text-slate-300"
                 placeholder="Phone (optional)"
                 value={clientPhone}
                 onChange={(e) => setClientPhone(e.target.value)}
               />
               <input
-                className="p-2 border border-border/40 rounded-md bg-background text-foreground md:col-span-2"
+                className="bg-[#FAFBFB] border border-slate-200 rounded-xl px-4 py-3 text-[13px] font-medium transition-all focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary/50 placeholder:text-slate-300 md:col-span-2"
                 placeholder="Company (optional)"
                 value={clientCompany}
                 onChange={(e) => setClientCompany(e.target.value)}
@@ -1311,11 +1520,14 @@ export default function AdminProposalsPage() {
             </div>
           </div>
 
-          <div className="bg-card border border-border/40 rounded-xl p-4 shadow-sm">
-            <div className="text-sm font-semibold text-foreground mb-3">Proposal Details</div>
+          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] transition-all ease-out duration-300 transform hover:-translate-y-1">
+            <div className="text-[13px] font-black uppercase tracking-[0.15em] text-slate-800 mb-6 flex items-center gap-2">
+              <span className="w-1.5 h-4 bg-primary rounded-full"></span>
+              Proposal Details
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <input
-                className="p-2 border border-border/40 rounded-md bg-background text-foreground md:col-span-2"
+                className="bg-[#FAFBFB] border border-slate-200 rounded-xl px-4 py-3 text-[13px] font-medium transition-all focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary/50 placeholder:text-slate-300 md:col-span-2"
                 placeholder="Proposal title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -1324,7 +1536,7 @@ export default function AdminProposalsPage() {
                 <label className="text-xs text-muted-foreground">Issue date</label>
                 <input
                   type="date"
-                  className="p-2 border border-border/40 rounded-md bg-background text-foreground w-full"
+                  className="bg-[#FAFBFB] border border-slate-200 rounded-xl px-4 py-3 text-[13px] font-medium transition-all focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary/50 placeholder:text-slate-300 w-full"
                   value={issueDate}
                   onChange={(e) => setIssueDate(e.target.value)}
                 />
@@ -1333,7 +1545,7 @@ export default function AdminProposalsPage() {
                 <label className="text-xs text-muted-foreground">Valid until</label>
                 <input
                   type="date"
-                  className="p-2 border border-border/40 rounded-md bg-background text-foreground w-full"
+                  className="bg-[#FAFBFB] border border-slate-200 rounded-xl px-4 py-3 text-[13px] font-medium transition-all focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary/50 placeholder:text-slate-300 w-full"
                   value={validUntil}
                   onChange={(e) => setValidUntil(e.target.value)}
                 />
@@ -1383,7 +1595,7 @@ export default function AdminProposalsPage() {
                   </div>
                 </div>
                 <textarea
-                  className="p-2 border border-border/40 rounded-md bg-background text-foreground w-full"
+                  className="bg-[#FAFBFB] border border-slate-200 rounded-xl px-4 py-3 text-[13px] font-medium transition-all focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary/50 placeholder:text-slate-300 w-full"
                   rows={3}
                   placeholder="Scope, materials, timelines, and terms"
                   value={notes}
@@ -1393,17 +1605,20 @@ export default function AdminProposalsPage() {
             </div>
           </div>
 
-          <div className="bg-card border border-border/40 rounded-xl p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-semibold text-foreground">Line Items</div>
-              <Button variant="outline" size="sm" onClick={addItem} className="inline-flex items-center gap-2">
-                <Plus className="w-4 h-4" /> Add item
+          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] transition-all ease-out duration-300 transform hover:-translate-y-1">
+            <div className="flex items-center justify-between mb-6">
+              <div className="text-[13px] font-black uppercase tracking-[0.15em] text-slate-800 flex items-center gap-2">
+                <span className="w-1.5 h-4 bg-primary rounded-full"></span>
+                Line Items
+              </div>
+              <Button variant="ghost" size="sm" onClick={addItem} className="inline-flex items-center gap-2 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary rounded-xl text-[10px] font-black uppercase tracking-widest px-4 border border-primary/10 transition-all">
+                <Plus className="w-3.5 h-3.5" /> Add Item
               </Button>
             </div>
             <div className="overflow-x-auto -mx-4 px-4 pb-2">
               <table className="w-full text-xs border-collapse min-w-[800px]">
                 <thead>
-                  <tr className="bg-muted/30 border-b border-border/40">
+                  <tr className="bg-[#FAFBFB] border-b border-slate-100">
                     <th className="p-2 text-left font-medium text-muted-foreground w-20">Category</th>
                     <th className="p-2 text-left font-medium text-muted-foreground w-12">Set</th>
                     <th className="p-2 text-left font-medium text-muted-foreground w-20">Room</th>
@@ -1521,15 +1736,18 @@ export default function AdminProposalsPage() {
             </div>
           </div>
 
-          <div className="bg-card border border-border/40 rounded-xl p-4 shadow-sm">
-            <div className="text-sm font-semibold text-foreground mb-3">Totals</div>
+          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] transition-all ease-out duration-300 transform hover:-translate-y-1">
+            <div className="text-[13px] font-black uppercase tracking-[0.15em] text-slate-800 mb-6 flex items-center gap-2">
+              <span className="w-1.5 h-4 bg-primary rounded-full"></span>
+              Totals
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="space-y-1">
                 <label className="text-xs text-muted-foreground">Tax rate %</label>
                 <input
                   type="number"
                   min={0}
-                  className="p-2 border border-border/40 rounded-md bg-background text-foreground w-full"
+                  className="bg-[#FAFBFB] border border-slate-200 rounded-xl px-4 py-3 text-[13px] font-medium transition-all focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary/50 placeholder:text-slate-300 w-full"
                   value={taxRate}
                   onChange={(e) => setTaxRate(Number(e.target.value) || 0)}
                 />
@@ -1539,7 +1757,7 @@ export default function AdminProposalsPage() {
                 <input
                   type="number"
                   min={0}
-                  className="p-2 border border-border/40 rounded-md bg-background text-foreground w-full"
+                  className="bg-[#FAFBFB] border border-slate-200 rounded-xl px-4 py-3 text-[13px] font-medium transition-all focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary/50 placeholder:text-slate-300 w-full"
                   value={discount}
                   onChange={(e) => setDiscount(Number(e.target.value) || 0)}
                 />
@@ -1555,10 +1773,15 @@ export default function AdminProposalsPage() {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-card border border-border/40 rounded-xl shadow-sm overflow-hidden">
-            <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
-              <div className="font-semibold">Preview</div>
-              <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>Full Preview</Button>
+          <div className="bg-white rounded-[32px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] transition-all ease-out duration-300 transform hover:-translate-y-1 overflow-hidden">
+            <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+              <div className="text-[13px] font-black uppercase tracking-[0.15em] text-slate-800 flex items-center gap-2">
+                <span className="w-1.5 h-4 bg-primary rounded-full"></span>
+                Live Preview
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setPreviewOpen(true)} className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary hover:bg-white border border-transparent hover:border-slate-100 transition-all rounded-lg">
+                Full View
+              </Button>
             </div>
             <div className="p-6 space-y-6 max-h-[800px] overflow-y-auto">
               <div className="flex items-start justify-between">

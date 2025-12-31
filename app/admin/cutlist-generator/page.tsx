@@ -1,13 +1,13 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { Plus, Trash2, Calculator, Download, RotateCcw, Settings, ChevronDown, ChevronUp, GripVertical, Pencil, X, Eye, Upload, Printer, FileText, Cpu } from "lucide-react"
+import { Plus, Trash2, Calculator, Download, RotateCcw, Settings, ChevronDown, ChevronUp, GripVertical, Pencil, X, Eye, Upload, Printer, FileText, Cpu, Layout, Save, FolderOpen, Loader2, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { AIPlanParser } from "@/components/admin/ai-plan-parser"
 import { supabase } from "@/lib/supabase"
-import { Save, FolderOpen, Loader2 } from "lucide-react"
+
 
 
 interface Panel {
@@ -1724,742 +1724,786 @@ These Terms and Conditions shall be governed by the laws of the Republic of the 
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1">
-                        <button
-                            onClick={() => setCutsTab("projects")}
-                            className="p-3 bg-primary/5 hover:bg-primary/10 rounded-2xl border border-primary/20 transition-all group"
-                            title="View Saved Projects"
-                        >
-                            <FolderOpen className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
-                        </button>
-                        <button
-                            onClick={startNewProject}
-                            className="p-2 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl border border-emerald-500/20 transition-all"
-                            title="New Project"
-                        >
-                            <Plus className="w-4 h-4 text-emerald-600" />
-                        </button>
-                    </div>
-                    <div>
-                        {isEditingName ? (
-                            <input
-                                autoFocus
-                                className="text-2xl font-bold tracking-tight bg-transparent border-b-2 border-primary/50 outline-none px-1"
-                                value={projectName}
-                                onChange={(e) => setProjectName(e.target.value)}
-                                onBlur={() => setIsEditingName(false)}
-                                onKeyDown={(e) => e.key === "Enter" && setIsEditingName(false)}
-                            />
-                        ) : (
-                            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-                                {projectName}
-                                <button onClick={() => setIsEditingName(true)} className="opacity-30 hover:opacity-100 transition-opacity" title="Edit Name">
-                                    <Pencil className="w-3 h-3" />
-                                </button>
-                                <button
-                                    onClick={() => setIsProjectSettingsOpen(true)}
-                                    className="opacity-30 hover:opacity-100 transition-opacity p-1 hover:bg-muted rounded-md"
-                                    title="Project Settings & Client Details"
-                                >
-                                    <Settings className="w-4 h-4" />
-                                </button>
-                                {projectId && (
-                                    <span className="text-[9px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded opacity-60">{projectId.slice(0, 8)}</span>
-                                )}
-                            </h1>
-                        )}
-                        <p className="text-sm text-muted-foreground">Optimize panel layouts on stock sheets</p>
-                    </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center p-1 bg-muted/50 border border-border/40 rounded-lg mr-2">
-                        {(["mm", "cm", "m", "in"] as const).map((u) => (
+        <div className="min-h-screen bg-[#FAFBFB] py-6 space-y-8">
+            <div className="max-w-[1600px] mx-auto px-6 space-y-6">
+                {/* Premium Header */}
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-[32px] border border-slate-100 shadow-[0_12px_40px_rgb(0,0,0,0.03)]">
+                    <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-2">
                             <button
-                                key={u}
-                                onClick={() => setUnit(u)}
-                                className={cn(
-                                    "px-3 py-1 text-[10px] font-bold rounded-md transition-all duration-200 uppercase",
-                                    unit === u
-                                        ? "bg-primary text-primary-foreground shadow-sm"
-                                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                                )}
+                                onClick={() => setCutsTab("projects")}
+                                className="p-3 bg-primary/5 hover:bg-primary/10 rounded-2xl border border-primary/10 transition-all group"
+                                title="View Saved Projects"
                             >
-                                {u}
+                                <FolderOpen className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
                             </button>
-                        ))}
-                    </div>
-                    <Button variant="outline" size="sm" onClick={reset}>
-                        <RotateCcw className="w-4 h-4 mr-1" /> Reset
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={exportJSON}>
-                        <Download className="w-4 h-4 mr-1" /> Export
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={saveProject} disabled={isSaving}>
-                        {isSaving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
-                        Save
-                    </Button>
-                    <Button
-                        onClick={() => setShowBOMModal(true)}
-
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white border-none shadow-lg shadow-emerald-500/20"
-                    >
-                        <Settings className="w-4 h-4 mr-2" /> Process BOM
-                    </Button>
-                    <Button onClick={calculate}>
-                        <Calculator className="w-4 h-4 mr-1" /> Calculate
-                    </Button>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column: Inputs */}
-                <div className="space-y-4">
-                    {/* Cabinet Builder */}
-                    <div className="bg-card border border-border/40 rounded-xl p-4 shadow-sm">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                                <h2 className="text-sm font-semibold">Cabinet Builder</h2>
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 bg-primary/10 text-primary rounded uppercase">Auto</span>
-                            </div>
                             <button
-                                onClick={() => setShowCabinetBuilder(!showCabinetBuilder)}
-                                className="text-[10px] text-muted-foreground hover:text-foreground"
+                                onClick={startNewProject}
+                                className="p-3 bg-emerald-500/5 hover:bg-emerald-500/10 rounded-2xl border border-emerald-500/10 transition-all group"
+                                title="New Project"
                             >
-                                {showCabinetBuilder ? "Hide" : "Show"}
+                                <Plus className="w-5 h-5 text-emerald-600 group-hover:scale-110 transition-transform" />
                             </button>
                         </div>
-                        {showCabinetBuilder && (
-                            <div className="space-y-3">
-                                {/* Upload Plan Button */}
-                                <div className="mb-2">
-                                    <Button
-                                        onClick={() => setAiParserOpen(true)}
-                                        variant="outline"
-                                        size="sm"
-                                        className="w-full text-xs"
+                        <div>
+                            {isEditingName ? (
+                                <input
+                                    autoFocus
+                                    className="text-2xl font-black tracking-tight bg-transparent border-b-2 border-primary/20 outline-none px-1 text-slate-900 w-full min-w-[200px]"
+                                    value={projectName}
+                                    onChange={(e) => setProjectName(e.target.value)}
+                                    onBlur={() => setIsEditingName(false)}
+                                    onKeyDown={(e) => e.key === "Enter" && setIsEditingName(false)}
+                                />
+                            ) : (
+                                <h1 className="text-2xl font-black tracking-tight flex items-center gap-3 text-slate-900">
+                                    {projectName}
+                                    <button onClick={() => setIsEditingName(true)} className="opacity-30 hover:opacity-100 transition-opacity" title="Edit Name">
+                                        <Pencil className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => setIsProjectSettingsOpen(true)}
+                                        className="opacity-30 hover:opacity-100 transition-opacity p-1.5 hover:bg-slate-100 rounded-lg"
+                                        title="Project Settings & Client Details"
                                     >
-                                        <Upload className="w-3 h-3 mr-1" />
-                                        Upload Architectural Plan
+                                        <Settings className="w-5 h-5" />
+                                    </button>
+                                    {projectId && (
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 px-2 py-1 rounded-lg">{projectId.slice(0, 8)}</span>
+                                    )}
+                                </h1>
+                            )}
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Panel Optimization Suite</p>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center p-1.5 bg-slate-50 border border-slate-100 rounded-xl mr-2">
+                            {(["mm", "cm", "m", "in"] as const).map((u) => (
+                                <button
+                                    key={u}
+                                    onClick={() => setUnit(u)}
+                                    className={cn(
+                                        "px-3 py-1.5 text-[10px] font-black rounded-lg transition-all duration-200 uppercase",
+                                        unit === u
+                                            ? "bg-primary text-primary-foreground shadow-sm"
+                                            : "text-slate-400 hover:text-slate-700 hover:bg-white"
+                                    )}
+                                >
+                                    {u}
+                                </button>
+                            ))}
+                        </div>
+
+                        <button
+                            onClick={reset}
+                            className="inline-flex items-center justify-center h-10 px-5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all md:hover:-translate-y-0.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 gap-2"
+                        >
+                            <RotateCcw className="w-4 h-4" /> Reset
+                        </button>
+
+                        <button
+                            onClick={exportJSON}
+                            className="inline-flex items-center justify-center h-10 px-5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all md:hover:-translate-y-0.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 gap-2"
+                        >
+                            <Download className="w-4 h-4" /> Export
+                        </button>
+
+                        <button
+                            onClick={saveProject}
+                            disabled={isSaving}
+                            className="inline-flex items-center justify-center h-10 px-5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all md:hover:-translate-y-0.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 gap-2"
+                        >
+                            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            Save
+                        </button>
+
+                        <button
+                            onClick={() => setShowBOMModal(true)}
+                            className="inline-flex items-center justify-center h-10 px-5 rounded-xl text-[11px] font-bold uppercase tracking-widest transition-all md:hover:-translate-y-0.5 border border-emerald-500/20 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 gap-2"
+                        >
+                            <FileText className="w-4 h-4" /> Process BOM
+                        </button>
+
+                        <button
+                            onClick={calculate}
+                            className="inline-flex items-center justify-center h-10 px-6 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all md:hover:-translate-y-0.5 shadow-lg shadow-primary/20 bg-primary text-white hover:bg-primary/90 hover:scale-[1.02] gap-2"
+                        >
+                            <Calculator className="w-4 h-4" /> Calculate
+                        </button>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    {/* Left Column: Inputs */}
+                    <div className="lg:col-span-4 space-y-6">
+                        {/* Cabinet Builder */}
+                        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-[0_12px_40px_rgb(0,0,0,0.03)] transition-all hover:shadow-[0_20px_60px_rgb(0,0,0,0.05)]">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-emerald-500/10 rounded-xl">
+                                        <Layout className="w-5 h-5 text-emerald-600" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-[13px] font-black uppercase tracking-[0.15em] text-slate-800">Cabinet Builder</h2>
+                                        <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Automated Extraction</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setShowCabinetBuilder(!showCabinetBuilder)}
+                                    className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                                >
+                                    {showCabinetBuilder ? "Hide" : "Show"}
+                                </button>
+                            </div>
+                            {showCabinetBuilder && (
+                                <div className="space-y-4">
+                                    {/* Upload Plan Button */}
+                                    <div className="mb-2">
+                                        <Button
+                                            onClick={() => setAiParserOpen(true)}
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full h-10 rounded-xl border-dashed border-2 border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 text-[11px] font-bold uppercase tracking-widest text-slate-500 hover:text-emerald-600 gap-2 transition-all"
+                                        >
+                                            <Upload className="w-4 h-4" />
+                                            Upload Architectural Plan
+                                        </Button>
+                                    </div>
+
+                                    {/* Add Cabinet Buttons with Settings */}
+                                    <div className="flex gap-2">
+                                        {(["base", "hanging", "tall"] as const).map((type) => {
+                                            const colors = {
+                                                base: "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20",
+                                                hanging: "bg-blue-500 hover:bg-blue-600 shadow-blue-500/20",
+                                                tall: "bg-amber-500 hover:bg-amber-600 shadow-amber-500/20",
+                                            }
+                                            return (
+                                                <div key={type} className="flex-1 flex gap-1 group">
+                                                    <button
+                                                        onClick={() => addCabinetConfig(type)}
+                                                        className={cn(
+                                                            "flex-1 h-9 flex items-center justify-center text-[10px] font-black uppercase rounded-lg text-white shadow-lg transition-all hover:scale-[1.02] active:scale-95",
+                                                            colors[type]
+                                                        )}
+                                                    >
+                                                        + {type}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setSettingsModalType(type)}
+                                                        className="h-9 w-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+                                                        title={`Configure ${type} defaults`}
+                                                    >
+                                                        <Settings className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+
+                                    {/* Settings Modal */}
+                                    {settingsModalType && (
+                                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[11px] font-black uppercase tracking-widest text-slate-700">{settingsModalType} Defaults</span>
+                                                <button onClick={() => setSettingsModalType(null)} className="p-1 hover:bg-slate-200 rounded-full transition-colors"><X className="w-3 h-3 text-slate-400" /></button>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-3">
+                                                <div>
+                                                    <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1 block">Height</label>
+                                                    <input type="number" className="w-full p-2 text-[11px] font-bold border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/10" value={cabinetTypeDefaults[settingsModalType].height} onChange={(e) => updateTypeDefaults(settingsModalType, "height", Number(e.target.value))} />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1 block">Depth</label>
+                                                    <input type="number" className="w-full p-2 text-[11px] font-bold border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/10" value={cabinetTypeDefaults[settingsModalType].depth} onChange={(e) => updateTypeDefaults(settingsModalType, "depth", Number(e.target.value))} />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1 block">Width</label>
+                                                    <input type="number" className="w-full p-2 text-[11px] font-bold border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/10" value={cabinetTypeDefaults[settingsModalType].width} onChange={(e) => updateTypeDefaults(settingsModalType, "width", Number(e.target.value))} />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1 block">Doors</label>
+                                                    <select className="w-full p-2 text-[11px] font-bold border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/10" value={cabinetTypeDefaults[settingsModalType].doorsPerUnit} onChange={(e) => updateTypeDefaults(settingsModalType, "doorsPerUnit", Number(e.target.value))}>
+                                                        <option value={1}>1</option>
+                                                        <option value={2}>2</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1 block">Shelves</label>
+                                                    <input type="number" min={0} max={5} className="w-full p-2 text-[11px] font-bold border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/10" value={cabinetTypeDefaults[settingsModalType].shelves} onChange={(e) => updateTypeDefaults(settingsModalType, "shelves", Number(e.target.value))} />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-1 block">Drawers</label>
+                                                    <input type="number" min={0} max={4} className="w-full p-2 text-[11px] font-bold border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary/10" value={cabinetTypeDefaults[settingsModalType].drawers} onChange={(e) => updateTypeDefaults(settingsModalType, "drawers", Number(e.target.value))} disabled={settingsModalType === "hanging"} />
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2 pt-3 border-t border-slate-200/60">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <div className="w-1 h-3 bg-primary rounded-full"></div>
+                                                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Default Materials</span>
+                                                </div>
+                                                <div className="grid grid-cols-1 gap-2">
+                                                    <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-slate-100">
+                                                        <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 shadow-[0_0_8px_rgba(16,185,129,0.4)]"></span>
+                                                        <select
+                                                            className="flex-1 text-[11px] font-medium bg-transparent outline-none text-slate-600"
+                                                            value={cabinetTypeDefaults[settingsModalType].materials?.carcass?.stockSheetId || ""}
+                                                            onChange={(e) => {
+                                                                const sheet = stockSheets.find(s => s.id === e.target.value)
+                                                                const currentMaterials = cabinetTypeDefaults[settingsModalType].materials || { carcass: null, doors: null, backing: null }
+                                                                updateTypeDefaults(settingsModalType, "materials", {
+                                                                    ...currentMaterials,
+                                                                    carcass: sheet ? { stockSheetId: sheet.id, label: sheet.label || `${sheet.length}×${sheet.width}mm` } : null
+                                                                })
+                                                            }}
+                                                        >
+                                                            <option value="">Select Carcass Material...</option>
+                                                            {stockSheets.map(s => <option key={s.id} value={s.id}>{s.label || `${s.length}×${s.width}mm`}{s.thickness ? ` (${s.thickness}mm)` : ""}</option>)}
+                                                        </select>
+                                                    </div>
+                                                    {/* Repeat patterns for other selects if needed, or keep simple for brevity */}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center justify-between pt-2 border-t border-slate-200/60">
+                                                <p className="text-[9px] text-slate-400 italic">Settings sync to project</p>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-7 text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/5 px-3 gap-1.5"
+                                                    onClick={saveProject}
+                                                    disabled={isSaving}
+                                                >
+                                                    {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                                                    Save Config
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Wireframe Strip */}
+                                    {cabinetConfigs.length > 0 && (
+                                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 overflow-x-auto custom-scrollbar">
+                                            <div className="flex gap-2" style={{ minWidth: "max-content" }}>
+                                                {[...cabinetConfigs].sort((a, b) => a.order - b.order).map((config, idx) => {
+                                                    const unitCount = Math.floor((config.linearMeters * 1000) / config.unitWidth)
+                                                    const scale = 0.08
+                                                    const svgH = config.height * scale
+                                                    const svgW = config.unitWidth * scale
+                                                    const typeColors = { base: "#10b981", hanging: "#3b82f6", tall: "#f59e0b" }
+                                                    return (
+                                                        <div
+                                                            key={config.id}
+                                                            className={cn(
+                                                                "flex flex-col items-center cursor-pointer transition-all p-2 rounded-xl border border-transparent hover:border-slate-200 hover:bg-white hover:shadow-sm",
+                                                                selectedCabinetId === config.id ? "ring-2 ring-primary bg-white shadow-md border-primary/20" : ""
+                                                            )}
+                                                            onClick={() => {
+                                                                setSelectedCabinetId(config.id);
+                                                                setEditingCabinetId(config.id);
+                                                            }}
+                                                            title={`${config.type.toUpperCase()} #${idx + 1}\n${config.height}×${config.depth}×${config.unitWidth}mm\n${unitCount} unit${unitCount !== 1 ? "s" : ""}`}
+                                                        >
+                                                            <span className="text-[9px] font-mono text-slate-400 mb-1">{config.unitWidth}</span>
+                                                            <svg width={svgW + 10} height={svgH + 10} className="block drop-shadow-sm">
+                                                                <rect x={5} y={5} width={svgW} height={svgH} fill="white" stroke={typeColors[config.type]} strokeWidth={1.5} rx={2} />
+                                                                {/* Doors */}
+                                                                {config.doorsPerUnit === 2 ? (
+                                                                    <>
+                                                                        <rect x={6} y={6} width={svgW / 2 - 2} height={(config.type === "base" ? svgH - 10 : svgH) - 2} fill="none" stroke={typeColors[config.type]} strokeWidth={0.5} strokeDasharray="2,1" />
+                                                                        <rect x={5 + svgW / 2 + 1} y={6} width={svgW / 2 - 2} height={(config.type === "base" ? svgH - 10 : svgH) - 2} fill="none" stroke={typeColors[config.type]} strokeWidth={0.5} strokeDasharray="2,1" />
+                                                                    </>
+                                                                ) : (
+                                                                    <rect x={6} y={6} width={svgW - 2} height={(config.type === "base" ? svgH - 10 : svgH) - 2} fill="none" stroke={typeColors[config.type]} strokeWidth={0.5} strokeDasharray="2,1" />
+                                                                )}
+                                                                {config.drawers > 0 && Array.from({ length: config.drawers }).map((_, di) => (
+                                                                    <rect key={di} x={6} y={svgH - 8 - (di * 8)} width={svgW - 2} height={6} fill={typeColors[config.type]} fillOpacity={0.2} stroke={typeColors[config.type]} strokeWidth={0.5} />
+                                                                ))}
+                                                            </svg>
+                                                            <span className="text-[10px] font-black uppercase mt-1 tracking-wider" style={{ color: typeColors[config.type] }}>{config.type} #{idx + 1}</span>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Cabinet Config Cards (Scrollable List) */}
+                                    <div className="max-h-[350px] overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+                                        {[...cabinetConfigs].sort((a, b) => a.order - b.order).map((config, idx) => {
+                                            const typeColors = {
+                                                base: "border-emerald-500/20 bg-emerald-50/50 hover:border-emerald-500/40",
+                                                hanging: "border-blue-500/20 bg-blue-50/50 hover:border-blue-500/40",
+                                                tall: "border-amber-500/20 bg-amber-50/50 hover:border-amber-500/40",
+                                            }
+                                            const typeBadgeColors = {
+                                                base: "bg-emerald-500 text-white shadow-emerald-500/20",
+                                                hanging: "bg-blue-500 text-white shadow-blue-500/20",
+                                                tall: "bg-amber-500 text-white shadow-amber-500/20",
+                                            }
+                                            const unitCount = Math.floor((config.linearMeters * 1000) / config.unitWidth)
+                                            return (
+                                                <div
+                                                    key={config.id}
+                                                    className={cn(
+                                                        "p-4 rounded-2xl border flex items-center justify-between transition-all group",
+                                                        typeColors[config.type],
+                                                        selectedCabinetId === config.id && "ring-2 ring-primary bg-white shadow-lg shadow-black/5"
+                                                    )}
+                                                    onClick={() => setSelectedCabinetId(config.id)}
+                                                >
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="flex flex-col gap-1 items-center bg-white/50 p-1 rounded-lg border border-black/5">
+                                                            <button onClick={(e) => { e.stopPropagation(); moveCabinetConfig(config.id, "up"); }} disabled={idx === 0} className="p-0.5 text-slate-400 hover:text-primary disabled:opacity-30"><ChevronUp className="w-3.5 h-3.5" /></button>
+                                                            <span className="text-[9px] font-black text-slate-300">{idx + 1}</span>
+                                                            <button onClick={(e) => { e.stopPropagation(); moveCabinetConfig(config.id, "down"); }} disabled={idx === cabinetConfigs.length - 1} className="p-0.5 text-slate-400 hover:text-primary disabled:opacity-30"><ChevronDown className="w-3.5 h-3.5" /></button>
+                                                        </div>
+                                                        <div className="flex flex-col gap-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={cn("text-[9px] font-black uppercase px-2 py-0.5 rounded-full shadow-sm tracking-wide", typeBadgeColors[config.type])}>
+                                                                    {config.type}
+                                                                </span>
+                                                                <span className="text-[10px] font-bold text-slate-500">
+                                                                    {unitCount} unit{unitCount !== 1 ? "s" : ""}
+                                                                </span>
+                                                            </div>
+                                                            <span className="text-[12px] font-medium text-slate-700 font-mono">
+                                                                {config.height} × {config.depth} × {config.unitWidth}mm
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setEditingCabinetId(config.id); }}
+                                                            className="p-2 text-slate-400 hover:text-primary hover:bg-white rounded-xl transition-all border border-transparent hover:border-slate-100 shadow-none hover:shadow-sm"
+                                                            title="Edit Details"
+                                                        >
+                                                            <Pencil className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); removeCabinetConfig(config.id); }}
+                                                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-white rounded-xl transition-all border border-transparent hover:border-red-100 shadow-none hover:shadow-sm"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+
+                                    <Button
+                                        variant="default"
+                                        size="lg"
+                                        className="w-full h-12 rounded-xl text-[11px] font-black uppercase tracking-[0.1em] shadow-lg shadow-primary/20 transition-all hover:scale-[1.01] active:scale-[0.99] gap-2 mt-4"
+                                        onClick={generatePanelsFromCabinets}
+                                    >
+                                        <Calculator className="w-4 h-4" /> Generate Cutlist Panels
                                     </Button>
                                 </div>
-
-                                {/* Add Cabinet Buttons with Settings */}
-                                <div className="flex gap-1">
-                                    {(["base", "hanging", "tall"] as const).map((type) => {
-                                        const colors = {
-                                            base: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/20",
-                                            hanging: "bg-blue-500/10 text-blue-600 border-blue-500/30 hover:bg-blue-500/20",
-                                            tall: "bg-amber-500/10 text-amber-600 border-amber-500/30 hover:bg-amber-500/20",
-                                        }
-                                        return (
-                                            <div key={type} className="flex-1 flex">
-                                                <button
-                                                    onClick={() => addCabinetConfig(type)}
-                                                    className={cn("flex-1 px-2 py-1.5 text-[10px] font-bold uppercase border rounded-l transition-colors", colors[type])}
-                                                >
-                                                    + {type}
-                                                </button>
-                                                <button
-                                                    onClick={() => setSettingsModalType(type)}
-                                                    className={cn("px-1.5 py-1.5 border border-l-0 rounded-r transition-colors", colors[type])}
-                                                    title={`Configure ${type} defaults`}
-                                                >
-                                                    <Settings className="w-3 h-3" />
-                                                </button>
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-
-                                {/* Settings Modal */}
-                                {settingsModalType && (
-                                    <div className="p-3 bg-muted/50 rounded-lg border border-border/30 space-y-2">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-[10px] font-bold uppercase">{settingsModalType} Defaults</span>
-                                            <button onClick={() => setSettingsModalType(null)} className="text-[10px] text-muted-foreground hover:text-foreground">✕</button>
-                                        </div>
-                                        <div className="grid grid-cols-3 gap-2">
-                                            <div>
-                                                <label className="text-[9px] text-muted-foreground uppercase">Height</label>
-                                                <input type="number" className="w-full p-1.5 text-xs border rounded bg-background" value={cabinetTypeDefaults[settingsModalType].height} onChange={(e) => updateTypeDefaults(settingsModalType, "height", Number(e.target.value))} />
-                                            </div>
-                                            <div>
-                                                <label className="text-[9px] text-muted-foreground uppercase">Depth</label>
-                                                <input type="number" className="w-full p-1.5 text-xs border rounded bg-background" value={cabinetTypeDefaults[settingsModalType].depth} onChange={(e) => updateTypeDefaults(settingsModalType, "depth", Number(e.target.value))} />
-                                            </div>
-                                            <div>
-                                                <label className="text-[9px] text-muted-foreground uppercase">Width</label>
-                                                <input type="number" className="w-full p-1.5 text-xs border rounded bg-background" value={cabinetTypeDefaults[settingsModalType].width} onChange={(e) => updateTypeDefaults(settingsModalType, "width", Number(e.target.value))} />
-                                            </div>
-                                            <div>
-                                                <label className="text-[9px] text-muted-foreground uppercase">Doors</label>
-                                                <select className="w-full p-1.5 text-xs border rounded bg-background" value={cabinetTypeDefaults[settingsModalType].doorsPerUnit} onChange={(e) => updateTypeDefaults(settingsModalType, "doorsPerUnit", Number(e.target.value))}>
-                                                    <option value={1}>1</option>
-                                                    <option value={2}>2</option>
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="text-[9px] text-muted-foreground uppercase">Shelves</label>
-                                                <input type="number" min={0} max={5} className="w-full p-1.5 text-xs border rounded bg-background" value={cabinetTypeDefaults[settingsModalType].shelves} onChange={(e) => updateTypeDefaults(settingsModalType, "shelves", Number(e.target.value))} />
-                                            </div>
-                                            <div>
-                                                <label className="text-[9px] text-muted-foreground uppercase">Drawers</label>
-                                                <input type="number" min={0} max={4} className="w-full p-1.5 text-xs border rounded bg-background" value={cabinetTypeDefaults[settingsModalType].drawers} onChange={(e) => updateTypeDefaults(settingsModalType, "drawers", Number(e.target.value))} disabled={settingsModalType === "hanging"} />
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-1.5 pt-2 border-t border-border/20">
-                                            <div className="flex items-center gap-1.5 mb-1">
-                                                <div className="w-1 h-2 bg-primary/40 rounded-full"></div>
-                                                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Default Materials</span>
-                                            </div>
-                                            <div className="grid grid-cols-1 gap-1.5">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
-                                                    <select
-                                                        className="flex-1 p-1 text-[10px] border rounded bg-background outline-none focus:ring-1 focus:ring-primary/20"
-                                                        value={cabinetTypeDefaults[settingsModalType].materials?.carcass?.stockSheetId || ""}
-                                                        onChange={(e) => {
-                                                            const sheet = stockSheets.find(s => s.id === e.target.value)
-                                                            const currentMaterials = cabinetTypeDefaults[settingsModalType].materials || { carcass: null, doors: null, backing: null }
-                                                            updateTypeDefaults(settingsModalType, "materials", {
-                                                                ...currentMaterials,
-                                                                carcass: sheet ? { stockSheetId: sheet.id, label: sheet.label || `${sheet.length}×${sheet.width}mm` } : null
-                                                            })
-                                                        }}
-                                                    >
-                                                        <option value="">Carcass Material...</option>
-                                                        {stockSheets.map(s => <option key={s.id} value={s.id}>{s.label || `${s.length}×${s.width}mm`}{s.thickness ? ` (${s.thickness}mm)` : ""}</option>)}
-                                                    </select>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"></span>
-                                                    <select
-                                                        className="flex-1 p-1 text-[10px] border rounded bg-background outline-none focus:ring-1 focus:ring-primary/20"
-                                                        value={cabinetTypeDefaults[settingsModalType].materials?.doors?.stockSheetId || ""}
-                                                        onChange={(e) => {
-                                                            const sheet = stockSheets.find(s => s.id === e.target.value)
-                                                            const currentMaterials = cabinetTypeDefaults[settingsModalType].materials || { carcass: null, doors: null, backing: null }
-                                                            updateTypeDefaults(settingsModalType, "materials", {
-                                                                ...currentMaterials,
-                                                                doors: sheet ? { stockSheetId: sheet.id, label: sheet.label || `${sheet.length}×${sheet.width}mm` } : null
-                                                            })
-                                                        }}
-                                                    >
-                                                        <option value="">Doors Material...</option>
-                                                        {stockSheets.map(s => <option key={s.id} value={s.id}>{s.label || `${s.length}×${s.width}mm`}{s.thickness ? ` (${s.thickness}mm)` : ""}</option>)}
-                                                    </select>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span>
-                                                    <select
-                                                        className="flex-1 p-1 text-[10px] border rounded bg-background outline-none focus:ring-1 focus:ring-primary/20"
-                                                        value={cabinetTypeDefaults[settingsModalType].materials?.backing?.stockSheetId || ""}
-                                                        onChange={(e) => {
-                                                            const sheet = stockSheets.find(s => s.id === e.target.value)
-                                                            const currentMaterials = cabinetTypeDefaults[settingsModalType].materials || { carcass: null, doors: null, backing: null }
-                                                            updateTypeDefaults(settingsModalType, "materials", {
-                                                                ...currentMaterials,
-                                                                backing: sheet ? { stockSheetId: sheet.id, label: sheet.label || `${sheet.length}×${sheet.width}mm` } : null
-                                                            })
-                                                        }}
-                                                    >
-                                                        <option value="">Backing Material...</option>
-                                                        {stockSheets.map(s => <option key={s.id} value={s.id}>{s.label || `${s.length}×${s.width}mm`}{s.thickness ? ` (${s.thickness}mm)` : ""}</option>)}
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center justify-between pt-2 border-t border-border/10">
-                                            <p className="text-[9px] text-muted-foreground italic">Settings sync to project</p>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="h-6 text-[9px] font-black uppercase text-primary hover:bg-primary/5 px-2 gap-1"
-                                                onClick={saveProject}
-                                                disabled={isSaving}
-                                            >
-                                                {isSaving ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Save className="w-2.5 h-2.5" />}
-                                                Save Config
-                                            </Button>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Wireframe Strip */}
-                                {cabinetConfigs.length > 0 && (
-                                    <div className="p-2 bg-muted/30 rounded-lg border border-border/20 overflow-x-auto">
-                                        <div className="flex gap-1" style={{ minWidth: "max-content" }}>
-                                            {[...cabinetConfigs].sort((a, b) => a.order - b.order).map((config, idx) => {
-                                                const unitCount = Math.floor((config.linearMeters * 1000) / config.unitWidth)
-                                                const scale = 0.08
-                                                const svgH = config.height * scale
-                                                const svgW = config.unitWidth * scale
-                                                const typeColors = { base: "#10b981", hanging: "#3b82f6", tall: "#f59e0b" }
-                                                return (
-                                                    <div
-                                                        key={config.id}
-                                                        className={cn(
-                                                            "flex flex-col items-center cursor-pointer transition-all p-1 rounded",
-                                                            selectedCabinetId === config.id ? "ring-2 ring-primary bg-primary/5" : "hover:bg-muted/50"
-                                                        )}
-                                                        onClick={() => {
-                                                            setSelectedCabinetId(config.id);
-                                                            setEditingCabinetId(config.id);
-                                                        }}
-                                                        title={`${config.type.toUpperCase()} #${idx + 1}\n${config.height}×${config.depth}×${config.unitWidth}mm\n${unitCount} unit${unitCount !== 1 ? "s" : ""}`}
-                                                    >
-                                                        <span className="text-[8px] text-muted-foreground mb-0.5">{config.unitWidth}</span>
-                                                        <svg width={svgW + 10} height={svgH + 10} className="block">
-                                                            <rect x={5} y={5} width={svgW} height={svgH} fill="white" stroke={typeColors[config.type]} strokeWidth={1.5} rx={2} />
-                                                            {/* Doors */}
-                                                            {config.doorsPerUnit === 2 ? (
-                                                                <>
-                                                                    <rect x={6} y={6} width={svgW / 2 - 2} height={(config.type === "base" ? svgH - 10 : svgH) - 2} fill="none" stroke={typeColors[config.type]} strokeWidth={0.5} strokeDasharray="2,1" />
-                                                                    <rect x={5 + svgW / 2 + 1} y={6} width={svgW / 2 - 2} height={(config.type === "base" ? svgH - 10 : svgH) - 2} fill="none" stroke={typeColors[config.type]} strokeWidth={0.5} strokeDasharray="2,1" />
-                                                                </>
-                                                            ) : (
-                                                                <rect x={6} y={6} width={svgW - 2} height={(config.type === "base" ? svgH - 10 : svgH) - 2} fill="none" stroke={typeColors[config.type]} strokeWidth={0.5} strokeDasharray="2,1" />
-                                                            )}
-                                                            {/* Drawers */}
-                                                            {config.drawers > 0 && Array.from({ length: config.drawers }).map((_, di) => (
-                                                                <rect key={di} x={6} y={svgH - 8 - (di * 8)} width={svgW - 2} height={6} fill={typeColors[config.type]} fillOpacity={0.2} stroke={typeColors[config.type]} strokeWidth={0.5} />
-                                                            ))}
-                                                        </svg>
-                                                        <span className="text-[8px] text-muted-foreground mt-0.5">{config.height}</span>
-                                                        <span className="text-[7px] font-bold uppercase mt-0.5" style={{ color: typeColors[config.type] }}>{config.type} #{idx + 1}</span>
-                                                    </div>
-                                                )
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Cabinet Config Cards (Scrollable List) */}
-                                <div className="max-h-[400px] overflow-y-auto pr-1 space-y-2 custom-scrollbar">
-                                    {[...cabinetConfigs].sort((a, b) => a.order - b.order).map((config, idx) => {
-                                        const typeColors = {
-                                            base: "border-emerald-500/40 bg-emerald-500/5",
-                                            hanging: "border-blue-500/40 bg-blue-500/5",
-                                            tall: "border-amber-500/40 bg-amber-500/5",
-                                        }
-                                        const typeBadgeColors = {
-                                            base: "bg-emerald-500 text-white",
-                                            hanging: "bg-blue-500 text-white",
-                                            tall: "bg-amber-500 text-white",
-                                        }
-                                        const unitCount = Math.floor((config.linearMeters * 1000) / config.unitWidth)
-                                        return (
-                                            <div
-                                                key={config.id}
-                                                className={cn(
-                                                    "p-2 rounded-lg border flex items-center justify-between transition-all",
-                                                    typeColors[config.type],
-                                                    selectedCabinetId === config.id && "ring-1 ring-primary"
-                                                )}
-                                                onClick={() => setSelectedCabinetId(config.id)}
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <div className="flex flex-col gap-0.5">
-                                                        <button onClick={(e) => { e.stopPropagation(); moveCabinetConfig(config.id, "up"); }} disabled={idx === 0} className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"><ChevronUp className="w-3 h-3" /></button>
-                                                        <button onClick={(e) => { e.stopPropagation(); moveCabinetConfig(config.id, "down"); }} disabled={idx === cabinetConfigs.length - 1} className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"><ChevronDown className="w-3 h-3" /></button>
-                                                    </div>
-                                                    <div className="flex flex-col">
-                                                        <span className={cn("text-[8px] font-bold uppercase px-1.5 py-0.5 rounded w-fit mb-1", typeBadgeColors[config.type])}>
-                                                            {config.type} #{idx + 1}
-                                                        </span>
-                                                        <span className="text-[10px] text-muted-foreground font-medium">
-                                                            {config.height}×{config.depth}×{config.unitWidth}mm | {unitCount} units
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); setEditingCabinetId(config.id); }}
-                                                        className="p-1.5 text-primary hover:bg-primary/10 rounded-md transition-colors"
-                                                        title="Edit Details"
-                                                    >
-                                                        <Pencil className="w-3.5 h-3.5" />
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); removeCabinetConfig(config.id); }}
-                                                        className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
-                                                    >
-                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-
-                                <Button
-                                    variant="default"
-                                    size="sm"
-                                    className="w-full"
-                                    onClick={generatePanelsFromCabinets}
-                                >
-                                    <Calculator className="w-4 h-4 mr-1" /> Generate Panels
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Panels */}
-                    <div className="bg-card border border-border/40 rounded-xl p-4 shadow-sm">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                                <h2 className="text-sm font-semibold">Panels</h2>
-                                <span className="bg-primary/10 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                                    {panels.length}
-                                </span>
-                            </div>
-                            <Button variant="outline" size="sm" onClick={() => setIsPanelModalOpen(true)} className="h-8 gap-1.5">
-                                <Pencil className="w-3.5 h-3.5" />
-                                <span className="text-xs">Manage</span>
-                            </Button>
-                        </div>
-
-                        {panels.length > 0 ? (
-                            <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
-                                {panels.slice(0, 10).map((p) => (
-                                    <div key={p.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/10 text-[10px]">
-                                        <div className="flex flex-col">
-                                            <div className="flex items-center gap-1.5">
-                                                {p.materialGroup === "carcass" && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.4)]"></span>}
-                                                {p.materialGroup === "doors" && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_4px_rgba(59,130,246,0.4)]"></span>}
-                                                {p.materialGroup === "backing" && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_4px_rgba(245,158,11,0.4)]"></span>}
-                                                <span className="font-bold truncate max-w-[100px]">{p.label || "Untitled Panel"}</span>
-                                            </div>
-                                            <span className="text-muted-foreground ml-3">{p.length} × {p.width} {unitLabel}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-mono bg-background px-1.5 py-0.5 rounded border border-border/20">×{p.quantity}</span>
-                                            <button onClick={() => removePanel(p.id)} className="text-muted-foreground hover:text-destructive">
-                                                <Trash2 className="w-3 h-3" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                                {panels.length > 10 && (
-                                    <button
-                                        onClick={() => setIsPanelModalOpen(true)}
-                                        className="w-full py-1.5 text-[10px] text-muted-foreground hover:text-primary transition-colors text-center italic"
-                                    >
-                                        + {panels.length - 10} more panels...
-                                    </button>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="py-8 text-center border-2 border-dashed border-border/20 rounded-xl bg-muted/10">
-                                <p className="text-xs text-muted-foreground mb-3">No panels added yet</p>
-                                <Button size="sm" variant="outline" onClick={addPanel} className="h-8">
-                                    <Plus className="w-3.5 h-3.5 mr-1" /> Add First Panel
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Stock Sheets */}
-                    <div className="bg-card border border-border/40 rounded-xl p-4 shadow-sm">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                                <h2 className="text-sm font-semibold">Stock Sheets</h2>
-                                <span className="bg-primary/10 text-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                                    {stockSheets.length}
-                                </span>
-                            </div>
-                            <Button variant="outline" size="sm" onClick={() => setIsStockModalOpen(true)} className="h-8 gap-1.5">
-                                <Pencil className="w-3.5 h-3.5" />
-                                <span className="text-xs">Manage</span>
-                            </Button>
-                        </div>
-
-                        {stockSheets.length > 0 ? (
-                            <div className="space-y-1.5 max-h-[150px] overflow-y-auto pr-1 custom-scrollbar">
-                                {stockSheets.map((s) => (
-                                    <div key={s.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/10 text-[10px]">
-                                        <div className="flex flex-col">
-                                            <span className="font-bold">{s.length} × {s.width} {unitLabel}</span>
-                                            <span className="text-muted-foreground italic">Standard Sheet</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-mono bg-background px-1.5 py-0.5 rounded border border-border/20">×{s.quantity}</span>
-                                            <button onClick={() => removeStockSheet(s.id)} className="text-muted-foreground hover:text-destructive">
-                                                <Trash2 className="w-3 h-3" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="py-6 text-center border-2 border-dashed border-border/20 rounded-xl bg-muted/10">
-                                <p className="text-xs text-muted-foreground mb-3">No stock sheets added</p>
-                                <Button size="sm" variant="outline" onClick={addStockSheet} className="h-8">
-                                    <Plus className="w-3.5 h-3.5 mr-1" /> Add Stock
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Options */}
-                    <div className="bg-card border border-border/40 rounded-xl p-4 shadow-sm">
-                        <h2 className="text-sm font-semibold mb-3">Options</h2>
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                                <label className="text-xs text-muted-foreground">Cut / blade / kerf ({unitLabel})</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    className="w-16 p-1.5 text-xs border rounded bg-background text-right"
-                                    value={kerfThickness}
-                                    onChange={(e) => setKerfThickness(Number(e.target.value) || 0)}
-                                />
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <label className="text-xs text-muted-foreground">Labels on panels</label>
-                                <input
-                                    type="checkbox"
-                                    checked={labelsOnPanels}
-                                    onChange={(e) => setLabelsOnPanels(e.target.checked)}
-                                    className="w-4 h-4 rounded border-gray-300"
-                                />
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <label className="text-xs text-muted-foreground">Consider material</label>
-                                <input
-                                    type="checkbox"
-                                    checked={considerMaterial}
-                                    onChange={(e) => setConsiderMaterial(e.target.checked)}
-                                    className="w-4 h-4 rounded border-gray-300"
-                                />
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <label className="text-xs text-muted-foreground">Edge banding</label>
-                                <input
-                                    type="checkbox"
-                                    checked={edgeBanding}
-                                    onChange={(e) => setEdgeBanding(e.target.checked)}
-                                    className="w-4 h-4 rounded border-gray-300"
-                                />
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <label className="text-xs text-muted-foreground">Consider grain direction</label>
-                                <input
-                                    type="checkbox"
-                                    checked={grainDirection}
-                                    onChange={(e) => setGrainDirection(e.target.checked)}
-                                    className="w-4 h-4 rounded border-gray-300"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Center Column: Visual Diagram */}
-                <div className="lg:col-span-1">
-                    <div className="bg-card border border-border/40 rounded-xl p-4 shadow-sm h-full overflow-hidden flex flex-col">
-                        <div className="flex items-center justify-between mb-3">
-                            <h2 className="text-sm font-semibold">Sheet Layout</h2>
-                            {calculated && (
-                                <Button variant="outline" size="sm" onClick={() => setIsLayoutModalOpen(true)} className="h-8 gap-1.5 px-3">
-                                    <Eye className="w-3.5 h-3.5" />
-                                    <span className="text-xs font-bold uppercase tracking-tight">Expand</span>
-                                </Button>
                             )}
                         </div>
 
-                        {!calculated ? (
-                            <div className="flex-1 flex items-center justify-center min-h-[400px] text-muted-foreground text-sm border-2 border-dashed rounded-xl bg-muted/5">
-                                <div className="text-center p-6">
-                                    <Calculator className="w-12 h-12 mx-auto mb-2 opacity-20" />
-                                    <p className="font-medium">Ready for calculation</p>
-                                    <p className="text-[10px] opacity-60 mt-1 uppercase tracking-widest">Awaiting data...</p>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex-1 flex flex-col gap-4 overflow-hidden">
-                                {/* Compact Summary */}
-                                <div className="grid grid-cols-2 gap-3 mb-2">
-                                    <div className="p-3 bg-primary/5 border border-primary/20 rounded-xl">
-                                        <p className="text-[9px] font-bold text-primary uppercase opacity-60 mb-0.5">Sheets Used</p>
-                                        <p className="text-2xl font-black text-primary">{usedSheets}</p>
+
+                        {/* Panels */}
+                        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-[0_12px_40px_rgb(0,0,0,0.03)] transition-all hover:shadow-[0_20px_60px_rgb(0,0,0,0.05)]">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-indigo-500/10 rounded-xl">
+                                        <GripVertical className="w-5 h-5 text-indigo-600" />
                                     </div>
-                                    <div className="p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
-                                        <p className="text-[9px] font-bold text-emerald-500 uppercase opacity-60 mb-0.5">Efficiencies</p>
-                                        <p className="text-2xl font-black text-emerald-600">{100 - (stats.wastePercent || 0)}%</p>
+                                    <div>
+                                        <h2 className="text-[13px] font-black uppercase tracking-[0.15em] text-slate-800">Panels</h2>
+                                        <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mt-0.5">{panels.length} Items</p>
                                     </div>
                                 </div>
-
-                                <div className="flex-1 overflow-y-auto pr-1 space-y-2 custom-scrollbar">
-                                    {Array.from({ length: usedSheets }).map((_, sheetIdx) => {
-                                        const sheetPanels = placements.filter((p) => p.sheetIndex === sheetIdx)
-                                        const meta = sheetsMetadata[sheetIdx]
-                                        return (
-                                            <div
-                                                key={sheetIdx}
-                                                className="group p-3 rounded-xl border border-border/30 bg-muted/20 hover:bg-muted/40 transition-all cursor-pointer"
-                                                onClick={() => setIsLayoutModalOpen(true)}
-                                            >
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="flex items-center gap-1">
-                                                            <span className="text-[10px] font-black bg-primary text-primary-foreground px-2 py-0.5 rounded shadow-sm">Sheet {sheetIdx + 1}</span>
-                                                            {meta?.materialGroup === "carcass" && <span className="w-2 h-2 rounded-full bg-emerald-500"></span>}
-                                                            {meta?.materialGroup === "doors" && <span className="w-2 h-2 rounded-full bg-blue-500"></span>}
-                                                            {meta?.materialGroup === "backing" && <span className="w-2 h-2 rounded-full bg-amber-500"></span>}
-                                                        </div>
-                                                        <div className="flex flex-col">
-                                                            <span className="text-[9px] font-bold text-muted-foreground uppercase">{meta?.label || 'Standard Sheet'}</span>
-                                                            <span className="text-[8px] opacity-60 uppercase">{sheetPanels.length} Panels</span>
-                                                        </div>
-                                                    </div>
-                                                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors opacity-40" />
-                                                </div>
-                                                <div className="mt-2 text-[10px] font-mono text-muted-foreground line-clamp-1 opacity-70">
-                                                    {sheetPanels.map(p => {
-                                                        const pData = panels.find(pl => pl.id === p.panelId.split('-')[0])
-                                                        return pData?.label || "Panel"
-                                                    }).join(", ")}
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-
                                 <Button
-                                    variant="secondary"
-                                    className="w-full h-12 rounded-xl font-bold uppercase tracking-tight gap-2 shadow-sm border-t mt-auto"
-                                    onClick={() => setIsLayoutModalOpen(true)}
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setIsPanelModalOpen(true)}
+                                    className="h-8 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 px-3 gap-2 transition-all"
                                 >
-                                    <Eye className="w-4 h-4 text-primary" />
-                                    View Full Diagrams
+                                    <Pencil className="w-3.5 h-3.5" />
+                                    Manage
                                 </Button>
                             </div>
-                        )}
-                    </div>
-                </div>
 
-                {/* Right Column: Statistics */}
-                <div className="space-y-4">
-                    {/* Global Statistics */}
-                    <div className="bg-card border border-border/40 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
-                        <h2 className="text-sm font-bold mb-5 flex items-center gap-2">
-                            <span className="w-1.5 h-4 bg-primary rounded-full"></span>
-                            Optimization Metrics
-                        </h2>
-                        <div className="grid grid-cols-2 gap-4 mb-6">
-                            <div className="p-3 bg-muted/40 rounded-xl border border-border/20">
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase opacity-70">Utilization</p>
-                                <p className="text-xl font-black text-primary">{100 - (stats.wastePercent || 0)}%</p>
-                            </div>
-                            <div className="p-3 bg-muted/40 rounded-xl border border-border/20">
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase opacity-70">Waste</p>
-                                <p className="text-xl font-black text-destructive">{stats.wastePercent || 0}%</p>
-                            </div>
-                        </div>
-                        <div className="space-y-3 text-xs">
-                            <div className="flex justify-between items-center py-2 border-b border-border/20">
-                                <span className="text-muted-foreground font-medium">Sheets Used</span>
-                                <span className="font-bold text-sm">{stats.usedSheets}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-2 border-b border-border/20">
-                                <span className="text-muted-foreground font-medium">Used Area</span>
-                                <span className="font-bold">{Number(stats.totalUsedArea).toLocaleString()} <span className="text-[10px] font-normal opacity-60 uppercase">{unitLabel}²</span></span>
-                            </div>
-                            <div className="flex justify-between items-center py-2 border-b border-border/20">
-                                <span className="text-muted-foreground font-medium">Cut Operations</span>
-                                <span className="font-bold">{stats.totalCuts}</span>
-                            </div>
-                            <div className="flex justify-between items-center py-2">
-                                <span className="text-muted-foreground font-medium">Linear Cut Length</span>
-                                <span className="font-bold">{Number(stats.cutLength).toLocaleString()} <span className="text-[10px] font-normal opacity-60 uppercase">{unitLabel}</span></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Cuts Table / Saved Projects (Tabbed) */}
-                    <div className="bg-card border border-border/40 rounded-xl p-4 shadow-sm flex flex-col max-h-[400px]">
-                        <div className="flex items-center gap-2 mb-3">
-                            <button
-                                onClick={() => setCutsTab("cuts")}
-                                className={cn(
-                                    "px-3 py-1 text-[10px] font-bold rounded-md transition-all uppercase",
-                                    cutsTab === "cuts" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
-                                )}
-                            >
-                                Cuts Breakdown
-                            </button>
-                            <button
-                                onClick={() => setCutsTab("projects")}
-                                className={cn(
-                                    "px-3 py-1 text-[10px] font-bold rounded-md transition-all uppercase",
-                                    cutsTab === "projects" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
-                                )}
-                            >
-                                Saved Projects ({savedProjects.length})
-                            </button>
-                        </div>
-
-                        {cutsTab === "cuts" ? (
-                            cutsData.length === 0 ? (
-                                <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground py-8">
-                                    No layout generated
+                            {panels.length > 0 ? (
+                                <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {panels.slice(0, 10).map((p) => (
+                                        <div key={p.id} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100 group hover:border-slate-200 transition-all">
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2">
+                                                    {p.materialGroup === "carcass" && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]"></span>}
+                                                    {p.materialGroup === "doors" && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.4)]"></span>}
+                                                    {p.materialGroup === "backing" && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.4)]"></span>}
+                                                    <span className="text-[11px] font-bold text-slate-700 truncate max-w-[120px]">{p.label || "Untitled Panel"}</span>
+                                                </div>
+                                                <span className="text-[10px] font-medium text-slate-400 pl-3.5">{p.length} × {p.width} {unitLabel}</span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[10px] font-black bg-white px-2 py-1 rounded-lg border border-slate-100 text-slate-600 shadow-sm">×{p.quantity}</span>
+                                                <button onClick={() => removePanel(p.id)} className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100">
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {panels.length > 10 && (
+                                        <button
+                                            onClick={() => setIsPanelModalOpen(true)}
+                                            className="w-full py-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors text-center border-t border-slate-100 mt-2"
+                                        >
+                                            + {panels.length - 10} more panels
+                                        </button>
+                                    )}
                                 </div>
                             ) : (
-                                <div className="overflow-auto border rounded-lg">
-                                    <table className="w-full text-[10px] border-collapse">
-                                        <thead className="bg-muted/50 border-b sticky top-0">
-                                            <tr>
-                                                <th className="p-2 text-left font-semibold">#</th>
-                                                <th className="p-2 text-left font-semibold">Size ({unitLabel})</th>
-                                                <th className="p-2 text-left font-semibold text-muted-foreground">Location</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-border/40">
-                                            {cutsData.map((c, idx) => (
-                                                <tr key={idx} className="hover:bg-muted/30 transition-colors">
-                                                    <td className="p-2 text-muted-foreground">{idx + 1}</td>
-                                                    <td className="p-2 font-mono font-medium">{c.cut}</td>
-                                                    <td className="p-2 text-muted-foreground">{c.result}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                <div className="py-8 text-center border-2 border-dashed border-slate-100 rounded-2xl bg-slate-50/50 hover:bg-slate-50 hover:border-indigo-200 transition-all cursor-pointer group" onClick={addPanel}>
+                                    <div className="w-10 h-10 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                                        <Plus className="w-4 h-4 text-indigo-500" />
+                                    </div>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 group-hover:text-indigo-600 transition-colors">No panels added</p>
                                 </div>
-                            )
-                        ) : (
-                            <div className="flex-1 overflow-auto">
-                                {savedProjects.length === 0 ? (
-                                    <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground py-8">
-                                        No saved projects yet
+                            )}
+                        </div>
+
+                        {/* Stock Sheets */}
+                        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-[0_12px_40px_rgb(0,0,0,0.03)] transition-all hover:shadow-[0_20px_60px_rgb(0,0,0,0.05)]">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-slate-100 rounded-xl">
+                                        <FolderOpen className="w-5 h-5 text-slate-600" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-[13px] font-black uppercase tracking-[0.15em] text-slate-800">Stock Sheets</h2>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{stockSheets.length} Types</p>
+                                    </div>
+                                </div>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setIsStockModalOpen(true)}
+                                    className="h-8 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-800 hover:bg-slate-100 px-3 gap-2 transition-all"
+                                >
+                                    <Pencil className="w-3.5 h-3.5" />
+                                    Manage
+                                </Button>
+                            </div>
+
+                            {stockSheets.length > 0 ? (
+                                <div className="space-y-2 max-h-[150px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {stockSheets.map((s) => (
+                                        <div key={s.id} className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100 group hover:border-slate-200 transition-all">
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="text-[11px] font-bold text-slate-700">{s.length} × {s.width} {unitLabel}</span>
+                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Standard Sheet</span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[10px] font-black bg-white px-2 py-1 rounded-lg border border-slate-100 text-slate-600 shadow-sm">×{s.quantity}</span>
+                                                <button onClick={() => removeStockSheet(s.id)} className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100">
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="py-6 text-center border-2 border-dashed border-slate-100 rounded-2xl bg-slate-50/50 hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer group" onClick={addStockSheet}>
+                                    <div className="w-10 h-10 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                                        <Plus className="w-4 h-4 text-slate-400" />
+                                    </div>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 group-hover:text-slate-600 transition-colors">No stock added</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Options */}
+                        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-[0_12px_40px_rgb(0,0,0,0.03)] transition-all hover:shadow-[0_20px_60px_rgb(0,0,0,0.05)]">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-2 bg-amber-500/10 rounded-xl">
+                                    <Settings className="w-5 h-5 text-amber-600" />
+                                </div>
+                                <div>
+                                    <h2 className="text-[13px] font-black uppercase tracking-[0.15em] text-slate-800">Configuration</h2>
+                                    <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mt-0.5">Optimization Settings</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Blade Thickness ({unitLabel})</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        className="w-16 p-1.5 text-[11px] font-bold border border-slate-200 rounded-lg bg-white text-right focus:outline-none focus:ring-2 focus:ring-amber-500/20 text-slate-700"
+                                        value={kerfThickness}
+                                        onChange={(e) => setKerfThickness(Number(e.target.value) || 0)}
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between px-2">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Labels on Panels</label>
+                                    <input
+                                        type="checkbox"
+                                        checked={labelsOnPanels}
+                                        onChange={(e) => setLabelsOnPanels(e.target.checked)}
+                                        className="w-4 h-4 rounded-md border-slate-300 text-amber-600 focus:ring-amber-500/20"
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between px-2">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Consider Material</label>
+                                    <input
+                                        type="checkbox"
+                                        checked={considerMaterial}
+                                        onChange={(e) => setConsiderMaterial(e.target.checked)}
+                                        className="w-4 h-4 rounded-md border-slate-300 text-amber-600 focus:ring-amber-500/20"
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between px-2">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Edge Banding</label>
+                                    <input
+                                        type="checkbox"
+                                        checked={edgeBanding}
+                                        onChange={(e) => setEdgeBanding(e.target.checked)}
+                                        className="w-4 h-4 rounded-md border-slate-300 text-amber-600 focus:ring-amber-500/20"
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between px-2">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Grain Direction</label>
+                                    <input
+                                        type="checkbox"
+                                        checked={grainDirection}
+                                        onChange={(e) => setGrainDirection(e.target.checked)}
+                                        className="w-4 h-4 rounded-md border-slate-300 text-amber-600 focus:ring-amber-500/20"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Center Column: Visual Diagram */}
+                    <div className="lg:col-span-4 h-full">
+                        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-[0_12px_40px_rgb(0,0,0,0.03)] h-[600px] flex flex-col transition-all hover:shadow-[0_20px_60px_rgb(0,0,0,0.05)]">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-indigo-500/10 rounded-xl">
+                                        <Layout className="w-5 h-5 text-indigo-600" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-[13px] font-black uppercase tracking-[0.15em] text-slate-800">Sheet Layout</h2>
+                                        <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mt-0.5">Visual Diagram</p>
+                                    </div>
+                                </div>
+                                {calculated && (
+                                    <Button variant="ghost" size="sm" onClick={() => setIsLayoutModalOpen(true)} className="h-8 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 px-3 gap-2 transition-all">
+                                        <Eye className="w-3.5 h-3.5" />
+                                        Expand
+                                    </Button>
+                                )}
+                            </div>
+
+                            {!calculated ? (
+                                <div className="flex-1 flex items-center justify-center border-2 border-dashed border-slate-100 rounded-2xl bg-slate-50/50">
+                                    <div className="text-center p-8">
+                                        <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center mx-auto mb-4">
+                                            <Calculator className="w-8 h-8 text-slate-300" />
+                                        </div>
+                                        <p className="text-[13px] font-black text-slate-800 uppercase tracking-widest mb-1">Ready for calculation</p>
+                                        <p className="text-[11px] font-medium text-slate-400">Add panels and stock to begin</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex-1 flex flex-col gap-4 overflow-hidden">
+                                    {/* Compact Summary */}
+                                    <div className="grid grid-cols-2 gap-3 mb-2">
+                                        <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Sheets Used</p>
+                                            <p className="text-3xl font-black text-slate-800">{usedSheets}</p>
+                                        </div>
+                                        <div className="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
+                                            <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest mb-1">Efficiency</p>
+                                            <p className="text-3xl font-black text-emerald-600">{100 - (stats.wastePercent || 0)}%</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex-1 overflow-y-auto pr-2 space-y-2 custom-scrollbar">
+                                        {Array.from({ length: usedSheets }).map((_, sheetIdx) => {
+                                            const sheetPanels = placements.filter((p) => p.sheetIndex === sheetIdx)
+                                            const meta = sheetsMetadata[sheetIdx]
+                                            return (
+                                                <div
+                                                    key={sheetIdx}
+                                                    className="group p-3 rounded-2xl border border-slate-100 bg-white hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer"
+                                                    onClick={() => setIsLayoutModalOpen(true)}
+                                                >
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-[9px] font-black bg-slate-800 text-white px-2 py-1 rounded-lg">SHEET {sheetIdx + 1}</span>
+                                                            <div className="flex items-center gap-1.5">
+                                                                {meta?.materialGroup === "carcass" && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>}
+                                                                {meta?.materialGroup === "doors" && <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>}
+                                                                {meta?.materialGroup === "backing" && <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>}
+                                                                <span className="text-[10px] font-bold text-slate-600 uppercase">{meta?.label || 'Standard Sheet'}</span>
+                                                            </div>
+                                                        </div>
+                                                        <span className="text-[9px] font-bold text-slate-400 uppercase">{sheetPanels.length} Items</span>
+                                                    </div>
+                                                    <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                                        <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${100 - (stats.wastePercent || 0)}%` }}></div>
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+
+                                    <Button
+                                        className="w-full h-12 rounded-xl font-bold uppercase tracking-widest gap-2 bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-900/10 mt-auto"
+                                        onClick={() => setIsLayoutModalOpen(true)}
+                                    >
+                                        <Eye className="w-4 h-4" />
+                                        View Full Diagrams
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Right Column: Statistics */}
+                    <div className="lg:col-span-4 space-y-6">
+                        {/* Global Statistics */}
+                        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-[0_12px_40px_rgb(0,0,0,0.03)] transition-all hover:shadow-[0_20px_60px_rgb(0,0,0,0.05)]">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-2 bg-emerald-500/10 rounded-xl">
+                                    <Zap className="w-5 h-5 text-emerald-600" />
+                                </div>
+                                <div>
+                                    <h2 className="text-[13px] font-black uppercase tracking-[0.15em] text-slate-800">Optimization Metrics</h2>
+                                    <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mt-0.5">Performance Stats</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 mb-6">
+                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Utilization</p>
+                                    <p className="text-2xl font-black text-slate-800">{100 - (stats.wastePercent || 0)}%</p>
+                                </div>
+                                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Waste</p>
+                                    <p className="text-2xl font-black text-red-500">{stats.wastePercent || 0}%</p>
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Sheets Used</span>
+                                    <span className="font-black text-slate-800">{stats.usedSheets}</span>
+                                </div>
+                                <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Used Area</span>
+                                    <span className="font-black text-slate-800">{Number(stats.totalUsedArea).toLocaleString()} <span className="text-[9px] font-bold text-slate-400">{unitLabel}²</span></span>
+                                </div>
+                                <div className="flex justify-between items-center py-3 border-b border-slate-100">
+                                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Cut Operations</span>
+                                    <span className="font-black text-slate-800">{stats.totalCuts}</span>
+                                </div>
+                                <div className="flex justify-between items-center py-2">
+                                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Cut Length</span>
+                                    <span className="font-black text-slate-800">{Number(stats.cutLength).toLocaleString()} <span className="text-[9px] font-bold text-slate-400">{unitLabel}</span></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Cuts Table / Saved Projects (Tabbed)                        {/* Cuts Table / Saved Projects (Tabbed) */}
+                        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-[0_12px_40px_rgb(0,0,0,0.03)] flex flex-col max-h-[500px] transition-all hover:shadow-[0_20px_60px_rgb(0,0,0,0.05)]">
+                            <div className="flex items-center gap-2 mb-6 p-1 bg-slate-50 rounded-xl border border-slate-100">
+                                <button
+                                    onClick={() => setCutsTab("cuts")}
+                                    className={cn(
+                                        "flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all",
+                                        cutsTab === "cuts" ? "bg-white text-indigo-600 shadow-sm ring-1 ring-slate-100" : "text-slate-400 hover:text-slate-600"
+                                    )}
+                                >
+                                    Cuts Breakdown
+                                </button>
+                                <button
+                                    onClick={() => setCutsTab("projects")}
+                                    className={cn(
+                                        "flex-1 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all",
+                                        cutsTab === "projects" ? "bg-white text-indigo-600 shadow-sm ring-1 ring-slate-100" : "text-slate-400 hover:text-slate-600"
+                                    )}
+                                >
+                                    Saved Projects ({savedProjects.length})
+                                </button>
+                            </div>
+
+                            {cutsTab === "cuts" ? (
+                                cutsData.length === 0 ? (
+                                    <div className="flex-1 flex flex-col items-center justify-center py-12 text-slate-400 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                                        <Layout className="w-8 h-8 mb-3 opacity-20" />
+                                        <p className="text-[11px] font-bold uppercase tracking-widest">No layout generated</p>
                                     </div>
                                 ) : (
-                                    <div className="space-y-2">
-                                        {savedProjects.map((proj) => (
+                                    <div className="overflow-hidden border border-slate-100 rounded-2xl">
+                                        <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
+                                            <table className="w-full text-[10px] border-collapse bg-white">
+                                                <thead className="bg-slate-50 sticky top-0 z-10">
+                                                    <tr>
+                                                        <th className="p-3 text-left font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">#</th>
+                                                        <th className="p-3 text-left font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">Size ({unitLabel})</th>
+                                                        <th className="p-3 text-left font-bold text-slate-500 uppercase tracking-wider border-b border-slate-100">Location</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-slate-50">
+                                                    {cutsData.map((c, idx) => (
+                                                        <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
+                                                            <td className="p-3 font-mono text-slate-400 group-hover:text-indigo-500">{idx + 1}</td>
+                                                            <td className="p-3 font-mono font-bold text-slate-700">{c.cut}</td>
+                                                            <td className="p-3 text-slate-500">{c.result}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )
+                            ) : (
+                                <div className="flex-1 overflow-auto pr-1 space-y-2 custom-scrollbar max-h-[350px]">
+                                    {savedProjects.length === 0 ? (
+                                        <div className="flex-1 flex flex-col items-center justify-center py-12 text-slate-400 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                                            <FolderOpen className="w-8 h-8 mb-3 opacity-20" />
+                                            <p className="text-[11px] font-bold uppercase tracking-widest">No saved projects</p>
+                                        </div>
+                                    ) : (
+                                        savedProjects.map((proj) => (
                                             <div
                                                 key={proj.id}
                                                 className={cn(
-                                                    "flex items-center justify-between p-3 rounded-lg border transition-all",
-                                                    proj.id === projectId ? "border-primary bg-primary/5" : "border-border/40 hover:bg-muted/30"
+                                                    "group flex items-center justify-between p-4 rounded-2xl border transition-all cursor-default",
+                                                    proj.id === projectId ? "bg-indigo-50 border-indigo-200 ring-1 ring-indigo-500/10" : "bg-white border-slate-100 hover:border-indigo-200 hover:shadow-md"
                                                 )}
                                             >
-                                                <div className="flex-1">
-                                                    <p className="text-sm font-semibold">{proj.name}</p>
-                                                    <p className="text-[10px] text-muted-foreground">
-                                                        {proj.updated_at ? new Date(proj.updated_at).toLocaleDateString() : "No date"}
-                                                        {proj.metrics?.sheetsUsed && ` • ${proj.metrics.sheetsUsed} sheets`}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <h3 className={cn("text-sm font-bold truncate", proj.id === projectId ? "text-indigo-900" : "text-slate-700")}>
+                                                            {proj.name}
+                                                        </h3>
+                                                        {proj.id === projectId && <span className="text-[8px] font-black uppercase bg-indigo-600 text-white px-1.5 py-0.5 rounded-full tracking-wide">Active</span>}
+                                                    </div>
+                                                    <p className="text-[10px] font-medium text-slate-400 flex items-center gap-1.5">
+                                                        <span>{proj.updated_at ? new Date(proj.updated_at).toLocaleDateString() : "No date"}</span>
+                                                        <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                                        <span>{proj.metrics?.sheetsUsed || 0} Sheets</span>
                                                     </p>
                                                 </div>
-                                                <div className="flex items-center gap-1">
+                                                <div className="flex items-center gap-2">
                                                     <button
                                                         type="button"
-                                                        className="inline-flex items-center justify-center whitespace-nowrap font-medium transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px] active:translate-y-0 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 rounded-md gap-1.5 has-[>svg]:px-2.5 h-7 text-[10px] px-2"
+                                                        className={cn(
+                                                            "h-8 px-3 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all",
+                                                            proj.id === projectId
+                                                                ? "bg-white text-indigo-300 cursor-default"
+                                                                : "bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white"
+                                                        )}
                                                         onClick={(e) => {
                                                             e.preventDefault();
                                                             e.stopPropagation();
@@ -2468,1397 +2512,1463 @@ These Terms and Conditions shall be governed by the laws of the Republic of the 
                                                         }}
                                                         disabled={proj.id === projectId}
                                                     >
-                                                        {proj.id === projectId ? "Active" : "Load"}
+                                                        {proj.id === projectId ? "Loaded" : "Load"}
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        className="inline-flex items-center justify-center whitespace-nowrap font-medium transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px] active:translate-y-0 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:text-accent-foreground dark:hover:bg-accent/50 rounded-md gap-1.5 has-[>svg]:px-2.5 h-7 text-[10px] px-2 text-destructive hover:bg-destructive/10"
+                                                        className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all"
                                                         onClick={(e) => {
                                                             e.preventDefault();
                                                             e.stopPropagation();
                                                             setProjectToDelete({ id: proj.id, name: proj.name });
                                                         }}
                                                     >
-                                                        <Trash2 className="w-3 h-3" />
+                                                        <Trash2 className="w-4 h-4" />
                                                     </button>
                                                 </div>
                                             </div>
-                                        ))}
+                                        ))
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+                {/* Edit Cabinet Modal */}
+                {editingCabinetId && (() => {
+                    const config = cabinetConfigs.find(c => c.id === editingCabinetId);
+                    if (!config) return null;
+                    const breakdown = getMaterialsBreakdown(config);
+                    if (!breakdown) return null;
+                    const typeColors = {
+                        base: "border-emerald-500",
+                        hanging: "border-blue-500",
+                        tall: "border-amber-500",
+                    };
+                    return (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-200">
+                            <div className={cn("bg-white w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-[32px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.25)] p-0 relative flex flex-col scale-in-95 animate-in zoom-in-95 duration-200 ring-1 ring-slate-900/5", typeColors[config.type])}>
+                                <div className="flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-md py-6 px-8 z-10 border-b border-slate-100">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-indigo-50 rounded-2xl">
+                                            <Settings className="w-6 h-6 text-indigo-600" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-xl font-black uppercase tracking-tight text-slate-800">{config.type} Cabinet</h2>
+                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">Configuration & Materials</p>
+                                        </div>
+                                        <span className="ml-2 text-[10px] font-mono text-slate-300 px-2 py-1 bg-slate-50 rounded-lg border border-slate-100">#{config.id.slice(0, 8)}</span>
+                                    </div>
+                                    <button onClick={() => setEditingCabinetId(null)} className="p-2 hover:bg-slate-100 rounded-full transition-colors group">
+                                        <X className="w-5 h-5 text-slate-400 group-hover:text-slate-600" />
+                                    </button>
+                                </div>
+
+                                <div className="p-8">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                                        {/* Left Side: Configuration */}
+                                        <div className="space-y-8">
+                                            <div className="bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
+                                                <h3 className="text-[11px] font-black uppercase text-slate-400 tracking-widest mb-6 flex items-center gap-2">
+                                                    <span className="w-6 h-1 bg-indigo-500 rounded-full"></span>
+                                                    Dimensions
+                                                </h3>
+                                                <div className="grid grid-cols-2 gap-5">
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide px-1">Height (mm)</label>
+                                                        <input type="number" className="w-full h-11 px-4 text-sm font-bold border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-700 transition-all shadow-sm" value={config.height} onChange={(e) => updateCabinetConfig(config.id, "height", Number(e.target.value))} />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide px-1">Depth (mm)</label>
+                                                        <input type="number" className="w-full h-11 px-4 text-sm font-bold border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-700 transition-all shadow-sm" value={config.depth} onChange={(e) => updateCabinetConfig(config.id, "depth", Number(e.target.value))} />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide px-1">Unit Width (mm)</label>
+                                                        <input type="number" className="w-full h-11 px-4 text-sm font-bold border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-700 transition-all shadow-sm" value={config.unitWidth} onChange={(e) => updateCabinetConfig(config.id, "unitWidth", Number(e.target.value))} />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide px-1">Linear Meters (m)</label>
+                                                        <input type="number" step="0.1" className="w-full h-11 px-4 text-sm font-bold border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-700 transition-all shadow-sm" value={config.linearMeters} onChange={(e) => updateCabinetConfig(config.id, "linearMeters", Number(e.target.value))} />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
+                                                <h3 className="text-[11px] font-black uppercase text-slate-400 tracking-widest mb-6 flex items-center gap-2">
+                                                    <span className="w-6 h-1 bg-indigo-500 rounded-full"></span>
+                                                    Components
+                                                </h3>
+                                                <div className="grid grid-cols-3 gap-4">
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide px-1">Doors</label>
+                                                        <select className="w-full h-11 px-3 text-sm font-bold border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-700 shadow-sm" value={config.doorsPerUnit} onChange={(e) => updateCabinetConfig(config.id, "doorsPerUnit", Number(e.target.value) as 1 | 2)}>
+                                                            <option value={1}>1 Door</option>
+                                                            <option value={2}>2 Doors</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide px-1">Shelves</label>
+                                                        <input type="number" min={0} max={10} className="w-full h-11 px-4 text-sm font-bold border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-700 shadow-sm" value={config.shelves} onChange={(e) => updateCabinetConfig(config.id, "shelves", Number(e.target.value))} />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide px-1">Drawers</label>
+                                                        <input type="number" min={0} max={5} className="w-full h-11 px-4 text-sm font-bold border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-slate-700 shadow-sm" value={config.drawers} onChange={(e) => updateCabinetConfig(config.id, "drawers", Number(e.target.value))} disabled={config.type === "hanging"} />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
+                                                <h3 className="text-[11px] font-black uppercase text-slate-400 tracking-widest mb-6 flex items-center gap-2">
+                                                    <span className="w-6 h-1 bg-indigo-500 rounded-full"></span>
+                                                    Materials
+                                                </h3>
+                                                <div className="space-y-4">
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide px-1 flex items-center gap-2">
+                                                            <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]"></span>
+                                                            Carcass (Sides, Top, Bottom, Shelves)
+                                                        </label>
+                                                        <select
+                                                            className="w-full h-11 px-4 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm font-medium text-slate-700 shadow-sm"
+                                                            value={config.materials?.carcass?.stockSheetId || ""}
+                                                            onChange={(e) => {
+                                                                const sheet = stockSheets.find(s => s.id === e.target.value)
+                                                                updateCabinetConfig(config.id, "materials", {
+                                                                    ...config.materials,
+                                                                    carcass: sheet ? { stockSheetId: sheet.id, label: sheet.label || `${sheet.length}×${sheet.width}mm` } : null,
+                                                                    doors: config.materials?.doors || null,
+                                                                    backing: config.materials?.backing || null,
+                                                                } as CabinetMaterials)
+                                                            }}
+                                                        >
+                                                            <option value="">Select stock sheet...</option>
+                                                            {stockSheets.map(s => (
+                                                                <option key={s.id} value={s.id}>
+                                                                    {s.label || `${s.length}×${s.width}mm`}{s.thickness ? ` (${s.thickness}mm)` : ""}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide px-1 flex items-center gap-2">
+                                                            <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.4)]"></span>
+                                                            Doors & Drawer Fronts
+                                                        </label>
+                                                        <select
+                                                            className="w-full h-11 px-4 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm font-medium text-slate-700 shadow-sm"
+                                                            value={config.materials?.doors?.stockSheetId || ""}
+                                                            onChange={(e) => {
+                                                                const sheet = stockSheets.find(s => s.id === e.target.value)
+                                                                updateCabinetConfig(config.id, "materials", {
+                                                                    ...config.materials,
+                                                                    carcass: config.materials?.carcass || null,
+                                                                    doors: sheet ? { stockSheetId: sheet.id, label: sheet.label || `${sheet.length}×${sheet.width}mm` } : null,
+                                                                    backing: config.materials?.backing || null,
+                                                                } as CabinetMaterials)
+                                                            }}
+                                                        >
+                                                            <option value="">Select stock sheet...</option>
+                                                            {stockSheets.map(s => (
+                                                                <option key={s.id} value={s.id}>
+                                                                    {s.label || `${s.length}×${s.width}mm`}{s.thickness ? ` (${s.thickness}mm)` : ""}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide px-1 flex items-center gap-2">
+                                                            <span className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.4)]"></span>
+                                                            Backing
+                                                        </label>
+                                                        <select
+                                                            className="w-full h-11 px-4 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm font-medium text-slate-700 shadow-sm"
+                                                            value={config.materials?.backing?.stockSheetId || ""}
+                                                            onChange={(e) => {
+                                                                const sheet = stockSheets.find(s => s.id === e.target.value)
+                                                                updateCabinetConfig(config.id, "materials", {
+                                                                    ...config.materials,
+                                                                    carcass: config.materials?.carcass || null,
+                                                                    doors: config.materials?.doors || null,
+                                                                    backing: sheet ? { stockSheetId: sheet.id, label: sheet.label || `${sheet.length}×${sheet.width}mm` } : null,
+                                                                } as CabinetMaterials)
+                                                            }}
+                                                        >
+                                                            <option value="">Select stock sheet...</option>
+                                                            {stockSheets.map(s => (
+                                                                <option key={s.id} value={s.id}>
+                                                                    {s.label || `${s.length}×${s.width}mm`}{s.thickness ? ` (${s.thickness}mm)` : ""}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Right Side: Materials Breakdown */}
+                                        <div className="space-y-4 bg-slate-900 p-6 rounded-[24px] text-white shadow-xl shadow-slate-900/10">
+                                            <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-800">
+                                                <h3 className="text-xs font-black uppercase text-indigo-400 tracking-widest">Materials Breakdown</h3>
+                                                <span className="text-[10px] font-bold bg-indigo-500 text-white px-2 py-1 rounded-lg">{breakdown.unitCount} Total Units</span>
+                                            </div>
+
+                                            <div className="space-y-6 text-[11px]">
+                                                <div>
+                                                    <p className="font-bold text-slate-500 uppercase tracking-widest mb-3 text-[10px]">Panels (Per Unit)</p>
+                                                    <div className="space-y-2">
+                                                        {breakdown.panels.map((p, i) => (
+                                                            <div key={i} className="flex justify-between items-center py-1.5 px-3 bg-slate-800/50 rounded-lg border border-slate-700/50">
+                                                                <span className="font-bold text-slate-300">{p.name} <span className="text-slate-500 text-[10px]">({p.qty}x)</span></span>
+                                                                <span className="font-mono text-indigo-300">{p.l}×{p.w}mm</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-6">
+                                                    <div>
+                                                        <p className="font-bold text-slate-500 uppercase tracking-widest mb-3 text-[10px]">Hardware</p>
+                                                        <div className="space-y-2 text-slate-300">
+                                                            <p className="flex justify-between"><span>Hinges:</span> <span className="font-bold text-white">{breakdown.hardware.hinges} pr</span></p>
+                                                            <p className="flex justify-between"><span>Handles:</span> <span className="font-bold text-white">{breakdown.hardware.doorHandles + breakdown.hardware.drawerHandles}</span></p>
+                                                            <p className="flex justify-between"><span>Slides:</span> <span className="font-bold text-white">{breakdown.hardware.drawerSlides} sets</span></p>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-bold text-slate-500 uppercase tracking-widest mb-3 text-[10px]">Fasteners</p>
+                                                        <div className="space-y-2 text-slate-300">
+                                                            <p className="flex justify-between"><span>Confirmat:</span> <span className="font-bold text-white">{breakdown.fasteners.confirmatScrews}</span></p>
+                                                            <p className="flex justify-between"><span>Cam Locks:</span> <span className="font-bold text-white">{breakdown.fasteners.camLocks}</span></p>
+                                                            <p className="flex justify-between"><span>Nails:</span> <span className="font-bold text-white">{breakdown.fasteners.backPanelNails}</span></p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="pt-4 border-t border-slate-800">
+                                                    <div className="flex justify-between items-center text-sm">
+                                                        <span className="font-bold text-indigo-400 uppercase tracking-tight">Total Edge Banding</span>
+                                                        <span className="font-black text-white text-lg">{(breakdown.totalEdgeBand * breakdown.unitCount).toFixed(2)}m</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex justify-end sticky bottom-0 backdrop-blur-md rounded-b-[32px]">
+                                    <Button onClick={() => setEditingCabinetId(null)} className="rounded-xl px-10 h-12 font-black uppercase tracking-widest bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-900/10 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                                        Save Changes
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()}
+                {/* Panel Manager Modal */}
+                {isPanelModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-200">
+                        <div className="bg-white w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-[32px] border border-slate-100 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.25)] flex flex-col scale-in-95 animate-in zoom-in-95 duration-200 ring-1 ring-slate-900/5">
+                            <div className="flex items-center justify-between p-8 border-b border-slate-100 bg-white/95 backdrop-blur-sm z-10">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-indigo-50 rounded-2xl">
+                                        <GripVertical className="w-6 h-6 text-indigo-600" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-2xl font-black uppercase tracking-tight text-slate-800">Manage Panels</h2>
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">Custom Cutlist Entries</p>
+                                    </div>
+                                    <span className="ml-2 text-[10px] font-black bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full uppercase tracking-wide">
+                                        {panels.length} Items
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <Button variant="outline" size="sm" onClick={addPanel} className="h-10 px-4 rounded-xl border-slate-200 text-slate-600 font-bold uppercase tracking-wider hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 transition-all gap-2">
+                                        <Plus className="w-4 h-4" />
+                                        <span>Add Panel</span>
+                                    </Button>
+                                    <button onClick={() => setIsPanelModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors group">
+                                        <X className="w-6 h-6 text-slate-300 group-hover:text-slate-600" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-0 custom-scrollbar bg-slate-50/50">
+                                {panels.length > 0 ? (
+                                    <table className="w-full border-separate border-spacing-y-2 px-6 pt-4">
+                                        <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-sm z-10 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-px after:bg-slate-200/50">
+                                            <tr>
+                                                <th className="pb-4 pt-2 px-4 text-xs font-black text-slate-400 uppercase tracking-widest text-left">#</th>
+                                                <th className="pb-4 pt-2 px-4 text-xs font-black text-slate-400 uppercase tracking-widest text-left w-[20%]">Label</th>
+                                                <th className="pb-4 pt-2 px-4 text-xs font-black text-slate-400 uppercase tracking-widest text-left">L (mm)</th>
+                                                <th className="pb-4 pt-2 px-4 text-xs font-black text-slate-400 uppercase tracking-widest text-left">W (mm)</th>
+                                                <th className="pb-4 pt-2 px-4 text-xs font-black text-slate-400 uppercase tracking-widest text-left">Qty</th>
+                                                <th className="pb-4 pt-2 px-4 text-xs font-black text-slate-400 uppercase tracking-widest text-left">Group</th>
+                                                <th className="pb-4 pt-2 px-4 text-xs font-black text-slate-400 uppercase tracking-widest text-left w-[25%]">Sheet</th>
+                                                <th className="pb-4 pt-2 px-4 text-xs font-black text-slate-400 uppercase tracking-widest text-right"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {panels.map((p, idx) => (
+                                                <tr key={p.id} className="group transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/5">
+                                                    <td className="py-1 px-1">
+                                                        <div className="bg-white h-14 rounded-l-2xl border-y border-l border-slate-100 flex items-center px-4 font-mono font-bold text-slate-300 group-hover:border-indigo-100 group-hover:text-indigo-300 transition-colors">
+                                                            {idx + 1}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-1 px-1">
+                                                        <div className="bg-white h-14 border-y border-slate-100 flex items-center px-2 group-hover:border-indigo-100 transition-colors">
+                                                            <input
+                                                                type="text"
+                                                                className="w-full h-10 px-3 rounded-lg bg-slate-50 border-transparent focus:bg-white focus:border-indigo-200 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none text-sm font-bold text-slate-700 placeholder:text-slate-300"
+                                                                value={p.label || ""}
+                                                                onChange={(e) => updatePanel(p.id, "label", e.target.value)}
+                                                                placeholder="Unnamed Panel"
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-1 px-1">
+                                                        <div className="bg-white h-14 border-y border-slate-100 flex items-center px-2 group-hover:border-indigo-100 transition-colors">
+                                                            <input
+                                                                type="number"
+                                                                className="w-full h-10 px-3 rounded-lg bg-slate-50 border-transparent focus:bg-white focus:border-indigo-200 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none text-sm font-mono font-bold text-slate-700"
+                                                                value={p.length || ""}
+                                                                onChange={(e) => updatePanel(p.id, "length", Number(e.target.value) || 0)}
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-1 px-1">
+                                                        <div className="bg-white h-14 border-y border-slate-100 flex items-center px-2 group-hover:border-indigo-100 transition-colors">
+                                                            <input
+                                                                type="number"
+                                                                className="w-full h-10 px-3 rounded-lg bg-slate-50 border-transparent focus:bg-white focus:border-indigo-200 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none text-sm font-mono font-bold text-slate-700"
+                                                                value={p.width || ""}
+                                                                onChange={(e) => updatePanel(p.id, "width", Number(e.target.value) || 0)}
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-1 px-1">
+                                                        <div className="bg-white h-14 border-y border-slate-100 flex items-center px-2 group-hover:border-indigo-100 transition-colors">
+                                                            <input
+                                                                type="number"
+                                                                className="w-20 h-10 px-3 rounded-lg bg-slate-50 border-transparent focus:bg-white focus:border-indigo-200 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none text-sm font-black text-indigo-600 text-center"
+                                                                value={p.quantity || ""}
+                                                                onChange={(e) => updatePanel(p.id, "quantity", Number(e.target.value) || 1)}
+                                                                min={1}
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-1 px-1">
+                                                        <div className="bg-white h-14 border-y border-slate-100 flex items-center px-2 group-hover:border-indigo-100 transition-colors">
+                                                            <select
+                                                                className="h-10 px-3 rounded-lg bg-slate-50 border-transparent focus:bg-white focus:border-indigo-200 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none text-xs font-bold uppercase text-slate-600 w-full cursor-pointer"
+                                                                value={p.materialGroup || ""}
+                                                                onChange={(e) => updatePanel(p.id, "materialGroup", e.target.value)}
+                                                            >
+                                                                <option value="">Default</option>
+                                                                <option value="carcass">Carcass</option>
+                                                                <option value="doors">Doors</option>
+                                                                <option value="backing">Backing</option>
+                                                            </select>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-1 px-1">
+                                                        <div className="bg-white h-14 border-y border-slate-100 flex items-center px-2 group-hover:border-indigo-100 transition-colors">
+                                                            <select
+                                                                className="w-full h-10 px-3 rounded-lg bg-slate-50 border-transparent focus:bg-white focus:border-indigo-200 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none text-xs font-bold text-slate-600 cursor-pointer"
+                                                                value={p.stockSheetId || ""}
+                                                                onChange={(e) => updatePanel(p.id, "stockSheetId", e.target.value)}
+                                                            >
+                                                                <option value="">Default Sheet</option>
+                                                                {stockSheets.map(s => (
+                                                                    <option key={s.id} value={s.id}>{s.label || `${s.length}×${s.width}mm`}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-1 px-1">
+                                                        <div className="bg-white h-14 rounded-r-2xl border-y border-r border-slate-100 flex items-center justify-end px-4 group-hover:border-indigo-100 transition-colors">
+                                                            <button
+                                                                onClick={() => removePanel(p.id)}
+                                                                className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                ) : (
+                                    <div className="h-full flex flex-col items-center justify-center text-center p-12">
+                                        <div className="w-20 h-20 bg-slate-50 rounded-[24px] flex items-center justify-center mb-6 shadow-sm border border-slate-100">
+                                            <GripVertical className="w-8 h-8 text-slate-300" />
+                                        </div>
+                                        <h3 className="text-lg font-black uppercase tracking-tight text-slate-800 mb-2">No Panels Added</h3>
+                                        <p className="text-slate-400 text-sm max-w-xs mx-auto mb-8">Add panels manually to customize your cutlist with generic measurements.</p>
+                                        <Button variant="outline" size="lg" onClick={addPanel} className="rounded-xl border-dashed border-2 border-slate-200 text-slate-500 font-bold uppercase tracking-wider hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50 gap-2">
+                                            <Plus className="w-5 h-5" />
+                                            Add First Panel
+                                        </Button>
                                     </div>
                                 )}
                             </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-            {/* Edit Cabinet Modal */}
-            {editingCabinetId && (() => {
-                const config = cabinetConfigs.find(c => c.id === editingCabinetId);
-                if (!config) return null;
-                const breakdown = getMaterialsBreakdown(config);
-                if (!breakdown) return null;
-                const typeColors = {
-                    base: "border-emerald-500",
-                    hanging: "border-blue-500",
-                    tall: "border-amber-500",
-                };
-                return (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-                        <div className={cn("bg-card w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border-2 shadow-2xl p-6 relative flex flex-col gap-6 scale-in-95 animate-in zoom-in-95 duration-200", typeColors[config.type])}>
-                            <div className="flex items-center justify-between sticky top-0 bg-card py-2 z-10 border-b border-border/20 mb-2">
-                                <div className="flex items-center gap-3">
-                                    <h2 className="text-xl font-bold uppercase tracking-tight">{config.type} Cabinet Details</h2>
-                                    <span className="text-xs px-2 py-0.5 bg-muted rounded-full text-muted-foreground font-mono">#{config.id.slice(0, 8)}</span>
-                                </div>
-                                <button onClick={() => setEditingCabinetId(null)} className="p-2 hover:bg-muted rounded-full transition-colors">
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-2">
-                                {/* Left Side: Configuration */}
-                                <div className="space-y-6">
-                                    <div>
-                                        <h3 className="text-sm font-bold uppercase text-muted-foreground mb-4 flex items-center gap-2">
-                                            <div className="w-1 h-3 bg-primary rounded-full"></div>
-                                            Dimensions
-                                        </h3>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-1.5">
-                                                <label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Height (mm)</label>
-                                                <input type="number" className="w-full h-10 px-3 border rounded-xl bg-muted/30 focus:bg-background transition-all outline-none focus:ring-2 focus:ring-primary/20" value={config.height} onChange={(e) => updateCabinetConfig(config.id, "height", Number(e.target.value))} />
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Depth (mm)</label>
-                                                <input type="number" className="w-full h-10 px-3 border rounded-xl bg-muted/30 focus:bg-background transition-all outline-none focus:ring-2 focus:ring-primary/20" value={config.depth} onChange={(e) => updateCabinetConfig(config.id, "depth", Number(e.target.value))} />
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Unit Width (mm)</label>
-                                                <input type="number" className="w-full h-10 px-3 border rounded-xl bg-muted/30 focus:bg-background transition-all outline-none focus:ring-2 focus:ring-primary/20" value={config.unitWidth} onChange={(e) => updateCabinetConfig(config.id, "unitWidth", Number(e.target.value))} />
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Linear Meters (m)</label>
-                                                <input type="number" step="0.1" className="w-full h-10 px-3 border rounded-xl bg-muted/30 focus:bg-background transition-all outline-none focus:ring-2 focus:ring-primary/20" value={config.linearMeters} onChange={(e) => updateCabinetConfig(config.id, "linearMeters", Number(e.target.value))} />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <h3 className="text-sm font-bold uppercase text-muted-foreground mb-4 flex items-center gap-2">
-                                            <div className="w-1 h-3 bg-primary rounded-full"></div>
-                                            Components
-                                        </h3>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-1.5">
-                                                <label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Doors</label>
-                                                <select className="w-full h-10 px-3 border rounded-xl bg-muted/30 focus:bg-background transition-all outline-none focus:ring-2 focus:ring-primary/20" value={config.doorsPerUnit} onChange={(e) => updateCabinetConfig(config.id, "doorsPerUnit", Number(e.target.value) as 1 | 2)}>
-                                                    <option value={1}>1 Door</option>
-                                                    <option value={2}>2 Doors</option>
-                                                </select>
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Shelves</label>
-                                                <input type="number" min={0} max={10} className="w-full h-10 px-3 border rounded-xl bg-muted/30 focus:bg-background transition-all outline-none focus:ring-2 focus:ring-primary/20" value={config.shelves} onChange={(e) => updateCabinetConfig(config.id, "shelves", Number(e.target.value))} />
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Drawers</label>
-                                                <input type="number" min={0} max={5} className="w-full h-10 px-3 border rounded-xl bg-muted/30 focus:bg-background transition-all outline-none focus:ring-2 focus:ring-primary/20" value={config.drawers} onChange={(e) => updateCabinetConfig(config.id, "drawers", Number(e.target.value))} disabled={config.type === "hanging"} />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <h3 className="text-sm font-bold uppercase text-muted-foreground mb-4 flex items-center gap-2">
-                                            <div className="w-1 h-3 bg-primary rounded-full"></div>
-                                            Materials
-                                        </h3>
-                                        <div className="space-y-3">
-                                            <div className="space-y-1.5">
-                                                <label className="text-[10px] font-bold text-muted-foreground uppercase px-1 flex items-center gap-2">
-                                                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                                                    Carcass (Sides, Top, Bottom, Shelves)
-                                                </label>
-                                                <select
-                                                    className="w-full h-10 px-3 border rounded-xl bg-muted/30 focus:bg-background transition-all outline-none focus:ring-2 focus:ring-primary/20 text-sm"
-                                                    value={config.materials?.carcass?.stockSheetId || ""}
-                                                    onChange={(e) => {
-                                                        const sheet = stockSheets.find(s => s.id === e.target.value)
-                                                        updateCabinetConfig(config.id, "materials", {
-                                                            ...config.materials,
-                                                            carcass: sheet ? { stockSheetId: sheet.id, label: sheet.label || `${sheet.length}×${sheet.width}mm` } : null,
-                                                            doors: config.materials?.doors || null,
-                                                            backing: config.materials?.backing || null,
-                                                        } as CabinetMaterials)
-                                                    }}
-                                                >
-                                                    <option value="">Select stock sheet...</option>
-                                                    {stockSheets.map(s => (
-                                                        <option key={s.id} value={s.id}>
-                                                            {s.label || `${s.length}×${s.width}mm`}{s.thickness ? ` (${s.thickness}mm)` : ""}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <label className="text-[10px] font-bold text-muted-foreground uppercase px-1 flex items-center gap-2">
-                                                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                                                    Doors & Drawer Fronts
-                                                </label>
-                                                <select
-                                                    className="w-full h-10 px-3 border rounded-xl bg-muted/30 focus:bg-background transition-all outline-none focus:ring-2 focus:ring-primary/20 text-sm"
-                                                    value={config.materials?.doors?.stockSheetId || ""}
-                                                    onChange={(e) => {
-                                                        const sheet = stockSheets.find(s => s.id === e.target.value)
-                                                        updateCabinetConfig(config.id, "materials", {
-                                                            ...config.materials,
-                                                            carcass: config.materials?.carcass || null,
-                                                            doors: sheet ? { stockSheetId: sheet.id, label: sheet.label || `${sheet.length}×${sheet.width}mm` } : null,
-                                                            backing: config.materials?.backing || null,
-                                                        } as CabinetMaterials)
-                                                    }}
-                                                >
-                                                    <option value="">Select stock sheet...</option>
-                                                    {stockSheets.map(s => (
-                                                        <option key={s.id} value={s.id}>
-                                                            {s.label || `${s.length}×${s.width}mm`}{s.thickness ? ` (${s.thickness}mm)` : ""}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <div className="space-y-1.5">
-                                                <label className="text-[10px] font-bold text-muted-foreground uppercase px-1 flex items-center gap-2">
-                                                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                                                    Backing
-                                                </label>
-                                                <select
-                                                    className="w-full h-10 px-3 border rounded-xl bg-muted/30 focus:bg-background transition-all outline-none focus:ring-2 focus:ring-primary/20 text-sm"
-                                                    value={config.materials?.backing?.stockSheetId || ""}
-                                                    onChange={(e) => {
-                                                        const sheet = stockSheets.find(s => s.id === e.target.value)
-                                                        updateCabinetConfig(config.id, "materials", {
-                                                            ...config.materials,
-                                                            carcass: config.materials?.carcass || null,
-                                                            doors: config.materials?.doors || null,
-                                                            backing: sheet ? { stockSheetId: sheet.id, label: sheet.label || `${sheet.length}×${sheet.width}mm` } : null,
-                                                        } as CabinetMaterials)
-                                                    }}
-                                                >
-                                                    <option value="">Select stock sheet...</option>
-                                                    {stockSheets.map(s => (
-                                                        <option key={s.id} value={s.id}>
-                                                            {s.label || `${s.length}×${s.width}mm`}{s.thickness ? ` (${s.thickness}mm)` : ""}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Right Side: Materials Breakdown */}
-                                <div className="space-y-4 bg-muted/20 p-4 rounded-2xl border border-border/10">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <h3 className="text-sm font-bold uppercase text-primary">Materials Summary</h3>
-                                        <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">{breakdown.unitCount} Total Units</span>
-                                    </div>
-
-                                    <div className="space-y-4 text-[11px]">
-                                        <div>
-                                            <p className="font-bold text-muted-foreground uppercase mb-2">Panels (Per Unit)</p>
-                                            <div className="space-y-1">
-                                                {breakdown.panels.map((p, i) => (
-                                                    <div key={i} className="flex justify-between items-center py-1 border-b border-border/5">
-                                                        <span>{p.name} ({p.qty}x)</span>
-                                                        <span className="font-mono text-muted-foreground">{p.l}×{p.w}mm</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-                                            <div>
-                                                <p className="font-bold text-muted-foreground uppercase mb-1">Hardware</p>
-                                                <div className="space-y-0.5 text-muted-foreground">
-                                                    <p>Hinges: {breakdown.hardware.hinges} pr</p>
-                                                    <p>Handles: {breakdown.hardware.doorHandles + breakdown.hardware.drawerHandles}</p>
-                                                    <p>Slides: {breakdown.hardware.drawerSlides} sets</p>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <p className="font-bold text-muted-foreground uppercase mb-1">Fasteners</p>
-                                                <div className="space-y-0.5 text-muted-foreground">
-                                                    <p>Confirmat: {breakdown.fasteners.confirmatScrews}</p>
-                                                    <p>Cam Locks: {breakdown.fasteners.camLocks}</p>
-                                                    <p>Nails: {breakdown.fasteners.backPanelNails}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="pt-2 border-t border-primary/20">
-                                            <div className="flex justify-between items-center text-sm">
-                                                <span className="font-medium">Total Edge Banding</span>
-                                                <span className="font-black text-primary">{(breakdown.totalEdgeBand * breakdown.unitCount).toFixed(2)} LM</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-end pt-4 border-t border-border/20">
-                                <Button onClick={() => setEditingCabinetId(null)} className="rounded-xl px-8 h-11 font-bold">
+                            <div className="p-6 border-t border-slate-100 bg-white/95 backdrop-blur-sm flex justify-between items-center z-10">
+                                <span className="text-xs font-bold text-slate-400 italic flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                    Changes saved automatically
+                                </span>
+                                <Button
+                                    onClick={() => {
+                                        saveProject();
+                                        setIsPanelModalOpen(false);
+                                    }}
+                                    className="rounded-xl px-12 h-12 font-black uppercase tracking-widest bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-900/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                >
                                     Done
                                 </Button>
                             </div>
                         </div>
                     </div>
-                );
-            })()}
-            {/* Panel Manager Modal */}
-            {isPanelModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-card w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl border shadow-2xl flex flex-col scale-in-95 animate-in zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between p-6 border-b border-border/20">
-                            <div className="flex items-center gap-3">
-                                <h2 className="text-xl font-bold uppercase tracking-tight">Manage Panels</h2>
-                                <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-full">
-                                    {panels.length} Total
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Button variant="outline" size="sm" onClick={addPanel} className="h-9 gap-2">
-                                    <Plus className="w-4 h-4" />
-                                    <span>Add Panel</span>
-                                </Button>
-                                <button onClick={() => setIsPanelModalOpen(false)} className="p-2 hover:bg-muted rounded-full transition-colors">
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-                            {panels.length > 0 ? (
-                                <table className="w-full border-collapse">
-                                    <thead className="sticky top-0 bg-card z-10">
-                                        <tr className="border-b border-border/20 text-[10px] text-muted-foreground uppercase font-bold text-left">
-                                            <th className="pb-3 px-2 font-black">#</th>
-                                            <th className="pb-3 px-2">Label</th>
-                                            <th className="pb-3 px-2">Length ({unitLabel})</th>
-                                            <th className="pb-3 px-2">Width ({unitLabel})</th>
-                                            <th className="pb-3 px-2">Quantity</th>
-                                            <th className="pb-3 px-2">Group</th>
-                                            <th className="pb-3 px-2">Stock Sheet</th>
-                                            <th className="pb-3 px-2 text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-border/10">
-                                        {panels.map((p, idx) => (
-                                            <tr key={p.id} className="hover:bg-muted/30 transition-colors group">
-                                                <td className="py-2 px-2 text-[10px] font-bold text-muted-foreground">{idx + 1}</td>
-                                                <td className="py-2 px-2">
-                                                    <input
-                                                        type="text"
-                                                        className="w-full h-9 px-3 border rounded-lg bg-transparent focus:bg-background transition-all outline-none focus:ring-1 focus:ring-primary/30 text-xs"
-                                                        value={p.label || ""}
-                                                        onChange={(e) => updatePanel(p.id, "label", e.target.value)}
-                                                        placeholder="e.g. Side Panel"
-                                                    />
-                                                </td>
-                                                <td className="py-2 px-2">
-                                                    <input
-                                                        type="number"
-                                                        className="w-full h-9 px-3 border rounded-lg bg-transparent focus:bg-background transition-all outline-none focus:ring-1 focus:ring-primary/30 text-xs font-mono"
-                                                        value={p.length || ""}
-                                                        onChange={(e) => updatePanel(p.id, "length", Number(e.target.value) || 0)}
-                                                    />
-                                                </td>
-                                                <td className="py-2 px-2">
-                                                    <input
-                                                        type="number"
-                                                        className="w-full h-9 px-3 border rounded-lg bg-transparent focus:bg-background transition-all outline-none focus:ring-1 focus:ring-primary/30 text-xs font-mono"
-                                                        value={p.width || ""}
-                                                        onChange={(e) => updatePanel(p.id, "width", Number(e.target.value) || 0)}
-                                                    />
-                                                </td>
-                                                <td className="py-2 px-2">
-                                                    <input
-                                                        type="number"
-                                                        className="w-20 h-9 px-3 border rounded-lg bg-transparent focus:bg-background transition-all outline-none focus:ring-1 focus:ring-primary/30 text-xs font-bold"
-                                                        value={p.quantity || ""}
-                                                        onChange={(e) => updatePanel(p.id, "quantity", Number(e.target.value) || 1)}
-                                                        min={1}
-                                                    />
-                                                </td>
-                                                <td className="py-2 px-2">
-                                                    <select
-                                                        className="h-9 px-2 border rounded-lg bg-transparent outline-none focus:ring-1 focus:ring-primary/30 text-[10px] font-bold uppercase"
-                                                        value={p.materialGroup || ""}
-                                                        onChange={(e) => updatePanel(p.id, "materialGroup", e.target.value)}
-                                                    >
-                                                        <option value="">General</option>
-                                                        <option value="carcass">Carcass</option>
-                                                        <option value="doors">Doors</option>
-                                                        <option value="backing">Backing</option>
-                                                    </select>
-                                                </td>
-                                                <td className="py-2 px-2">
-                                                    <select
-                                                        className="w-full h-9 px-2 border rounded-lg bg-transparent outline-none focus:ring-1 focus:ring-primary/30 text-[10px]"
-                                                        value={p.stockSheetId || ""}
-                                                        onChange={(e) => updatePanel(p.id, "stockSheetId", e.target.value)}
-                                                    >
-                                                        <option value="">Default Sheet</option>
-                                                        {stockSheets.map(s => (
-                                                            <option key={s.id} value={s.id}>{s.label || `${s.length}×${s.width}mm`}</option>
-                                                        ))}
-                                                    </select>
-                                                </td>
-                                                <td className="py-2 px-2 text-right">
-                                                    <button
-                                                        onClick={() => removePanel(p.id)}
-                                                        className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            ) : (
-                                <div className="h-64 flex flex-col items-center justify-center text-center opacity-50">
-                                    <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                                        <Plus className="w-8 h-8" />
+                )}
+                {/* Stock Manager Modal */}
+                {isStockModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-200">
+                        <div className="bg-white w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-[32px] border border-slate-100 shadow-[0_50px_100px_-20px_rgba(0,0,0,0.25)] flex flex-col scale-in-95 animate-in zoom-in-95 duration-200 ring-1 ring-slate-900/5">
+                            <div className="flex items-center justify-between p-8 border-b border-slate-100 bg-white/95 backdrop-blur-sm z-10">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-indigo-50 rounded-2xl">
+                                        <Layout className="w-6 h-6 text-indigo-600" />
                                     </div>
-                                    <p className="text-sm font-medium">No panels listed</p>
-                                    <p className="text-xs">Click "Add Panel" to begin</p>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="p-6 border-t border-border/20 bg-muted/20 flex justify-between items-center text-xs text-muted-foreground italic">
-                            <span>* All changes are saved automatically</span>
-                            <Button
-                                onClick={() => {
-                                    saveProject();
-                                    setIsPanelModalOpen(false);
-                                }}
-                                className="rounded-xl px-10 h-11 font-bold"
-                            >
-                                Done
-                            </Button>
-
-                        </div>
-                    </div>
-                </div>
-            )}
-            {/* Stock Manager Modal */}
-            {isStockModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-card w-full max-w-3xl max-h-[80vh] overflow-hidden rounded-2xl border shadow-2xl flex flex-col scale-in-95 animate-in zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between p-6 border-b border-border/20">
-                            <div className="flex items-center gap-3">
-                                <h2 className="text-xl font-bold uppercase tracking-tight">Stock Sheets</h2>
-                                <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-full">
-                                    {stockSheets.length} Total
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Button variant="outline" size="sm" onClick={addStockSheet} className="h-9 gap-2">
-                                    <Plus className="w-4 h-4" />
-                                    <span>Add Stock</span>
-                                </Button>
-                                <button onClick={() => setIsStockModalOpen(false)} className="p-2 hover:bg-muted rounded-full transition-colors">
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-                            {stockSheets.length > 0 ? (
-                                <table className="w-full border-collapse">
-                                    <thead className="sticky top-0 bg-card z-10">
-                                        <tr className="border-b border-border/20 text-[10px] text-muted-foreground uppercase font-bold text-left">
-                                            <th className="pb-3 px-2 font-black">#</th>
-                                            <th className="pb-3 px-2">Label</th>
-                                            <th className="pb-3 px-2">Length ({unitLabel})</th>
-                                            <th className="pb-3 px-2">Width ({unitLabel})</th>
-                                            <th className="pb-3 px-2">Thickness (mm)</th>
-                                            <th className="pb-3 px-2">Qty</th>
-                                            <th className="pb-3 px-2 text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-border/10">
-                                        {stockSheets.map((s, idx) => (
-                                            <tr key={s.id} className="hover:bg-muted/30 transition-colors group">
-                                                <td className="py-2 px-2 text-[10px] font-bold text-muted-foreground">{idx + 1}</td>
-                                                <td className="py-2 px-2">
-                                                    <input
-                                                        type="text"
-                                                        placeholder="e.g. 18mm MDF"
-                                                        className="w-full h-9 px-3 border rounded-lg bg-transparent focus:bg-background transition-all outline-none focus:ring-1 focus:ring-primary/30 text-xs"
-                                                        value={s.label || ""}
-                                                        onChange={(e) => updateStockSheet(s.id, "label", e.target.value)}
-                                                    />
-                                                </td>
-                                                <td className="py-2 px-2">
-                                                    <input
-                                                        type="number"
-                                                        className="w-full h-9 px-3 border rounded-lg bg-transparent focus:bg-background transition-all outline-none focus:ring-1 focus:ring-primary/30 text-xs font-mono"
-                                                        value={s.length || ""}
-                                                        onChange={(e) => updateStockSheet(s.id, "length", Number(e.target.value) || 0)}
-                                                    />
-                                                </td>
-                                                <td className="py-2 px-2">
-                                                    <input
-                                                        type="number"
-                                                        className="w-full h-9 px-3 border rounded-lg bg-transparent focus:bg-background transition-all outline-none focus:ring-1 focus:ring-primary/30 text-xs font-mono"
-                                                        value={s.width || ""}
-                                                        onChange={(e) => updateStockSheet(s.id, "width", Number(e.target.value) || 0)}
-                                                    />
-                                                </td>
-                                                <td className="py-2 px-2">
-                                                    <input
-                                                        type="number"
-                                                        placeholder="18"
-                                                        className="w-20 h-9 px-3 border rounded-lg bg-transparent focus:bg-background transition-all outline-none focus:ring-1 focus:ring-primary/30 text-xs font-mono"
-                                                        value={s.thickness || ""}
-                                                        onChange={(e) => updateStockSheet(s.id, "thickness", Number(e.target.value) || 0)}
-                                                    />
-                                                </td>
-                                                <td className="py-2 px-2">
-                                                    <input
-                                                        type="number"
-                                                        className="w-16 h-9 px-3 border rounded-lg bg-transparent focus:bg-background transition-all outline-none focus:ring-1 focus:ring-primary/30 text-xs font-bold"
-                                                        value={s.quantity || ""}
-                                                        onChange={(e) => updateStockSheet(s.id, "quantity", Number(e.target.value) || 1)}
-                                                        min={1}
-                                                    />
-                                                </td>
-                                                <td className="py-2 px-2 text-right">
-                                                    <button
-                                                        onClick={() => removeStockSheet(s.id)}
-                                                        className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            ) : (
-                                <div className="h-64 flex flex-col items-center justify-center text-center opacity-50">
-                                    <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                                        <Plus className="w-8 h-8" />
+                                    <div>
+                                        <h2 className="text-2xl font-black uppercase tracking-tight text-slate-800">Stock Inventory</h2>
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">Manage Sheet Materials</p>
                                     </div>
-                                    <p className="text-sm font-medium">No stock sheets listed</p>
-                                    <p className="text-xs">Click "Add Stock" to begin</p>
+                                    <span className="ml-2 text-[10px] font-black bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full uppercase tracking-wide">
+                                        {stockSheets.length} Items
+                                    </span>
                                 </div>
-                            )}
-                        </div>
-
-                        <div className="p-6 border-t border-border/20 bg-muted/20 flex justify-end">
-                            <Button
-                                onClick={() => {
-                                    saveProject();
-                                    setIsStockModalOpen(false);
-                                }}
-                                className="rounded-xl px-10 h-11 font-bold"
-                            >
-                                Done
-                            </Button>
-
-                        </div>
-                    </div>
-                </div>
-            )}
-            {/* Sheet Layout Detailed View Modal */}
-            {isLayoutModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
-                    <div className="bg-card w-full max-w-7xl max-h-[95vh] overflow-hidden rounded-3xl border-2 shadow-2xl flex flex-col scale-in-95 animate-in zoom-in-95 duration-300">
-                        {/* Modal Header */}
-                        <div className="flex items-center justify-between p-6 border-b border-border/20 bg-muted/30">
-                            <div className="flex flex-col gap-1">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-primary rounded-xl">
-                                        <Eye className="w-5 h-5 text-primary-foreground" />
-                                    </div>
-                                    <h2 className="text-2xl font-black uppercase tracking-tight">Detailed Sheet Layouts</h2>
-                                </div>
-                                <div className="flex items-center gap-4 mt-1">
-                                    <span className="text-xs font-bold text-muted-foreground uppercase opacity-70 flex items-center gap-1.5">
-                                        <span className="w-1.5 h-1.5 bg-primary rounded-full"></span>
-                                        {usedSheets} Total Sheets
-                                    </span>
-                                    {Object.entries(
-                                        sheetsMetadata.reduce((acc, meta) => {
-                                            const group = meta.materialGroup || 'general';
-                                            acc[group] = (acc[group] || 0) + 1;
-                                            return acc;
-                                        }, {} as Record<string, number>)
-                                    ).map(([group, count]) => (
-                                        <span key={group} className="text-xs font-bold text-muted-foreground uppercase opacity-70 flex items-center gap-1.5 border-l border-border/10 pl-4">
-                                            <span className={cn(
-                                                "w-1.5 h-1.5 rounded-full",
-                                                group === "carcass" ? "bg-emerald-500" :
-                                                    group === "doors" ? "bg-blue-500" :
-                                                        group === "backing" ? "bg-amber-500" : "bg-muted-foreground"
-                                            )}></span>
-                                            {count} {group}
-                                        </span>
-                                    ))}
-                                    <span className="text-xs font-bold text-muted-foreground uppercase opacity-70 flex items-center gap-1.5 border-l border-border/10 pl-4">
-                                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                                        {100 - (stats.wastePercent || 0)}% Avg. Utilization
-                                    </span>
+                                    <Button variant="outline" size="sm" onClick={addStockSheet} className="h-10 px-4 rounded-xl border-slate-200 text-slate-600 font-bold uppercase tracking-wider hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 transition-all gap-2">
+                                        <Plus className="w-4 h-4" />
+                                        <span>Add Stock</span>
+                                    </Button>
+                                    <button onClick={() => setIsStockModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors group">
+                                        <X className="w-6 h-6 text-slate-300 group-hover:text-slate-600" />
+                                    </button>
                                 </div>
                             </div>
 
-                            <div className="flex flex-col items-end gap-3">
-                                <button
-                                    onClick={() => setIsLayoutModalOpen(false)}
-                                    className="p-2 hover:bg-muted rounded-full transition-colors group"
+                            <div className="flex-1 overflow-y-auto p-0 custom-scrollbar bg-slate-50/50">
+                                {stockSheets.length > 0 ? (
+                                    <table className="w-full border-separate border-spacing-y-2 px-6 pt-4">
+                                        <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-sm z-10 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-px after:bg-slate-200/50">
+                                            <tr>
+                                                <th className="pb-4 pt-2 px-4 text-xs font-black text-slate-400 uppercase tracking-widest text-left">#</th>
+                                                <th className="pb-4 pt-2 px-4 text-xs font-black text-slate-400 uppercase tracking-widest text-left w-[30%]">Label</th>
+                                                <th className="pb-4 pt-2 px-4 text-xs font-black text-slate-400 uppercase tracking-widest text-left">L ({unitLabel})</th>
+                                                <th className="pb-4 pt-2 px-4 text-xs font-black text-slate-400 uppercase tracking-widest text-left">W ({unitLabel})</th>
+                                                <th className="pb-4 pt-2 px-4 text-xs font-black text-slate-400 uppercase tracking-widest text-left">Thk (mm)</th>
+                                                <th className="pb-4 pt-2 px-4 text-xs font-black text-slate-400 uppercase tracking-widest text-left">Qty</th>
+                                                <th className="pb-4 pt-2 px-4 text-xs font-black text-slate-400 uppercase tracking-widest text-right"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {stockSheets.map((s, idx) => (
+                                                <tr key={s.id} className="group transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/5">
+                                                    <td className="py-1 px-1">
+                                                        <div className="bg-white h-14 rounded-l-2xl border-y border-l border-slate-100 flex items-center px-4 font-mono font-bold text-slate-300 group-hover:border-indigo-100 group-hover:text-indigo-300 transition-colors">
+                                                            {idx + 1}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-1 px-1">
+                                                        <div className="bg-white h-14 border-y border-slate-100 flex items-center px-2 group-hover:border-indigo-100 transition-colors">
+                                                            <input
+                                                                type="text"
+                                                                placeholder="e.g. 18mm MDF"
+                                                                className="w-full h-10 px-3 rounded-lg bg-slate-50 border-transparent focus:bg-white focus:border-indigo-200 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none text-sm font-bold text-slate-700 placeholder:text-slate-300"
+                                                                value={s.label || ""}
+                                                                onChange={(e) => updateStockSheet(s.id, "label", e.target.value)}
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-1 px-1">
+                                                        <div className="bg-white h-14 border-y border-slate-100 flex items-center px-2 group-hover:border-indigo-100 transition-colors">
+                                                            <input
+                                                                type="number"
+                                                                className="w-full h-10 px-3 rounded-lg bg-slate-50 border-transparent focus:bg-white focus:border-indigo-200 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none text-sm font-mono font-bold text-slate-700"
+                                                                value={s.length || ""}
+                                                                onChange={(e) => updateStockSheet(s.id, "length", Number(e.target.value) || 0)}
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-1 px-1">
+                                                        <div className="bg-white h-14 border-y border-slate-100 flex items-center px-2 group-hover:border-indigo-100 transition-colors">
+                                                            <input
+                                                                type="number"
+                                                                className="w-full h-10 px-3 rounded-lg bg-slate-50 border-transparent focus:bg-white focus:border-indigo-200 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none text-sm font-mono font-bold text-slate-700"
+                                                                value={s.width || ""}
+                                                                onChange={(e) => updateStockSheet(s.id, "width", Number(e.target.value) || 0)}
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-1 px-1">
+                                                        <div className="bg-white h-14 border-y border-slate-100 flex items-center px-2 group-hover:border-indigo-100 transition-colors">
+                                                            <input
+                                                                type="number"
+                                                                placeholder="18"
+                                                                className="w-full h-10 px-3 rounded-lg bg-slate-50 border-transparent focus:bg-white focus:border-indigo-200 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none text-sm font-mono font-bold text-slate-700"
+                                                                value={s.thickness || ""}
+                                                                onChange={(e) => updateStockSheet(s.id, "thickness", Number(e.target.value) || 0)}
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-1 px-1">
+                                                        <div className="bg-white h-14 border-y border-slate-100 flex items-center px-2 group-hover:border-indigo-100 transition-colors">
+                                                            <input
+                                                                type="number"
+                                                                className="w-20 h-10 px-3 rounded-lg bg-slate-50 border-transparent focus:bg-white focus:border-indigo-200 focus:ring-4 focus:ring-indigo-500/10 transition-all outline-none text-sm font-black text-indigo-600 text-center"
+                                                                value={s.quantity || ""}
+                                                                onChange={(e) => updateStockSheet(s.id, "quantity", Number(e.target.value) || 1)}
+                                                                min={1}
+                                                            />
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-1 px-1">
+                                                        <div className="bg-white h-14 rounded-r-2xl border-y border-r border-slate-100 flex items-center justify-end px-4 group-hover:border-indigo-100 transition-colors">
+                                                            <button
+                                                                onClick={() => removeStockSheet(s.id)}
+                                                                className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                ) : (
+                                    <div className="h-full flex flex-col items-center justify-center text-center p-12">
+                                        <div className="w-20 h-20 bg-slate-50 rounded-[24px] flex items-center justify-center mb-6 shadow-sm border border-slate-100">
+                                            <Layout className="w-8 h-8 text-slate-300" />
+                                        </div>
+                                        <h3 className="text-lg font-black uppercase tracking-tight text-slate-800 mb-2">No Stock Added</h3>
+                                        <p className="text-slate-400 text-sm max-w-xs mx-auto mb-8">Add stock sheets to begin optimizing your cutlists.</p>
+                                        <Button variant="outline" size="lg" onClick={addStockSheet} className="rounded-xl border-dashed border-2 border-slate-200 text-slate-500 font-bold uppercase tracking-wider hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50 gap-2">
+                                            <Plus className="w-5 h-5" />
+                                            Add First Sheet
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="p-6 border-t border-slate-100 bg-white/95 backdrop-blur-sm flex justify-between items-center z-10 sticky bottom-0">
+                                <span className="text-xs font-bold text-slate-400 italic flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                    Changes saved automatically
+                                </span>
+                                <Button
+                                    onClick={() => {
+                                        saveProject();
+                                        setIsStockModalOpen(false);
+                                    }}
+                                    className="rounded-xl px-12 h-12 font-black uppercase tracking-widest bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-900/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
                                 >
-                                    <X className="w-6 h-6 text-muted-foreground group-hover:text-foreground" />
-                                </button>
-                                <div className="flex gap-4 px-2">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-4 h-1 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
-                                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Primary Rips</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-4 h-1 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
-                                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Secondary Cuts</span>
-                                    </div>
-                                </div>
+                                    Done
+                                </Button>
                             </div>
                         </div>
+                    </div>
+                )}
+                {/* Sheet Layout Detailed View Modal */}
+                {isLayoutModalOpen && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
+                        <div className="bg-card w-full max-w-7xl max-h-[95vh] overflow-hidden rounded-3xl border-2 shadow-2xl flex flex-col scale-in-95 animate-in zoom-in-95 duration-300">
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between p-6 border-b border-border/20 bg-muted/30">
+                                <div className="flex flex-col gap-1">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-primary rounded-xl">
+                                            <Eye className="w-5 h-5 text-primary-foreground" />
+                                        </div>
+                                        <h2 className="text-2xl font-black uppercase tracking-tight">Detailed Sheet Layouts</h2>
+                                    </div>
+                                    <div className="flex items-center gap-4 mt-1">
+                                        <span className="text-xs font-bold text-muted-foreground uppercase opacity-70 flex items-center gap-1.5">
+                                            <span className="w-1.5 h-1.5 bg-primary rounded-full"></span>
+                                            {usedSheets} Total Sheets
+                                        </span>
+                                        {Object.entries(
+                                            sheetsMetadata.reduce((acc, meta) => {
+                                                const group = meta.materialGroup || 'general';
+                                                acc[group] = (acc[group] || 0) + 1;
+                                                return acc;
+                                            }, {} as Record<string, number>)
+                                        ).map(([group, count]) => (
+                                            <span key={group} className="text-xs font-bold text-muted-foreground uppercase opacity-70 flex items-center gap-1.5 border-l border-border/10 pl-4">
+                                                <span className={cn(
+                                                    "w-1.5 h-1.5 rounded-full",
+                                                    group === "carcass" ? "bg-emerald-500" :
+                                                        group === "doors" ? "bg-blue-500" :
+                                                            group === "backing" ? "bg-amber-500" : "bg-muted-foreground"
+                                                )}></span>
+                                                {count} {group}
+                                            </span>
+                                        ))}
+                                        <span className="text-xs font-bold text-muted-foreground uppercase opacity-70 flex items-center gap-1.5 border-l border-border/10 pl-4">
+                                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                                            {100 - (stats.wastePercent || 0)}% Avg. Utilization
+                                        </span>
+                                    </div>
+                                </div>
 
-                        {/* Modal Body: Scrollable Diagrams */}
-                        <div className="flex-1 overflow-y-auto p-8 space-y-16 custom-scrollbar bg-muted/5">
-                            {Array.from({ length: usedSheets }).map((_, sheetIdx) => {
-                                const meta = sheetsMetadata[sheetIdx] || { width: stockSheets[0]?.length || 2440, height: stockSheets[0]?.width || 1220, label: 'Standard Sheet' }
-                                const sheetPanels = placements.filter((p) => p.sheetIndex === sheetIdx)
-                                const levels = sheetLevels[sheetIdx] || []
-
-                                // Calculate sheet utilization
-                                const sheetUsedArea = sheetPanels.reduce((sum, p) => sum + (p.length * p.width), 0)
-                                const sheetTotalArea = meta.width * meta.height
-                                const sheetUtilization = sheetTotalArea > 0 ? Math.round((sheetUsedArea / sheetTotalArea) * 100) : 0
-
-                                // Scale to fit width but maintain aspect ratio
-                                const svgWidth = 1200
-                                const svgHeight = (meta.height / meta.width) * svgWidth
-                                const scale = svgWidth / meta.width
-
-                                return (
-                                    <div
-                                        key={sheetIdx}
-                                        className="animate-in slide-in-from-bottom-4 duration-500 fill-mode-both"
-                                        style={{ animationDelay: `${sheetIdx * 100}ms` }}
+                                <div className="flex flex-col items-end gap-3">
+                                    <button
+                                        onClick={() => setIsLayoutModalOpen(false)}
+                                        className="p-2 hover:bg-muted rounded-full transition-colors group"
                                     >
-                                        <div className="flex items-end justify-between mb-6 px-2">
-                                            <div className="flex flex-col gap-1">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-lg font-black bg-primary text-primary-foreground px-4 py-1 rounded-xl shadow-lg shadow-primary/20">
-                                                        SHEET {sheetIdx + 1}
-                                                    </span>
-                                                    <div className="flex flex-col border-l-2 border-border/40 pl-3">
-                                                        <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest leading-tight">
-                                                            {meta.label}
+                                        <X className="w-6 h-6 text-muted-foreground group-hover:text-foreground" />
+                                    </button>
+                                    <div className="flex gap-4 px-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-4 h-1 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+                                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Primary Rips</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-4 h-1 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
+                                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">Secondary Cuts</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Modal Body: Scrollable Diagrams */}
+                            <div className="flex-1 overflow-y-auto p-8 space-y-16 custom-scrollbar bg-muted/5">
+                                {Array.from({ length: usedSheets }).map((_, sheetIdx) => {
+                                    const meta = sheetsMetadata[sheetIdx] || { width: stockSheets[0]?.length || 2440, height: stockSheets[0]?.width || 1220, label: 'Standard Sheet' }
+                                    const sheetPanels = placements.filter((p) => p.sheetIndex === sheetIdx)
+                                    const levels = sheetLevels[sheetIdx] || []
+
+                                    // Calculate sheet utilization
+                                    const sheetUsedArea = sheetPanels.reduce((sum, p) => sum + (p.length * p.width), 0)
+                                    const sheetTotalArea = meta.width * meta.height
+                                    const sheetUtilization = sheetTotalArea > 0 ? Math.round((sheetUsedArea / sheetTotalArea) * 100) : 0
+
+                                    // Scale to fit width but maintain aspect ratio
+                                    const svgWidth = 1200
+                                    const svgHeight = (meta.height / meta.width) * svgWidth
+                                    const scale = svgWidth / meta.width
+
+                                    return (
+                                        <div
+                                            key={sheetIdx}
+                                            className="animate-in slide-in-from-bottom-4 duration-500 fill-mode-both"
+                                            style={{ animationDelay: `${sheetIdx * 100}ms` }}
+                                        >
+                                            <div className="flex items-end justify-between mb-6 px-2">
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-lg font-black bg-primary text-primary-foreground px-4 py-1 rounded-xl shadow-lg shadow-primary/20">
+                                                            SHEET {sheetIdx + 1}
                                                         </span>
-                                                        <span className="text-[10px] font-bold text-muted-foreground/60 uppercase">
-                                                            {meta.width}{unitLabel} × {meta.height}{unitLabel}
-                                                            {meta.materialGroup && (
-                                                                <span className="ml-2 inline-flex items-center gap-1">
-                                                                    <span className={cn(
-                                                                        "w-1.5 h-1.5 rounded-full",
-                                                                        meta.materialGroup === "carcass" ? "bg-emerald-500" :
-                                                                            meta.materialGroup === "doors" ? "bg-blue-500" :
-                                                                                "bg-amber-500"
-                                                                    )}></span>
-                                                                    {meta.materialGroup}
-                                                                </span>
-                                                            )}
-                                                        </span>
+                                                        <div className="flex flex-col border-l-2 border-border/40 pl-3">
+                                                            <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest leading-tight">
+                                                                {meta.label}
+                                                            </span>
+                                                            <span className="text-[10px] font-bold text-muted-foreground/60 uppercase">
+                                                                {meta.width}{unitLabel} × {meta.height}{unitLabel}
+                                                                {meta.materialGroup && (
+                                                                    <span className="ml-2 inline-flex items-center gap-1">
+                                                                        <span className={cn(
+                                                                            "w-1.5 h-1.5 rounded-full",
+                                                                            meta.materialGroup === "carcass" ? "bg-emerald-500" :
+                                                                                meta.materialGroup === "doors" ? "bg-blue-500" :
+                                                                                    "bg-amber-500"
+                                                                        )}></span>
+                                                                        {meta.materialGroup}
+                                                                    </span>
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-6">
+                                                    <div className="text-right">
+                                                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider opacity-60">Utilization</p>
+                                                        <p className="text-xl font-black text-emerald-600">{sheetUtilization}%</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider opacity-60">Panels</p>
+                                                        <p className="text-xl font-black text-primary">{sheetPanels.length}</p>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="flex gap-6">
-                                                <div className="text-right">
-                                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider opacity-60">Utilization</p>
-                                                    <p className="text-xl font-black text-emerald-600">{sheetUtilization}%</p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider opacity-60">Panels</p>
-                                                    <p className="text-xl font-black text-primary">{sheetPanels.length}</p>
-                                                </div>
+
+                                            <div className="relative overflow-hidden rounded-3xl shadow-2xl border-4 border-white bg-white group/sheet ring-1 ring-border/20">
+                                                <svg
+                                                    viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                                                    className="w-full bg-[#fafafa] transition-transform duration-700"
+                                                    preserveAspectRatio="xMidYMid meet"
+                                                >
+                                                    <defs>
+                                                        <pattern id={`mod-waste-hatch-${sheetIdx}`} width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                                                            <line x1="0" y1="0" x2="0" y2="12" stroke="#f1f5f9" strokeWidth="3" />
+                                                        </pattern>
+                                                        <marker id="mod-arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+                                                            <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
+                                                        </marker>
+                                                    </defs>
+
+                                                    {/* Sheet background and waste indicator */}
+                                                    <rect
+                                                        x={0}
+                                                        y={0}
+                                                        width={svgWidth}
+                                                        height={svgHeight}
+                                                        fill={`url(#mod-waste-hatch-${sheetIdx})`}
+                                                        stroke="#e2e8f0"
+                                                        strokeWidth={2}
+                                                    />
+
+                                                    {/* Primary Cut Lines (Horizontal - Levels) */}
+                                                    {levels.map((lvl, lIdx) => (
+                                                        <g key={`mod-h-${lIdx}`}>
+                                                            <line
+                                                                x1={0}
+                                                                y1={(lvl.y + lvl.h) * scale}
+                                                                x2={svgWidth}
+                                                                y2={(lvl.y + lvl.h) * scale}
+                                                                stroke="#3b82f6"
+                                                                strokeWidth={2.5}
+                                                                strokeDasharray="10 5"
+                                                                opacity={0.6}
+                                                            />
+                                                            <text
+                                                                x={15}
+                                                                y={(lvl.y + lvl.h) * scale - 8}
+                                                                fontSize="14"
+                                                                fontWeight="800"
+                                                                fill="#3b82f6"
+                                                                className="select-none uppercase tracking-tighter"
+                                                            >
+                                                                RIP {lIdx + 1}: {Math.round(lvl.h)} {unitLabel}
+                                                            </text>
+                                                        </g>
+                                                    ))}
+
+                                                    {/* Placed panels */}
+                                                    {sheetPanels.map((p, idx) => {
+                                                        const actualW = p.length - kerfThickness
+                                                        const actualH = p.width - kerfThickness
+
+                                                        // IMPORTANT: Match panel label using base ID (removing -0, -1 suffix)
+                                                        const baseId = p.panelId.split('-')[0]
+                                                        const panelData = panels.find(pl => pl.id === baseId)
+                                                        const materialGroup = p.materialGroup || panelData?.materialGroup || 'general'
+
+                                                        let fillColor = "#eff6ff"
+                                                        let borderColor = "#3b82f6"
+                                                        let textColor = "#1e40af"
+
+                                                        if (materialGroup === "carcass") {
+                                                            fillColor = "#f0fdf4"
+                                                            borderColor = "#22c55e"
+                                                            textColor = "#166534"
+                                                        } else if (materialGroup === "backing") {
+                                                            fillColor = "#fffbeb"
+                                                            borderColor = "#f59e0b"
+                                                            textColor = "#92400e"
+                                                        } else if (materialGroup === "doors") {
+                                                            fillColor = "#eff6ff"
+                                                            borderColor = "#3b82f6"
+                                                            textColor = "#1e40af"
+                                                        }
+
+                                                        return (
+                                                            <g key={idx} className="hover:opacity-95 transition-all cursor-default group/panel">
+                                                                <rect
+                                                                    x={p.x * scale}
+                                                                    y={p.y * scale}
+                                                                    width={actualW * scale}
+                                                                    height={actualH * scale}
+                                                                    fill={fillColor}
+                                                                    stroke={borderColor}
+                                                                    strokeWidth={2.5}
+                                                                    rx={4}
+                                                                    className="transition-all duration-300 group-hover/panel:shadow-inner"
+                                                                />
+
+                                                                {/* Secondary Cut Lines (Internal to each level) */}
+                                                                <line
+                                                                    x1={(p.x + actualW) * scale}
+                                                                    y1={p.y * scale}
+                                                                    x2={(p.x + actualW) * scale}
+                                                                    y2={(p.y + actualH) * scale}
+                                                                    stroke="#ef4444"
+                                                                    strokeWidth={2}
+                                                                    strokeDasharray="6 3"
+                                                                    opacity={0.7}
+                                                                    className="group-hover/panel:opacity-100 transition-opacity"
+                                                                />
+
+                                                                {/* Panel Label & Dimensions */}
+                                                                <foreignObject
+                                                                    x={p.x * scale + 8}
+                                                                    y={p.y * scale + 8}
+                                                                    width={actualW * scale - 16}
+                                                                    height={actualH * scale - 16}
+                                                                >
+                                                                    <div className="h-full flex flex-col justify-center items-center text-center overflow-hidden">
+                                                                        <p
+                                                                            style={{ color: textColor }}
+                                                                            className="font-black text-sm uppercase tracking-tight leading-none mb-1 truncate w-full"
+                                                                        >
+                                                                            {panelData?.label || `P-${idx + 1}`}
+                                                                        </p>
+                                                                        <p
+                                                                            style={{ color: textColor }}
+                                                                            className="font-mono text-[10px] font-bold opacity-60 whitespace-nowrap"
+                                                                        >
+                                                                            {Math.round(actualW)}×{Math.round(actualH)}
+                                                                        </p>
+                                                                    </div>
+                                                                </foreignObject>
+                                                            </g>
+                                                        )
+                                                    })}
+                                                </svg>
                                             </div>
                                         </div>
-
-                                        <div className="relative overflow-hidden rounded-3xl shadow-2xl border-4 border-white bg-white group/sheet ring-1 ring-border/20">
-                                            <svg
-                                                viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-                                                className="w-full bg-[#fafafa] transition-transform duration-700"
-                                                preserveAspectRatio="xMidYMid meet"
-                                            >
-                                                <defs>
-                                                    <pattern id={`mod-waste-hatch-${sheetIdx}`} width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                                                        <line x1="0" y1="0" x2="0" y2="12" stroke="#f1f5f9" strokeWidth="3" />
-                                                    </pattern>
-                                                    <marker id="mod-arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
-                                                        <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
-                                                    </marker>
-                                                </defs>
-
-                                                {/* Sheet background and waste indicator */}
-                                                <rect
-                                                    x={0}
-                                                    y={0}
-                                                    width={svgWidth}
-                                                    height={svgHeight}
-                                                    fill={`url(#mod-waste-hatch-${sheetIdx})`}
-                                                    stroke="#e2e8f0"
-                                                    strokeWidth={2}
-                                                />
-
-                                                {/* Primary Cut Lines (Horizontal - Levels) */}
-                                                {levels.map((lvl, lIdx) => (
-                                                    <g key={`mod-h-${lIdx}`}>
-                                                        <line
-                                                            x1={0}
-                                                            y1={(lvl.y + lvl.h) * scale}
-                                                            x2={svgWidth}
-                                                            y2={(lvl.y + lvl.h) * scale}
-                                                            stroke="#3b82f6"
-                                                            strokeWidth={2.5}
-                                                            strokeDasharray="10 5"
-                                                            opacity={0.6}
-                                                        />
-                                                        <text
-                                                            x={15}
-                                                            y={(lvl.y + lvl.h) * scale - 8}
-                                                            fontSize="14"
-                                                            fontWeight="800"
-                                                            fill="#3b82f6"
-                                                            className="select-none uppercase tracking-tighter"
-                                                        >
-                                                            RIP {lIdx + 1}: {Math.round(lvl.h)} {unitLabel}
-                                                        </text>
-                                                    </g>
-                                                ))}
-
-                                                {/* Placed panels */}
-                                                {sheetPanels.map((p, idx) => {
-                                                    const actualW = p.length - kerfThickness
-                                                    const actualH = p.width - kerfThickness
-
-                                                    // IMPORTANT: Match panel label using base ID (removing -0, -1 suffix)
-                                                    const baseId = p.panelId.split('-')[0]
-                                                    const panelData = panels.find(pl => pl.id === baseId)
-                                                    const materialGroup = p.materialGroup || panelData?.materialGroup || 'general'
-
-                                                    let fillColor = "#eff6ff"
-                                                    let borderColor = "#3b82f6"
-                                                    let textColor = "#1e40af"
-
-                                                    if (materialGroup === "carcass") {
-                                                        fillColor = "#f0fdf4"
-                                                        borderColor = "#22c55e"
-                                                        textColor = "#166534"
-                                                    } else if (materialGroup === "backing") {
-                                                        fillColor = "#fffbeb"
-                                                        borderColor = "#f59e0b"
-                                                        textColor = "#92400e"
-                                                    } else if (materialGroup === "doors") {
-                                                        fillColor = "#eff6ff"
-                                                        borderColor = "#3b82f6"
-                                                        textColor = "#1e40af"
-                                                    }
-
-                                                    return (
-                                                        <g key={idx} className="hover:opacity-95 transition-all cursor-default group/panel">
-                                                            <rect
-                                                                x={p.x * scale}
-                                                                y={p.y * scale}
-                                                                width={actualW * scale}
-                                                                height={actualH * scale}
-                                                                fill={fillColor}
-                                                                stroke={borderColor}
-                                                                strokeWidth={2.5}
-                                                                rx={4}
-                                                                className="transition-all duration-300 group-hover/panel:shadow-inner"
-                                                            />
-
-                                                            {/* Secondary Cut Lines (Internal to each level) */}
-                                                            <line
-                                                                x1={(p.x + actualW) * scale}
-                                                                y1={p.y * scale}
-                                                                x2={(p.x + actualW) * scale}
-                                                                y2={(p.y + actualH) * scale}
-                                                                stroke="#ef4444"
-                                                                strokeWidth={2}
-                                                                strokeDasharray="6 3"
-                                                                opacity={0.7}
-                                                                className="group-hover/panel:opacity-100 transition-opacity"
-                                                            />
-
-                                                            {/* Panel Label & Dimensions */}
-                                                            <foreignObject
-                                                                x={p.x * scale + 8}
-                                                                y={p.y * scale + 8}
-                                                                width={actualW * scale - 16}
-                                                                height={actualH * scale - 16}
-                                                            >
-                                                                <div className="h-full flex flex-col justify-center items-center text-center overflow-hidden">
-                                                                    <p
-                                                                        style={{ color: textColor }}
-                                                                        className="font-black text-sm uppercase tracking-tight leading-none mb-1 truncate w-full"
-                                                                    >
-                                                                        {panelData?.label || `P-${idx + 1}`}
-                                                                    </p>
-                                                                    <p
-                                                                        style={{ color: textColor }}
-                                                                        className="font-mono text-[10px] font-bold opacity-60 whitespace-nowrap"
-                                                                    >
-                                                                        {Math.round(actualW)}×{Math.round(actualH)}
-                                                                    </p>
-                                                                </div>
-                                                            </foreignObject>
-                                                        </g>
-                                                    )
-                                                })}
-                                            </svg>
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-
-                        {/* Modal Footer */}
-                        <div className="p-8 border-t border-border/20 bg-muted/30 flex items-center justify-between">
-                            <div className="flex gap-10">
-                                <div>
-                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60 mb-1">Stock Efficiency</p>
-                                    <div className="flex items-center gap-3">
-                                        <p className="text-3xl font-black text-emerald-600">{100 - (stats.wastePercent || 0)}%</p>
-                                        <div className="w-24 h-2 bg-muted rounded-full overflow-hidden border border-border/40">
-                                            <div
-                                                className="h-full bg-emerald-500 rounded-full"
-                                                style={{ width: `${100 - (stats.wastePercent || 0)}%` }}
-                                            ></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60 mb-1">Production Count</p>
-                                    <p className="text-3xl font-black text-primary">{usedSheets} <span className="text-sm font-bold opacity-60 uppercase">Sheets</span></p>
-                                </div>
+                                    )
+                                })}
                             </div>
-                            <Button
-                                onClick={() => setIsLayoutModalOpen(false)}
-                                className="rounded-2xl px-12 h-14 font-black uppercase tracking-tight text-lg shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95"
-                            >
-                                Done
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
-            {/* BOM Modal */}
-            {showBOMModal && (() => {
-
-
-                return (
-                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
-                        <div className="bg-card w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-3xl border-2 border-primary/20 shadow-2xl flex flex-col scale-in-95 animate-in zoom-in-95 duration-300">
-                            {/* Header */}
-                            <div className="p-8 border-b border-border/20 bg-muted/30 flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-primary rounded-2xl shadow-lg shadow-primary/20 text-primary-foreground">
-                                        <Calculator className="w-6 h-6" />
+                            {/* Modal Footer */}
+                            <div className="p-8 border-t border-border/20 bg-muted/30 flex items-center justify-between">
+                                <div className="flex gap-10">
+                                    <div>
+                                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60 mb-1">Stock Efficiency</p>
+                                        <div className="flex items-center gap-3">
+                                            <p className="text-3xl font-black text-emerald-600">{100 - (stats.wastePercent || 0)}%</p>
+                                            <div className="w-24 h-2 bg-muted rounded-full overflow-hidden border border-border/40">
+                                                <div
+                                                    className="h-full bg-emerald-500 rounded-full"
+                                                    style={{ width: `${100 - (stats.wastePercent || 0)}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div>
-                                        <h2 className="text-2xl font-black uppercase tracking-tight">Bill of Materials (BOM)</h2>
-                                        <p className="text-sm text-muted-foreground font-medium uppercase tracking-widest opacity-70">Production Summary — {aggregateBOM.totalUnits} Units Total</p>
+                                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-60 mb-1">Production Count</p>
+                                        <p className="text-3xl font-black text-primary">{usedSheets} <span className="text-sm font-bold opacity-60 uppercase">Sheets</span></p>
                                     </div>
                                 </div>
-                                <button onClick={() => setShowBOMModal(false)} className="p-2 hover:bg-muted rounded-full transition-colors">
-                                    <X className="w-6 h-6 text-muted-foreground" />
-                                </button>
+                                <Button
+                                    onClick={() => setIsLayoutModalOpen(false)}
+                                    className="rounded-2xl px-12 h-14 font-black uppercase tracking-tight text-lg shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95"
+                                >
+                                    Done
+                                </Button>
                             </div>
+                        </div>
+                    </div>
+                )}
 
-                            {/* Body */}
-                            <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar relative">
-                                {!showReportPreview ? (
-                                    <>
-                                        {/* Sheets & Optimization Meta */}
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                            <div className="p-5 rounded-2xl bg-primary/5 border border-primary/20">
-                                                <p className="text-[10px] font-black text-primary uppercase tracking-widest opacity-60 mb-1">Production Required</p>
-                                                <div className="flex flex-col">
-                                                    <p className="text-3xl font-black leading-none">{calculated ? usedSheets : "--"} <span className="text-sm font-bold opacity-60">Sheets</span></p>
-                                                    {calculated && sheetsMetadata.length > 0 && (
-                                                        <div className="flex gap-2 mt-2">
-                                                            {Object.entries(
-                                                                sheetsMetadata.reduce((acc, meta) => {
-                                                                    const group = meta.materialGroup || 'general';
-                                                                    acc[group] = (acc[group] || 0) + 1;
-                                                                    return acc;
-                                                                }, {} as Record<string, number>)
-                                                            ).map(([group, count]) => (
-                                                                <span key={group} className="text-[8px] font-black uppercase flex items-center gap-1 bg-white/50 px-1.5 py-0.5 rounded border border-primary/10">
-                                                                    <span className={cn(
-                                                                        "w-1 h-1 rounded-full",
-                                                                        group === "carcass" ? "bg-emerald-500" :
-                                                                            group === "doors" ? "bg-blue-500" :
-                                                                                group === "backing" ? "bg-amber-500" : "bg-muted-foreground"
-                                                                    )}></span>
-                                                                    {count} {group}
-                                                                </span>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <div className="p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
-                                                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest opacity-60 mb-1">Material Utilization</p>
-                                                <p className="text-3xl font-black text-emerald-600">{calculated ? 100 - (stats.wastePercent || 0) : "--"}%</p>
-                                            </div>
-                                            <div className="p-5 rounded-2xl bg-blue-500/5 border border-blue-500/20">
-                                                <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest opacity-60 mb-1">Total Edge Banding</p>
-                                                <p className="text-3xl font-black text-blue-600">{aggregateBOM.totalEdgeBand.toFixed(2)} <span className="text-sm font-bold opacity-60 uppercase">LM</span></p>
-                                            </div>
+                {/* BOM Modal */}
+                {showBOMModal && (() => {
+
+
+                    return (
+                        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
+                            <div className="bg-card w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-3xl border-2 border-primary/20 shadow-2xl flex flex-col scale-in-95 animate-in zoom-in-95 duration-300">
+                                {/* Header */}
+                                <div className="p-8 border-b border-border/20 bg-muted/30 flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-primary rounded-2xl shadow-lg shadow-primary/20 text-primary-foreground">
+                                            <Calculator className="w-6 h-6" />
                                         </div>
+                                        <div>
+                                            <h2 className="text-2xl font-black uppercase tracking-tight">Bill of Materials (BOM)</h2>
+                                            <p className="text-sm text-muted-foreground font-medium uppercase tracking-widest opacity-70">Production Summary — {aggregateBOM.totalUnits} Units Total</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => setShowBOMModal(false)} className="p-2 hover:bg-muted rounded-full transition-colors">
+                                        <X className="w-6 h-6 text-muted-foreground" />
+                                    </button>
+                                </div>
 
-                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                            {/* Panels List */}
-                                            <div className="space-y-4">
-                                                <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                                                    <div className="w-1.5 h-4 bg-primary rounded-full"></div>
-                                                    Panel Breakdown
-                                                </h3>
-                                                <div className="bg-muted/20 border border-border/10 rounded-2xl overflow-hidden">
-                                                    <table className="w-full text-xs">
-                                                        <thead className="bg-muted/30 border-b border-border/10 text-[10px] uppercase font-black text-muted-foreground">
-                                                            <tr>
-                                                                <th className="p-3 text-left">Label</th>
-                                                                <th className="p-3 text-left">Group</th>
-                                                                <th className="p-3 text-left">Dimensions</th>
-                                                                <th className="p-3 text-right">Qty</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody className="divide-y divide-border/5">
-                                                            {aggregateBOM.panels.map((p, i) => (
-                                                                <tr key={i} className="hover:bg-muted/10 transition-colors">
-                                                                    <td className="p-3 font-bold">{p.name}</td>
-                                                                    <td className="p-3">
+                                {/* Body */}
+                                <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar relative">
+                                    {!showReportPreview ? (
+                                        <>
+                                            {/* Sheets & Optimization Meta */}
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                <div className="p-5 rounded-2xl bg-primary/5 border border-primary/20">
+                                                    <p className="text-[10px] font-black text-primary uppercase tracking-widest opacity-60 mb-1">Production Required</p>
+                                                    <div className="flex flex-col">
+                                                        <p className="text-3xl font-black leading-none">{calculated ? usedSheets : "--"} <span className="text-sm font-bold opacity-60">Sheets</span></p>
+                                                        {calculated && sheetsMetadata.length > 0 && (
+                                                            <div className="flex gap-2 mt-2">
+                                                                {Object.entries(
+                                                                    sheetsMetadata.reduce((acc, meta) => {
+                                                                        const group = meta.materialGroup || 'general';
+                                                                        acc[group] = (acc[group] || 0) + 1;
+                                                                        return acc;
+                                                                    }, {} as Record<string, number>)
+                                                                ).map(([group, count]) => (
+                                                                    <span key={group} className="text-[8px] font-black uppercase flex items-center gap-1 bg-white/50 px-1.5 py-0.5 rounded border border-primary/10">
                                                                         <span className={cn(
-                                                                            "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest",
-                                                                            p.materialGroup === "carcass" ? "bg-emerald-500/10 text-emerald-600" :
-                                                                                p.materialGroup === "doors" ? "bg-blue-500/10 text-blue-600" :
-                                                                                    "bg-amber-500/10 text-amber-600"
-                                                                        )}>
-                                                                            {p.materialGroup}
-                                                                        </span>
-                                                                    </td>
-                                                                    <td className="p-3 font-mono opacity-70">{p.l}×{p.w}mm</td>
-                                                                    <td className="p-3 text-right font-black">×{p.qty}</td>
-                                                                </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
+                                                                            "w-1 h-1 rounded-full",
+                                                                            group === "carcass" ? "bg-emerald-500" :
+                                                                                group === "doors" ? "bg-blue-500" :
+                                                                                    group === "backing" ? "bg-amber-500" : "bg-muted-foreground"
+                                                                        )}></span>
+                                                                        {count} {group}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
+                                                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest opacity-60 mb-1">Material Utilization</p>
+                                                    <p className="text-3xl font-black text-emerald-600">{calculated ? 100 - (stats.wastePercent || 0) : "--"}%</p>
+                                                </div>
+                                                <div className="p-5 rounded-2xl bg-blue-500/5 border border-blue-500/20">
+                                                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest opacity-60 mb-1">Total Edge Banding</p>
+                                                    <p className="text-3xl font-black text-blue-600">{aggregateBOM.totalEdgeBand.toFixed(2)} <span className="text-sm font-bold opacity-60 uppercase">LM</span></p>
                                                 </div>
                                             </div>
 
-                                            {/* Board Stock, Hardware & Fasteners */}
-                                            <div className="space-y-8">
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                                {/* Panels List */}
                                                 <div className="space-y-4">
                                                     <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
                                                         <div className="w-1.5 h-4 bg-primary rounded-full"></div>
-                                                        Board Stock Required
+                                                        Panel Breakdown
                                                     </h3>
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        {Object.entries(
-                                                            sheetsMetadata.reduce((acc, meta) => {
-                                                                const key = `${meta.materialGroup}|${meta.label}`;
-                                                                acc[key] = (acc[key] || 0) + 1;
-                                                                return acc;
-                                                            }, {} as Record<string, number>)
-                                                        ).map(([key, count]) => {
-                                                            const [group, label] = key.split('|');
-                                                            return (
-                                                                <div key={key} className="p-4 rounded-xl border border-border/10 bg-muted/5">
-                                                                    <div className="flex justify-between items-start mb-1">
-                                                                        <p className="text-[10px] font-bold text-muted-foreground uppercase">{group}</p>
-                                                                        <p className="text-[8px] font-black text-primary opacity-40 uppercase px-1 border border-primary/20 rounded-sm leading-tight">{label.split('×')[0]}mm</p>
+                                                    <div className="bg-muted/20 border border-border/10 rounded-2xl overflow-hidden">
+                                                        <table className="w-full text-xs">
+                                                            <thead className="bg-muted/30 border-b border-border/10 text-[10px] uppercase font-black text-muted-foreground">
+                                                                <tr>
+                                                                    <th className="p-3 text-left">Label</th>
+                                                                    <th className="p-3 text-left">Group</th>
+                                                                    <th className="p-3 text-left">Dimensions</th>
+                                                                    <th className="p-3 text-right">Qty</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="divide-y divide-border/5">
+                                                                {aggregateBOM.panels.map((p, i) => (
+                                                                    <tr key={i} className="hover:bg-muted/10 transition-colors">
+                                                                        <td className="p-3 font-bold">{p.name}</td>
+                                                                        <td className="p-3">
+                                                                            <span className={cn(
+                                                                                "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest",
+                                                                                p.materialGroup === "carcass" ? "bg-emerald-500/10 text-emerald-600" :
+                                                                                    p.materialGroup === "doors" ? "bg-blue-500/10 text-blue-600" :
+                                                                                        "bg-amber-500/10 text-amber-600"
+                                                                            )}>
+                                                                                {p.materialGroup}
+                                                                            </span>
+                                                                        </td>
+                                                                        <td className="p-3 font-mono opacity-70">{p.l}×{p.w}mm</td>
+                                                                        <td className="p-3 text-right font-black">×{p.qty}</td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+
+                                                {/* Board Stock, Hardware & Fasteners */}
+                                                <div className="space-y-8">
+                                                    <div className="space-y-4">
+                                                        <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                                            <div className="w-1.5 h-4 bg-primary rounded-full"></div>
+                                                            Board Stock Required
+                                                        </h3>
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            {Object.entries(
+                                                                sheetsMetadata.reduce((acc, meta) => {
+                                                                    const key = `${meta.materialGroup}|${meta.label}`;
+                                                                    acc[key] = (acc[key] || 0) + 1;
+                                                                    return acc;
+                                                                }, {} as Record<string, number>)
+                                                            ).map(([key, count]) => {
+                                                                const [group, label] = key.split('|');
+                                                                return (
+                                                                    <div key={key} className="p-4 rounded-xl border border-border/10 bg-muted/5">
+                                                                        <div className="flex justify-between items-start mb-1">
+                                                                            <p className="text-[10px] font-bold text-muted-foreground uppercase">{group}</p>
+                                                                            <p className="text-[8px] font-black text-primary opacity-40 uppercase px-1 border border-primary/20 rounded-sm leading-tight">{label.split('×')[0]}mm</p>
+                                                                        </div>
+                                                                        <p className="text-xl font-black">{count} <span className="text-[10px] opacity-40 uppercase">Boards</span></p>
+                                                                        <p className="text-[8px] font-medium opacity-50 truncate">{label}</p>
                                                                     </div>
-                                                                    <p className="text-xl font-black">{count} <span className="text-[10px] opacity-40 uppercase">Boards</span></p>
-                                                                    <p className="text-[8px] font-medium opacity-50 truncate">{label}</p>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                        <div className="p-4 rounded-xl border border-border/10 bg-primary/5">
-                                                            <p className="text-[10px] font-bold text-primary uppercase mb-1">Total Stock</p>
-                                                            <p className="text-xl font-black">{usedSheets} <span className="text-[10px] opacity-40 uppercase">Boards</span></p>
+                                                                );
+                                                            })}
+                                                            <div className="p-4 rounded-xl border border-border/10 bg-primary/5">
+                                                                <p className="text-[10px] font-bold text-primary uppercase mb-1">Total Stock</p>
+                                                                <p className="text-xl font-black">{usedSheets} <span className="text-[10px] opacity-40 uppercase">Boards</span></p>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
 
-                                                <div className="space-y-4">
-                                                    <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                                                        <div className="w-1.5 h-4 bg-amber-500 rounded-full"></div>
-                                                        Fitting & Hardware
-                                                    </h3>
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div className="p-4 rounded-xl border border-border/10 bg-muted/5">
-                                                            <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Hinges</p>
-                                                            <p className="text-xl font-black">{aggregateBOM.hardware.hinges} <span className="text-[10px] opacity-40 uppercase">pcs</span></p>
-                                                        </div>
-                                                        <div className="p-4 rounded-xl border border-border/10 bg-muted/5">
-                                                            <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Handles</p>
-                                                            <p className="text-xl font-black">{aggregateBOM.hardware.handles} <span className="text-[10px] opacity-40 uppercase">pcs</span></p>
-                                                        </div>
-                                                        <div className="p-4 rounded-xl border border-border/10 bg-muted/5">
-                                                            <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Drawer Slides</p>
-                                                            <p className="text-xl font-black">{aggregateBOM.hardware.slides} <span className="text-[10px] opacity-40 uppercase">sets</span></p>
-                                                        </div>
-                                                        <div className="p-4 rounded-xl border border-border/10 bg-muted/5">
-                                                            <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Shelf Pins</p>
-                                                            <p className="text-xl font-black">{aggregateBOM.hardware.shelfPins} <span className="text-[10px] opacity-40 uppercase">pcs</span></p>
+                                                    <div className="space-y-4">
+                                                        <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                                            <div className="w-1.5 h-4 bg-amber-500 rounded-full"></div>
+                                                            Fitting & Hardware
+                                                        </h3>
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div className="p-4 rounded-xl border border-border/10 bg-muted/5">
+                                                                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Hinges</p>
+                                                                <p className="text-xl font-black">{aggregateBOM.hardware.hinges} <span className="text-[10px] opacity-40 uppercase">pcs</span></p>
+                                                            </div>
+                                                            <div className="p-4 rounded-xl border border-border/10 bg-muted/5">
+                                                                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Handles</p>
+                                                                <p className="text-xl font-black">{aggregateBOM.hardware.handles} <span className="text-[10px] opacity-40 uppercase">pcs</span></p>
+                                                            </div>
+                                                            <div className="p-4 rounded-xl border border-border/10 bg-muted/5">
+                                                                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Drawer Slides</p>
+                                                                <p className="text-xl font-black">{aggregateBOM.hardware.slides} <span className="text-[10px] opacity-40 uppercase">sets</span></p>
+                                                            </div>
+                                                            <div className="p-4 rounded-xl border border-border/10 bg-muted/5">
+                                                                <p className="text-[10px] font-bold text-muted-foreground uppercase mb-1">Shelf Pins</p>
+                                                                <p className="text-xl font-black">{aggregateBOM.hardware.shelfPins} <span className="text-[10px] opacity-40 uppercase">pcs</span></p>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
 
-                                                <div className="space-y-4">
-                                                    <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                                                        <div className="w-1.5 h-4 bg-rose-500 rounded-full"></div>
-                                                        Fastener Count
-                                                    </h3>
-                                                    <div className="grid grid-cols-2 gap-4 text-xs">
-                                                        <div className="flex justify-between p-3 border-b border-border/10">
-                                                            <span className="font-bold uppercase opacity-60">Confirmat Screws</span>
-                                                            <span className="font-black text-primary">{aggregateBOM.fasteners.confirmat}</span>
-                                                        </div>
-                                                        <div className="flex justify-between p-3 border-b border-border/10">
-                                                            <span className="font-bold uppercase opacity-60">Cam Locks</span>
-                                                            <span className="font-black text-primary">{aggregateBOM.fasteners.camLocks}</span>
-                                                        </div>
-                                                        <div className="flex justify-between p-3">
-                                                            <span className="font-bold uppercase opacity-60">Back Panel Nails</span>
-                                                            <span className="font-black text-primary">{aggregateBOM.fasteners.nails}</span>
+                                                    <div className="space-y-4">
+                                                        <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                                                            <div className="w-1.5 h-4 bg-rose-500 rounded-full"></div>
+                                                            Fastener Count
+                                                        </h3>
+                                                        <div className="grid grid-cols-2 gap-4 text-xs">
+                                                            <div className="flex justify-between p-3 border-b border-border/10">
+                                                                <span className="font-bold uppercase opacity-60">Confirmat Screws</span>
+                                                                <span className="font-black text-primary">{aggregateBOM.fasteners.confirmat}</span>
+                                                            </div>
+                                                            <div className="flex justify-between p-3 border-b border-border/10">
+                                                                <span className="font-bold uppercase opacity-60">Cam Locks</span>
+                                                                <span className="font-black text-primary">{aggregateBOM.fasteners.camLocks}</span>
+                                                            </div>
+                                                            <div className="flex justify-between p-3">
+                                                                <span className="font-bold uppercase opacity-60">Back Panel Nails</span>
+                                                                <span className="font-black text-primary">{aggregateBOM.fasteners.nails}</span>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        {/* Bill of Quantity (BOQ) Section */}
-                                        <div className="space-y-4">
-                                            <button
-                                                onClick={() => setShowBOQSection(!showBOQSection)}
-                                                className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary/5 border border-secondary/20 hover:bg-secondary/10 transition-all group"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-1.5 h-6 bg-secondary rounded-full"></div>
-                                                    <div className="text-left">
-                                                        <h3 className="text-sm font-black uppercase tracking-widest">Bill of Quantity</h3>
-                                                        <p className="text-[10px] text-muted-foreground font-medium">Material costs, labor & other expenses</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    {calculated && (
-                                                        <span className="text-sm font-black text-secondary">
-                                                            ₱{((usedSheets * LABOR_RATE_PER_BOARD) + transportCost + designFee + miscCosts).toLocaleString()}
-                                                        </span>
-                                                    )}
-                                                    <ChevronDown className={cn(
-                                                        "w-5 h-5 text-muted-foreground transition-transform duration-300",
-                                                        showBOQSection && "rotate-180"
-                                                    )} />
-                                                </div>
-                                            </button>
-
-                                            {showBOQSection && (
-                                                <div className="p-6 rounded-2xl bg-muted/30 border border-border/20 space-y-6 animate-in slide-in-from-top-2 duration-300">
-
-                                                    {/* Labor Cost - Auto-calculated */}
-                                                    <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
-                                                        <div className="flex justify-between items-start mb-2">
-                                                            <div>
-                                                                <p className="text-[10px] font-black uppercase tracking-widest text-primary/70">Fabrication & Installation Labor</p>
-                                                                <p className="text-[9px] text-muted-foreground mt-0.5">Auto-calculated: {usedSheets} boards × ₱{LABOR_RATE_PER_BOARD.toLocaleString()}/board</p>
-                                                            </div>
-                                                            <p className="text-2xl font-black text-primary">₱{(usedSheets * LABOR_RATE_PER_BOARD).toLocaleString()}</p>
+                                            {/* Bill of Quantity (BOQ) Section */}
+                                            <div className="space-y-4">
+                                                <button
+                                                    onClick={() => setShowBOQSection(!showBOQSection)}
+                                                    className="w-full flex items-center justify-between p-4 rounded-2xl bg-secondary/5 border border-secondary/20 hover:bg-secondary/10 transition-all group"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-1.5 h-6 bg-secondary rounded-full"></div>
+                                                        <div className="text-left">
+                                                            <h3 className="text-sm font-black uppercase tracking-widest">Bill of Quantity</h3>
+                                                            <p className="text-[10px] text-muted-foreground font-medium">Material costs, labor & other expenses</p>
                                                         </div>
-                                                        <p className="text-[9px] text-muted-foreground italic border-t border-primary/10 pt-2 mt-2">
-                                                            <span className="font-bold">Note:</span> Fabrication and installation are primarily performed using high-precision portable power tools. Rate is based on industry standard manual fabrication complexity.
-                                                        </p>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        {calculated && (
+                                                            <span className="text-sm font-black text-secondary">
+                                                                ₱{((usedSheets * LABOR_RATE_PER_BOARD) + transportCost + designFee + miscCosts).toLocaleString()}
+                                                            </span>
+                                                        )}
+                                                        <ChevronDown className={cn(
+                                                            "w-5 h-5 text-muted-foreground transition-transform duration-300",
+                                                            showBOQSection && "rotate-180"
+                                                        )} />
+                                                    </div>
+                                                </button>
 
-                                                        {/* CNC Disclaimer & Value Prop */}
-                                                        <div className="mt-3 p-3 rounded-lg border border-secondary/20 bg-secondary/[0.03]">
-                                                            <p className="text-[10px] font-black uppercase tracking-wider text-secondary flex items-center gap-1.5 mb-1.5">
-                                                                <Cpu className="w-3 h-3" /> Premium CNC Processing (Optional)
+                                                {showBOQSection && (
+                                                    <div className="p-6 rounded-2xl bg-muted/30 border border-border/20 space-y-6 animate-in slide-in-from-top-2 duration-300">
+
+                                                        {/* Labor Cost - Auto-calculated */}
+                                                        <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
+                                                            <div className="flex justify-between items-start mb-2">
+                                                                <div>
+                                                                    <p className="text-[10px] font-black uppercase tracking-widest text-primary/70">Fabrication & Installation Labor</p>
+                                                                    <p className="text-[9px] text-muted-foreground mt-0.5">Auto-calculated: {usedSheets} boards × ₱{LABOR_RATE_PER_BOARD.toLocaleString()}/board</p>
+                                                                </div>
+                                                                <p className="text-2xl font-black text-primary">₱{(usedSheets * LABOR_RATE_PER_BOARD).toLocaleString()}</p>
+                                                            </div>
+                                                            <p className="text-[9px] text-muted-foreground italic border-t border-primary/10 pt-2 mt-2">
+                                                                <span className="font-bold">Note:</span> Fabrication and installation are primarily performed using high-precision portable power tools. Rate is based on industry standard manual fabrication complexity.
                                                             </p>
-                                                            <div className="space-y-1.5">
-                                                                <p className="text-[9px] text-muted-foreground leading-relaxed">
-                                                                    CNC precision processing is available for an <span className="text-secondary font-bold">additional fee</span>. Work is processed at our Manila facility, which involves <span className="text-secondary font-bold">additional logistics and handling costs</span>.
+
+                                                            {/* CNC Disclaimer & Value Prop */}
+                                                            <div className="mt-3 p-3 rounded-lg border border-secondary/20 bg-secondary/[0.03]">
+                                                                <p className="text-[10px] font-black uppercase tracking-wider text-secondary flex items-center gap-1.5 mb-1.5">
+                                                                    <Cpu className="w-3 h-3" /> Premium CNC Processing (Optional)
                                                                 </p>
-                                                                <div className="pt-1.5 border-t border-secondary/10">
-                                                                    <p className="text-[9px] text-primary/80 leading-relaxed font-medium">
-                                                                        <span className="text-secondary font-bold italic">The CNC Advantage:</span> It provides extreme 0.1mm dimensional accuracy, perfectly square edges, and nested-based optimization for zero material waste. This ensures a "factory-fit" quality far superior to manual cutting.
+                                                                <div className="space-y-1.5">
+                                                                    <p className="text-[9px] text-muted-foreground leading-relaxed">
+                                                                        CNC precision processing is available for an <span className="text-secondary font-bold">additional fee</span>. Work is processed at our Manila facility, which involves <span className="text-secondary font-bold">additional logistics and handling costs</span>.
                                                                     </p>
+                                                                    <div className="pt-1.5 border-t border-secondary/10">
+                                                                        <p className="text-[9px] text-primary/80 leading-relaxed font-medium">
+                                                                            <span className="text-secondary font-bold italic">The CNC Advantage:</span> It provides extreme 0.1mm dimensional accuracy, perfectly square edges, and nested-based optimization for zero material waste. This ensures a "factory-fit" quality far superior to manual cutting.
+                                                                        </p>
+                                                                    </div>
                                                                 </div>
                                                             </div>
+
+                                                            {/* Material Acquisition Disclaimer */}
+                                                            <div className="mt-2 p-3 rounded-lg border border-primary/10 bg-primary/[0.02]">
+                                                                <p className="text-[9px] text-primary/80 leading-relaxed">
+                                                                    <span className="font-bold text-primary">Material Sourcing:</span> Clients have the option for <span className="italic">self-acquisition of materials</span> to better align with their specific budget requirements. Please be assured that all materials specified in this BOQ represent the <span className="font-bold">premium grade selections</span> sourced from our direct chain of trusted suppliers, ensuring long-term durability and aesthetic excellence.
+                                                                </p>
+                                                            </div>
                                                         </div>
 
-                                                        {/* Material Acquisition Disclaimer */}
-                                                        <div className="mt-2 p-3 rounded-lg border border-primary/10 bg-primary/[0.02]">
-                                                            <p className="text-[9px] text-primary/80 leading-relaxed">
-                                                                <span className="font-bold text-primary">Material Sourcing:</span> Clients have the option for <span className="italic">self-acquisition of materials</span> to better align with their specific budget requirements. Please be assured that all materials specified in this BOQ represent the <span className="font-bold">premium grade selections</span> sourced from our direct chain of trusted suppliers, ensuring long-term durability and aesthetic excellence.
-                                                            </p>
+                                                        {/* Material Pricing Section */}
+                                                        <div className="space-y-3">
+                                                            <p className="text-[10px] font-black uppercase tracking-widest text-primary/50 border-b border-border/20 pb-2">Board Material Prices</p>
+                                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                                {Object.entries(
+                                                                    sheetsMetadata.reduce((acc, meta) => {
+                                                                        const group = meta.materialGroup || 'general';
+                                                                        const label = meta.label || 'Unknown';
+                                                                        if (!acc[group]) acc[group] = { count: 0, label };
+                                                                        acc[group].count++;
+                                                                        return acc;
+                                                                    }, {} as Record<string, { count: number; label: string }>)
+                                                                ).map(([group, data]) => (
+                                                                    <div key={group} className="p-3 rounded-xl bg-background border border-border/30">
+                                                                        <div className="flex justify-between items-start mb-2">
+                                                                            <div>
+                                                                                <p className="text-[9px] font-black uppercase tracking-widest opacity-50">{group}</p>
+                                                                                <p className="text-xs font-bold">{data.count} boards</p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="relative">
+                                                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">₱</span>
+                                                                            <input
+                                                                                type="number"
+                                                                                value={boardPrices[group] || ""}
+                                                                                onChange={(e) => setBoardPrices(prev => ({ ...prev, [group]: Number(e.target.value) || 0 }))}
+                                                                                className="w-full bg-muted/50 border border-border/40 rounded-lg pl-6 pr-2 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+                                                                                placeholder="per board"
+                                                                            />
+                                                                        </div>
+                                                                        {boardPrices[group] > 0 && (
+                                                                            <p className="text-[10px] font-bold text-secondary mt-1 text-right">
+                                                                                = ₱{(boardPrices[group] * data.count).toLocaleString()}
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
                                                         </div>
-                                                    </div>
 
-                                                    {/* Material Pricing Section */}
-                                                    <div className="space-y-3">
-                                                        <p className="text-[10px] font-black uppercase tracking-widest text-primary/50 border-b border-border/20 pb-2">Board Material Prices</p>
-                                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                                            {Object.entries(
-                                                                sheetsMetadata.reduce((acc, meta) => {
-                                                                    const group = meta.materialGroup || 'general';
-                                                                    const label = meta.label || 'Unknown';
-                                                                    if (!acc[group]) acc[group] = { count: 0, label };
-                                                                    acc[group].count++;
-                                                                    return acc;
-                                                                }, {} as Record<string, { count: number; label: string }>)
-                                                            ).map(([group, data]) => (
-                                                                <div key={group} className="p-3 rounded-xl bg-background border border-border/30">
-                                                                    <div className="flex justify-between items-start mb-2">
-                                                                        <div>
-                                                                            <p className="text-[9px] font-black uppercase tracking-widest opacity-50">{group}</p>
-                                                                            <p className="text-xs font-bold">{data.count} boards</p>
+                                                        {/* Hardware Pricing */}
+                                                        <div className="space-y-3">
+                                                            <p className="text-[10px] font-black uppercase tracking-widest text-amber-600/70 border-b border-border/20 pb-2">Hardware Prices</p>
+                                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                                                {[
+                                                                    { key: 'hinges', label: 'Hinges', count: aggregateBOM.hardware.hinges, unit: 'pcs' },
+                                                                    { key: 'handles', label: 'Handles', count: aggregateBOM.hardware.handles, unit: 'pcs' },
+                                                                    { key: 'slides', label: 'Slides', count: aggregateBOM.hardware.slides, unit: 'sets' },
+                                                                    { key: 'shelfPins', label: 'Shelf Pins', count: aggregateBOM.hardware.shelfPins, unit: 'pcs' },
+                                                                ].map(item => (
+                                                                    <div key={item.key} className="p-3 rounded-xl bg-background border border-border/30">
+                                                                        <p className="text-[9px] font-black uppercase tracking-widest opacity-50 mb-1">{item.label}</p>
+                                                                        <p className="text-xs font-bold mb-2">{item.count} {item.unit}</p>
+                                                                        <div className="relative">
+                                                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">₱</span>
+                                                                            <input
+                                                                                type="number"
+                                                                                value={hardwarePrices[item.key as keyof typeof hardwarePrices] || ""}
+                                                                                onChange={(e) => setHardwarePrices(prev => ({ ...prev, [item.key]: Number(e.target.value) || 0 }))}
+                                                                                className="w-full bg-muted/50 border border-border/40 rounded-lg pl-6 pr-2 py-1.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+                                                                                placeholder="/pc"
+                                                                            />
                                                                         </div>
                                                                     </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Fastener Pricing */}
+                                                        <div className="space-y-3">
+                                                            <p className="text-[10px] font-black uppercase tracking-widest text-rose-600/70 border-b border-border/20 pb-2">Fastener Prices</p>
+                                                            <div className="grid grid-cols-3 gap-3">
+                                                                {[
+                                                                    { key: 'confirmat', label: 'Confirmat Screws', count: aggregateBOM.fasteners.confirmat },
+                                                                    { key: 'camLocks', label: 'Cam Locks', count: aggregateBOM.fasteners.camLocks },
+                                                                    { key: 'nails', label: 'Nails', count: aggregateBOM.fasteners.nails },
+                                                                ].map(item => (
+                                                                    <div key={item.key} className="p-3 rounded-xl bg-background border border-border/30">
+                                                                        <p className="text-[9px] font-black uppercase tracking-widest opacity-50 mb-1">{item.label}</p>
+                                                                        <p className="text-xs font-bold mb-2">{item.count} pcs</p>
+                                                                        <div className="relative">
+                                                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">₱</span>
+                                                                            <input
+                                                                                type="number"
+                                                                                value={fastenerPrices[item.key as keyof typeof fastenerPrices] || ""}
+                                                                                onChange={(e) => setFastenerPrices(prev => ({ ...prev, [item.key]: Number(e.target.value) || 0 }))}
+                                                                                className="w-full bg-muted/50 border border-border/40 rounded-lg pl-6 pr-2 py-1.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+                                                                                placeholder="/pc"
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Upsell / Additional Items */}
+                                                        <div className="space-y-3">
+                                                            <div className="flex justify-between items-center border-b border-border/20 pb-2">
+                                                                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600/70">Upsell / Additional Items</p>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-6 px-2 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg"
+                                                                    onClick={addUpsellItem}
+                                                                >
+                                                                    <Plus className="w-3 h-3 mr-1" /> Add Item
+                                                                </Button>
+                                                            </div>
+
+                                                            <div className="space-y-2">
+                                                                {upsellItems.length === 0 ? (
+                                                                    <div className="p-4 rounded-xl border border-dashed border-border/40 text-center">
+                                                                        <p className="text-[10px] text-muted-foreground italic">No additional items added. Click "Add Item" to upsell accessories, lighting, etc.</p>
+                                                                    </div>
+                                                                ) : (
+                                                                    upsellItems.map((item) => (
+                                                                        <div key={item.id} className="grid grid-cols-12 gap-2 items-center bg-background p-2 rounded-xl border border-border/30">
+                                                                            <div className="col-span-6">
+                                                                                <input
+                                                                                    className="w-full bg-muted/30 border-none rounded-lg px-2 py-1.5 text-xs font-bold focus:ring-1 focus:ring-emerald-500/20"
+                                                                                    placeholder="Item Name (e.g. Soft Close Hinges)"
+                                                                                    value={item.name}
+                                                                                    onChange={(e) => setUpsellItems(prev => prev.map(ui => ui.id === item.id ? { ...ui, name: e.target.value } : ui))}
+                                                                                />
+                                                                            </div>
+                                                                            <div className="col-span-2">
+                                                                                <input
+                                                                                    type="number"
+                                                                                    className="w-full bg-muted/30 border-none rounded-lg px-2 py-1.5 text-xs font-bold text-center"
+                                                                                    placeholder="Qty"
+                                                                                    value={item.quantity || ""}
+                                                                                    onChange={(e) => setUpsellItems(prev => prev.map(ui => ui.id === item.id ? { ...ui, quantity: Number(e.target.value) || 0 } : ui))}
+                                                                                />
+                                                                            </div>
+                                                                            <div className="col-span-3 relative">
+                                                                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted-foreground">₱</span>
+                                                                                <input
+                                                                                    type="number"
+                                                                                    className="w-full bg-muted/30 border-none rounded-lg pl-5 pr-2 py-1.5 text-xs font-bold"
+                                                                                    placeholder="Price"
+                                                                                    value={item.price || ""}
+                                                                                    onChange={(e) => setUpsellItems(prev => prev.map(ui => ui.id === item.id ? { ...ui, price: Number(e.target.value) || 0 } : ui))}
+                                                                                />
+                                                                            </div>
+                                                                            <div className="col-span-1 flex justify-center">
+                                                                                <button
+                                                                                    type="button"
+                                                                                    className="inline-flex items-center justify-center whitespace-nowrap font-medium transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px] active:translate-y-0 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:text-accent-foreground dark:hover:bg-accent/50 rounded-md gap-1.5 has-[>svg]:px-2.5 h-7 text-[10px] px-2 text-destructive hover:bg-destructive/10"
+                                                                                    onClick={(e) => {
+                                                                                        e.preventDefault();
+                                                                                        e.stopPropagation();
+                                                                                        setUpsellItems(prev => prev.filter(ui => ui.id !== item.id));
+                                                                                    }}
+                                                                                >
+                                                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Additional Costs */}
+                                                        <div className="space-y-3">
+                                                            <p className="text-[10px] font-black uppercase tracking-widest text-secondary/70 border-b border-border/20 pb-2">Additional Costs</p>
+                                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                                <div className="space-y-2">
+                                                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Transportation</label>
                                                                     <div className="relative">
-                                                                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">₱</span>
+                                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">₱</span>
                                                                         <input
                                                                             type="number"
-                                                                            value={boardPrices[group] || ""}
-                                                                            onChange={(e) => setBoardPrices(prev => ({ ...prev, [group]: Number(e.target.value) || 0 }))}
-                                                                            className="w-full bg-muted/50 border border-border/40 rounded-lg pl-6 pr-2 py-2 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
-                                                                            placeholder="per board"
+                                                                            value={transportCost || ""}
+                                                                            onChange={(e) => setTransportCost(Number(e.target.value) || 0)}
+                                                                            className="w-full bg-background border border-border/40 rounded-xl pl-8 pr-4 py-3 font-bold focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+                                                                            placeholder="0"
                                                                         />
                                                                     </div>
-                                                                    {boardPrices[group] > 0 && (
-                                                                        <p className="text-[10px] font-bold text-secondary mt-1 text-right">
-                                                                            = ₱{(boardPrices[group] * data.count).toLocaleString()}
-                                                                        </p>
-                                                                    )}
                                                                 </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Hardware Pricing */}
-                                                    <div className="space-y-3">
-                                                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-600/70 border-b border-border/20 pb-2">Hardware Prices</p>
-                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                                            {[
-                                                                { key: 'hinges', label: 'Hinges', count: aggregateBOM.hardware.hinges, unit: 'pcs' },
-                                                                { key: 'handles', label: 'Handles', count: aggregateBOM.hardware.handles, unit: 'pcs' },
-                                                                { key: 'slides', label: 'Slides', count: aggregateBOM.hardware.slides, unit: 'sets' },
-                                                                { key: 'shelfPins', label: 'Shelf Pins', count: aggregateBOM.hardware.shelfPins, unit: 'pcs' },
-                                                            ].map(item => (
-                                                                <div key={item.key} className="p-3 rounded-xl bg-background border border-border/30">
-                                                                    <p className="text-[9px] font-black uppercase tracking-widest opacity-50 mb-1">{item.label}</p>
-                                                                    <p className="text-xs font-bold mb-2">{item.count} {item.unit}</p>
+                                                                <div className="space-y-2">
+                                                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Design Fee</label>
                                                                     <div className="relative">
-                                                                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">₱</span>
+                                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">₱</span>
                                                                         <input
                                                                             type="number"
-                                                                            value={hardwarePrices[item.key as keyof typeof hardwarePrices] || ""}
-                                                                            onChange={(e) => setHardwarePrices(prev => ({ ...prev, [item.key]: Number(e.target.value) || 0 }))}
-                                                                            className="w-full bg-muted/50 border border-border/40 rounded-lg pl-6 pr-2 py-1.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
-                                                                            placeholder="/pc"
+                                                                            value={designFee || ""}
+                                                                            onChange={(e) => setDesignFee(Number(e.target.value) || 0)}
+                                                                            className="w-full bg-background border border-border/40 rounded-xl pl-8 pr-4 py-3 font-bold focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+                                                                            placeholder="0"
                                                                         />
                                                                     </div>
                                                                 </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Fastener Pricing */}
-                                                    <div className="space-y-3">
-                                                        <p className="text-[10px] font-black uppercase tracking-widest text-rose-600/70 border-b border-border/20 pb-2">Fastener Prices</p>
-                                                        <div className="grid grid-cols-3 gap-3">
-                                                            {[
-                                                                { key: 'confirmat', label: 'Confirmat Screws', count: aggregateBOM.fasteners.confirmat },
-                                                                { key: 'camLocks', label: 'Cam Locks', count: aggregateBOM.fasteners.camLocks },
-                                                                { key: 'nails', label: 'Nails', count: aggregateBOM.fasteners.nails },
-                                                            ].map(item => (
-                                                                <div key={item.key} className="p-3 rounded-xl bg-background border border-border/30">
-                                                                    <p className="text-[9px] font-black uppercase tracking-widest opacity-50 mb-1">{item.label}</p>
-                                                                    <p className="text-xs font-bold mb-2">{item.count} pcs</p>
+                                                                <div className="space-y-2">
+                                                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Miscellaneous</label>
                                                                     <div className="relative">
-                                                                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">₱</span>
+                                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">₱</span>
                                                                         <input
                                                                             type="number"
-                                                                            value={fastenerPrices[item.key as keyof typeof fastenerPrices] || ""}
-                                                                            onChange={(e) => setFastenerPrices(prev => ({ ...prev, [item.key]: Number(e.target.value) || 0 }))}
-                                                                            className="w-full bg-muted/50 border border-border/40 rounded-lg pl-6 pr-2 py-1.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
-                                                                            placeholder="/pc"
+                                                                            value={miscCosts || ""}
+                                                                            onChange={(e) => setMiscCosts(Number(e.target.value) || 0)}
+                                                                            className="w-full bg-background border border-border/40 rounded-xl pl-8 pr-4 py-3 font-bold focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+                                                                            placeholder="0"
                                                                         />
                                                                     </div>
                                                                 </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Upsell / Additional Items */}
-                                                    <div className="space-y-3">
-                                                        <div className="flex justify-between items-center border-b border-border/20 pb-2">
-                                                            <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600/70">Upsell / Additional Items</p>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="h-6 px-2 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg"
-                                                                onClick={addUpsellItem}
-                                                            >
-                                                                <Plus className="w-3 h-3 mr-1" /> Add Item
-                                                            </Button>
+                                                                <div className="space-y-2">
+                                                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Material Markup</label>
+                                                                    <div className="relative">
+                                                                        <input
+                                                                            type="number"
+                                                                            value={materialMarkup || ""}
+                                                                            onChange={(e) => setMaterialMarkup(Number(e.target.value) || 0)}
+                                                                            className="w-full bg-background border border-border/40 rounded-xl pl-4 pr-8 py-3 font-bold focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+                                                                            placeholder="0"
+                                                                        />
+                                                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">%</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         </div>
 
                                                         <div className="space-y-2">
-                                                            {upsellItems.length === 0 ? (
-                                                                <div className="p-4 rounded-xl border border-dashed border-border/40 text-center">
-                                                                    <p className="text-[10px] text-muted-foreground italic">No additional items added. Click "Add Item" to upsell accessories, lighting, etc.</p>
-                                                                </div>
-                                                            ) : (
-                                                                upsellItems.map((item) => (
-                                                                    <div key={item.id} className="grid grid-cols-12 gap-2 items-center bg-background p-2 rounded-xl border border-border/30">
-                                                                        <div className="col-span-6">
-                                                                            <input
-                                                                                className="w-full bg-muted/30 border-none rounded-lg px-2 py-1.5 text-xs font-bold focus:ring-1 focus:ring-emerald-500/20"
-                                                                                placeholder="Item Name (e.g. Soft Close Hinges)"
-                                                                                value={item.name}
-                                                                                onChange={(e) => setUpsellItems(prev => prev.map(ui => ui.id === item.id ? { ...ui, name: e.target.value } : ui))}
-                                                                            />
-                                                                        </div>
-                                                                        <div className="col-span-2">
-                                                                            <input
-                                                                                type="number"
-                                                                                className="w-full bg-muted/30 border-none rounded-lg px-2 py-1.5 text-xs font-bold text-center"
-                                                                                placeholder="Qty"
-                                                                                value={item.quantity || ""}
-                                                                                onChange={(e) => setUpsellItems(prev => prev.map(ui => ui.id === item.id ? { ...ui, quantity: Number(e.target.value) || 0 } : ui))}
-                                                                            />
-                                                                        </div>
-                                                                        <div className="col-span-3 relative">
-                                                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted-foreground">₱</span>
-                                                                            <input
-                                                                                type="number"
-                                                                                className="w-full bg-muted/30 border-none rounded-lg pl-5 pr-2 py-1.5 text-xs font-bold"
-                                                                                placeholder="Price"
-                                                                                value={item.price || ""}
-                                                                                onChange={(e) => setUpsellItems(prev => prev.map(ui => ui.id === item.id ? { ...ui, price: Number(e.target.value) || 0 } : ui))}
-                                                                            />
-                                                                        </div>
-                                                                        <div className="col-span-1 flex justify-center">
-                                                                            <button
-                                                                                type="button"
-                                                                                className="inline-flex items-center justify-center whitespace-nowrap font-medium transition-all duration-200 ease-out transform hover:shadow-md hover:-translate-y-[1px] active:translate-y-0 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:text-accent-foreground dark:hover:bg-accent/50 rounded-md gap-1.5 has-[>svg]:px-2.5 h-7 text-[10px] px-2 text-destructive hover:bg-destructive/10"
-                                                                                onClick={(e) => {
-                                                                                    e.preventDefault();
-                                                                                    e.stopPropagation();
-                                                                                    setUpsellItems(prev => prev.filter(ui => ui.id !== item.id));
-                                                                                }}
-                                                                            >
-                                                                                <Trash2 className="w-3.5 h-3.5" />
-                                                                            </button>
-                                                                        </div>
-                                                                    </div>
-                                                                ))
-                                                            )}
+                                                            <div className="flex justify-between items-center">
+                                                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Notes / Terms</label>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-6 px-2 text-[10px] font-bold text-secondary hover:text-secondary hover:bg-secondary/10 rounded-lg"
+                                                                    onClick={() => setBoqNotes(BOQ_STANDARD_TERMS)}
+                                                                >
+                                                                    <FileText className="w-3 h-3 mr-1" /> Load Standard Terms
+                                                                </Button>
+                                                            </div>
+                                                            <textarea
+                                                                value={boqNotes}
+                                                                onChange={(e) => setBoqNotes(e.target.value)}
+                                                                className="w-full bg-background border border-border/40 rounded-xl px-4 py-3 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all resize-none"
+                                                                rows={6}
+                                                                placeholder="e.g., 50% downpayment required, delivery within 2-3 weeks..."
+                                                            />
                                                         </div>
-                                                    </div>
 
-                                                    {/* Additional Costs */}
-                                                    <div className="space-y-3">
-                                                        <p className="text-[10px] font-black uppercase tracking-widest text-secondary/70 border-b border-border/20 pb-2">Additional Costs</p>
-                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                                            <div className="space-y-2">
-                                                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Transportation</label>
-                                                                <div className="relative">
-                                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">₱</span>
-                                                                    <input
-                                                                        type="number"
-                                                                        value={transportCost || ""}
-                                                                        onChange={(e) => setTransportCost(Number(e.target.value) || 0)}
-                                                                        className="w-full bg-background border border-border/40 rounded-xl pl-8 pr-4 py-3 font-bold focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
-                                                                        placeholder="0"
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Design Fee</label>
-                                                                <div className="relative">
-                                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">₱</span>
-                                                                    <input
-                                                                        type="number"
-                                                                        value={designFee || ""}
-                                                                        onChange={(e) => setDesignFee(Number(e.target.value) || 0)}
-                                                                        className="w-full bg-background border border-border/40 rounded-xl pl-8 pr-4 py-3 font-bold focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
-                                                                        placeholder="0"
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Miscellaneous</label>
-                                                                <div className="relative">
-                                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">₱</span>
-                                                                    <input
-                                                                        type="number"
-                                                                        value={miscCosts || ""}
-                                                                        onChange={(e) => setMiscCosts(Number(e.target.value) || 0)}
-                                                                        className="w-full bg-background border border-border/40 rounded-xl pl-8 pr-4 py-3 font-bold focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
-                                                                        placeholder="0"
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Material Markup</label>
-                                                                <div className="relative">
-                                                                    <input
-                                                                        type="number"
-                                                                        value={materialMarkup || ""}
-                                                                        onChange={(e) => setMaterialMarkup(Number(e.target.value) || 0)}
-                                                                        className="w-full bg-background border border-border/40 rounded-xl pl-4 pr-8 py-3 font-bold focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
-                                                                        placeholder="0"
-                                                                    />
-                                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">%</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="space-y-2">
-                                                        <div className="flex justify-between items-center">
-                                                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Notes / Terms</label>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="sm"
-                                                                className="h-6 px-2 text-[10px] font-bold text-secondary hover:text-secondary hover:bg-secondary/10 rounded-lg"
-                                                                onClick={() => setBoqNotes(BOQ_STANDARD_TERMS)}
-                                                            >
-                                                                <FileText className="w-3 h-3 mr-1" /> Load Standard Terms
-                                                            </Button>
-                                                        </div>
-                                                        <textarea
-                                                            value={boqNotes}
-                                                            onChange={(e) => setBoqNotes(e.target.value)}
-                                                            className="w-full bg-background border border-border/40 rounded-xl px-4 py-3 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-secondary/20 transition-all resize-none"
-                                                            rows={6}
-                                                            placeholder="e.g., 50% downpayment required, delivery within 2-3 weeks..."
-                                                        />
-                                                    </div>
-
-                                                    {/* BOQ Summary */}
-                                                    <div className="p-5 rounded-xl bg-secondary/10 border border-secondary/20 space-y-4">
-                                                        <p className="text-[10px] font-black uppercase tracking-widest text-secondary/70 border-b border-secondary/20 pb-2">Cost Breakdown</p>
-                                                        <div className="grid grid-cols-2 gap-3 text-sm">
-                                                            <div className="flex justify-between">
-                                                                <span className="font-medium opacity-70">Materials (Boards)</span>
-                                                                <span className="font-bold">₱{Object.entries(boardPrices).reduce((sum, [group, price]) => {
-                                                                    const count = sheetsMetadata.filter(m => m.materialGroup === group).length;
-                                                                    return sum + (price * count);
-                                                                }, 0).toLocaleString()}</span>
-                                                            </div>
-                                                            <div className="flex justify-between">
-                                                                <span className="font-medium opacity-70">Hardware</span>
-                                                                <span className="font-bold">₱{(
-                                                                    (hardwarePrices.hinges * aggregateBOM.hardware.hinges) +
-                                                                    (hardwarePrices.handles * aggregateBOM.hardware.handles) +
-                                                                    (hardwarePrices.slides * aggregateBOM.hardware.slides) +
-                                                                    (hardwarePrices.shelfPins * aggregateBOM.hardware.shelfPins)
-                                                                ).toLocaleString()}</span>
-                                                            </div>
-                                                            <div className="flex justify-between">
-                                                                <span className="font-medium opacity-70">Fasteners</span>
-                                                                <span className="font-bold">₱{(
-                                                                    (fastenerPrices.confirmat * aggregateBOM.fasteners.confirmat) +
-                                                                    (fastenerPrices.camLocks * aggregateBOM.fasteners.camLocks) +
-                                                                    (fastenerPrices.nails * aggregateBOM.fasteners.nails)
-                                                                ).toLocaleString()}</span>
-                                                            </div>
-                                                            <div className="flex justify-between">
-                                                                <span className="font-medium opacity-70">Labor & Installation</span>
-                                                                <span className="font-bold">₱{(usedSheets * LABOR_RATE_PER_BOARD).toLocaleString()}</span>
-                                                            </div>
-                                                            {upsellItems.length > 0 && (
+                                                        {/* BOQ Summary */}
+                                                        <div className="p-5 rounded-xl bg-secondary/10 border border-secondary/20 space-y-4">
+                                                            <p className="text-[10px] font-black uppercase tracking-widest text-secondary/70 border-b border-secondary/20 pb-2">Cost Breakdown</p>
+                                                            <div className="grid grid-cols-2 gap-3 text-sm">
                                                                 <div className="flex justify-between">
-                                                                    <span className="font-medium opacity-70">Upsell / Additional Items</span>
-                                                                    <span className="font-bold">₱{upsellItems.reduce((sum, item) => sum + (item.quantity * item.price), 0).toLocaleString()}</span>
-                                                                </div>
-                                                            )}
-                                                            <div className="flex justify-between">
-                                                                <span className="font-medium opacity-70">Transport + Design + Misc</span>
-                                                                <span className="font-bold">₱{(transportCost + designFee + miscCosts).toLocaleString()}</span>
-                                                            </div>
-                                                            {materialMarkup > 0 && (
-                                                                <div className="flex justify-between">
-                                                                    <span className="font-medium opacity-70">Material Markup ({materialMarkup}%)</span>
-                                                                    <span className="font-bold text-primary">+₱{(
-                                                                        (Object.entries(boardPrices).reduce((sum, [group, price]) => {
-                                                                            const count = sheetsMetadata.filter(m => m.materialGroup === group).length;
-                                                                            return sum + (price * count);
-                                                                        }, 0) +
-                                                                            (hardwarePrices.hinges * aggregateBOM.hardware.hinges) +
-                                                                            (hardwarePrices.handles * aggregateBOM.hardware.handles) +
-                                                                            (hardwarePrices.slides * aggregateBOM.hardware.slides) +
-                                                                            (hardwarePrices.shelfPins * aggregateBOM.hardware.shelfPins) +
-                                                                            (fastenerPrices.confirmat * aggregateBOM.fasteners.confirmat) +
-                                                                            (fastenerPrices.camLocks * aggregateBOM.fasteners.camLocks) +
-                                                                            (fastenerPrices.nails * aggregateBOM.fasteners.nails)
-                                                                        ) * (materialMarkup / 100)
-                                                                    ).toLocaleString()}</span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <div className="border-t border-secondary/30 pt-3 flex justify-between items-center">
-                                                            <p className="text-sm font-black uppercase tracking-widest text-secondary">Grand Total</p>
-                                                            <p className="text-3xl font-black text-secondary">
-                                                                ₱{(() => {
-                                                                    const boardTotal = Object.entries(boardPrices).reduce((sum, [group, price]) => {
+                                                                    <span className="font-medium opacity-70">Materials (Boards)</span>
+                                                                    <span className="font-bold">₱{Object.entries(boardPrices).reduce((sum, [group, price]) => {
                                                                         const count = sheetsMetadata.filter(m => m.materialGroup === group).length;
                                                                         return sum + (price * count);
-                                                                    }, 0);
-                                                                    const hardwareTotal = (hardwarePrices.hinges * aggregateBOM.hardware.hinges) +
+                                                                    }, 0).toLocaleString()}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="font-medium opacity-70">Hardware</span>
+                                                                    <span className="font-bold">₱{(
+                                                                        (hardwarePrices.hinges * aggregateBOM.hardware.hinges) +
                                                                         (hardwarePrices.handles * aggregateBOM.hardware.handles) +
                                                                         (hardwarePrices.slides * aggregateBOM.hardware.slides) +
-                                                                        (hardwarePrices.shelfPins * aggregateBOM.hardware.shelfPins);
-                                                                    const fastenerTotal = (fastenerPrices.confirmat * aggregateBOM.fasteners.confirmat) +
+                                                                        (hardwarePrices.shelfPins * aggregateBOM.hardware.shelfPins)
+                                                                    ).toLocaleString()}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="font-medium opacity-70">Fasteners</span>
+                                                                    <span className="font-bold">₱{(
+                                                                        (fastenerPrices.confirmat * aggregateBOM.fasteners.confirmat) +
                                                                         (fastenerPrices.camLocks * aggregateBOM.fasteners.camLocks) +
-                                                                        (fastenerPrices.nails * aggregateBOM.fasteners.nails);
-                                                                    const upsellTotal = upsellItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-                                                                    const materialTotal = boardTotal + hardwareTotal + fastenerTotal;
-                                                                    const markup = materialTotal * (materialMarkup / 100);
-                                                                    const laborTotal = usedSheets * LABOR_RATE_PER_BOARD;
-                                                                    const additionalTotal = transportCost + designFee + miscCosts;
-                                                                    return (materialTotal + markup + laborTotal + additionalTotal + upsellTotal).toLocaleString();
-                                                                })()}
-                                                            </p>
+                                                                        (fastenerPrices.nails * aggregateBOM.fasteners.nails)
+                                                                    ).toLocaleString()}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="font-medium opacity-70">Labor & Installation</span>
+                                                                    <span className="font-bold">₱{(usedSheets * LABOR_RATE_PER_BOARD).toLocaleString()}</span>
+                                                                </div>
+                                                                {upsellItems.length > 0 && (
+                                                                    <div className="flex justify-between">
+                                                                        <span className="font-medium opacity-70">Upsell / Additional Items</span>
+                                                                        <span className="font-bold">₱{upsellItems.reduce((sum, item) => sum + (item.quantity * item.price), 0).toLocaleString()}</span>
+                                                                    </div>
+                                                                )}
+                                                                <div className="flex justify-between">
+                                                                    <span className="font-medium opacity-70">Transport + Design + Misc</span>
+                                                                    <span className="font-bold">₱{(transportCost + designFee + miscCosts).toLocaleString()}</span>
+                                                                </div>
+                                                                {materialMarkup > 0 && (
+                                                                    <div className="flex justify-between">
+                                                                        <span className="font-medium opacity-70">Material Markup ({materialMarkup}%)</span>
+                                                                        <span className="font-bold text-primary">+₱{(
+                                                                            (Object.entries(boardPrices).reduce((sum, [group, price]) => {
+                                                                                const count = sheetsMetadata.filter(m => m.materialGroup === group).length;
+                                                                                return sum + (price * count);
+                                                                            }, 0) +
+                                                                                (hardwarePrices.hinges * aggregateBOM.hardware.hinges) +
+                                                                                (hardwarePrices.handles * aggregateBOM.hardware.handles) +
+                                                                                (hardwarePrices.slides * aggregateBOM.hardware.slides) +
+                                                                                (hardwarePrices.shelfPins * aggregateBOM.hardware.shelfPins) +
+                                                                                (fastenerPrices.confirmat * aggregateBOM.fasteners.confirmat) +
+                                                                                (fastenerPrices.camLocks * aggregateBOM.fasteners.camLocks) +
+                                                                                (fastenerPrices.nails * aggregateBOM.fasteners.nails)
+                                                                            ) * (materialMarkup / 100)
+                                                                        ).toLocaleString()}</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div className="border-t border-secondary/30 pt-3 flex justify-between items-center">
+                                                                <p className="text-sm font-black uppercase tracking-widest text-secondary">Grand Total</p>
+                                                                <p className="text-3xl font-black text-secondary">
+                                                                    ₱{(() => {
+                                                                        const boardTotal = Object.entries(boardPrices).reduce((sum, [group, price]) => {
+                                                                            const count = sheetsMetadata.filter(m => m.materialGroup === group).length;
+                                                                            return sum + (price * count);
+                                                                        }, 0);
+                                                                        const hardwareTotal = (hardwarePrices.hinges * aggregateBOM.hardware.hinges) +
+                                                                            (hardwarePrices.handles * aggregateBOM.hardware.handles) +
+                                                                            (hardwarePrices.slides * aggregateBOM.hardware.slides) +
+                                                                            (hardwarePrices.shelfPins * aggregateBOM.hardware.shelfPins);
+                                                                        const fastenerTotal = (fastenerPrices.confirmat * aggregateBOM.fasteners.confirmat) +
+                                                                            (fastenerPrices.camLocks * aggregateBOM.fasteners.camLocks) +
+                                                                            (fastenerPrices.nails * aggregateBOM.fasteners.nails);
+                                                                        const upsellTotal = upsellItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+                                                                        const materialTotal = boardTotal + hardwareTotal + fastenerTotal;
+                                                                        const markup = materialTotal * (materialMarkup / 100);
+                                                                        const laborTotal = usedSheets * LABOR_RATE_PER_BOARD;
+                                                                        const additionalTotal = transportCost + designFee + miscCosts;
+                                                                        return (materialTotal + markup + laborTotal + additionalTotal + upsellTotal).toLocaleString();
+                                                                    })()}
+                                                                </p>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </>
-                                ) : (
-                                    <div id="production-report-print" className="bg-white rounded-3xl shadow-2xl p-0 !mt-0 min-h-[1000px] border border-primary/5 overflow-hidden scale-[0.85] origin-top translate-y-[-10%] transition-transform duration-500 hover:scale-[0.9] hover:translate-y-[-5%] group/report">
-                                        <style dangerouslySetInnerHTML={{
-                                            __html: `
+                                                )}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div id="production-report-print" className="bg-white rounded-3xl shadow-2xl p-0 !mt-0 min-h-[1000px] border border-primary/5 overflow-hidden scale-[0.85] origin-top translate-y-[-10%] transition-transform duration-500 hover:scale-[0.9] hover:translate-y-[-5%] group/report">
+                                            <style dangerouslySetInnerHTML={{
+                                                __html: `
                                             @page { 
                                                 size: A4; 
                                                 margin: 15mm; 
@@ -3989,496 +4099,497 @@ These Terms and Conditions shall be governed by the laws of the Republic of the 
                                                 }
                                             }
                                         `}} />
-                                        <div className="max-w-[800px] mx-auto p-16 text-primary font-sans bg-white">
-                                            {/* Report Header */}
-                                            <div className="flex justify-between items-start border-b-[3px] border-primary pb-8 mb-8">
-                                                <div>
-                                                    <div className="flex items-center gap-4 mb-4">
-                                                        <img src="https://res.cloudinary.com/dbviya1rj/image/upload/v1757004631/nlir90vrzv0qywleruvv.png" alt="ModuLux" className="h-10 w-auto" />
-                                                        <h1 className="text-3xl font-black uppercase tracking-tighter italic text-primary">ModuLux <span className="not-italic opacity-50">Fabricator</span></h1>
-                                                    </div>
-                                                    <p className="text-[9px] font-black opacity-30 tracking-[0.3em] uppercase leading-tight">Automated Production Protocol <br /> Certified Precision Output</p>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="text-base font-black uppercase tracking-tight">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-                                                    <p className="text-[10px] font-bold opacity-30 uppercase tracking-[0.2em] mt-1">Ref ID: PRD-{projectId?.substring(0, 6).toUpperCase() || Math.random().toString(36).substring(2, 8).toUpperCase()}</p>
-                                                </div>
-                                            </div>
-
-                                            {/* Project & Client Details */}
-                                            <div className="grid grid-cols-2 gap-8 mb-10 p-6 bg-primary/[0.02] rounded-2xl border border-primary/10">
-                                                <div>
-                                                    <p className="text-[8px] font-black uppercase tracking-widest opacity-30 mb-2">Project Details</p>
-                                                    <h2 className="text-xl font-black tracking-tight text-primary mb-1">{projectName || "Untitled Project"}</h2>
-                                                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-secondary/10 rounded-full">
-                                                        <span className="w-2 h-2 rounded-full bg-secondary"></span>
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-secondary">
-                                                            {bomSubject === "kitchen" && "Kitchen Cabinetry"}
-                                                            {bomSubject === "wardrobe" && "Wardrobe System"}
-                                                            {bomSubject === "vanity" && "Vanity Unit"}
-                                                            {bomSubject === "entertainment" && "Entertainment Center"}
-                                                            {bomSubject === "office" && "Office Furniture"}
-                                                            {bomSubject === "custom" && "Custom Build"}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <p className="text-[8px] font-black uppercase tracking-widest opacity-30 mb-2">Client Information</p>
-                                                    {clientName ? (
-                                                        <>
-                                                            <p className="text-lg font-bold tracking-tight text-primary">{clientName}</p>
-                                                            {clientContact && <p className="text-[11px] font-medium opacity-60 text-primary">{clientContact}</p>}
-                                                            {clientAddress && <p className="text-[10px] font-medium opacity-40 text-primary mt-1">{clientAddress}</p>}
-                                                        </>
-                                                    ) : (
-                                                        <p className="text-sm font-medium opacity-40 text-primary italic">No client specified</p>
-                                                    )}
-                                                </div>
-                                            </div>
-
-
-                                            {/* Executive Overview */}
-                                            <div className="grid grid-cols-3 gap-1 mb-12">
-                                                <div className="p-6 border border-primary/10 rounded-l-2xl border-r-0">
-                                                    <p className="text-[8px] font-black uppercase tracking-widest opacity-20 mb-2">Total Inventory</p>
-                                                    <div className="flex items-baseline gap-1">
-                                                        <span className="text-4xl font-black tracking-tighter">{usedSheets}</span>
-                                                        <span className="text-[10px] font-bold uppercase opacity-40">Sheets</span>
-                                                    </div>
-                                                </div>
-                                                <div className="p-6 border border-primary/10">
-                                                    <p className="text-[8px] font-black uppercase tracking-widest opacity-20 mb-2">Efficiency Rating</p>
-                                                    <div className="flex items-baseline gap-1">
-                                                        <span className="text-4xl font-black tracking-tighter">{100 - (stats.wastePercent || 0)}</span>
-                                                        <span className="text-[10px] font-bold uppercase opacity-40">%</span>
-                                                    </div>
-                                                </div>
-                                                <div className="p-6 border border-primary/10 rounded-r-2xl border-l-0">
-                                                    <p className="text-[8px] font-black uppercase tracking-widest opacity-20 mb-2">Edge Duration</p>
-                                                    <div className="flex items-baseline gap-1">
-                                                        <span className="text-4xl font-black tracking-tighter">{aggregateBOM.totalEdgeBand.toFixed(1)}</span>
-                                                        <span className="text-[10px] font-bold uppercase opacity-40">LM</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-
-
-
-                                            {/* Section 01: Materials */}
-                                            <div className="mb-12">
-                                                <div className="flex items-center gap-3 mb-6">
-                                                    <span className="w-10 h-[1.5px] bg-secondary/30"></span>
-                                                    <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-primary">01 / Boards Requirements</h3>
-                                                    <span className="flex-1 h-[1.5px] bg-secondary/30"></span>
-                                                </div>
-                                                <div className="space-y-4">
-                                                    {Object.entries(
-                                                        sheetsMetadata.reduce((acc, meta) => {
-                                                            const key = `${meta.materialGroup}|${meta.label}|${meta.width}x${meta.height}`;
-                                                            acc[key] = (acc[key] || 0) + 1;
-                                                            return acc;
-                                                        }, {} as Record<string, number>)
-                                                    ).map(([key, count]) => {
-                                                        const [group, label, dims] = key.split('|');
-                                                        return (
-                                                            <div key={key} className="flex items-center justify-between group/item p-4 rounded-xl border border-primary/5 bg-primary/[0.01]">
-                                                                <div className="flex items-center gap-6">
-                                                                    <div className="w-12 h-12 bg-primary flex items-center justify-center text-white text-xs font-black rounded-lg group-hover/item:scale-105 transition-transform uppercase shadow-lg shadow-primary/20">
-                                                                        {group.charAt(0)}
-                                                                    </div>
-                                                                    <div>
-                                                                        <p className="text-[9px] font-black uppercase opacity-40 tracking-widest mb-0.5 text-primary">{group}</p>
-                                                                        <p className="font-bold text-lg leading-tight tracking-tight text-primary">{label}</p>
-                                                                        <p className="text-[10px] font-mono opacity-50 text-primary">{dims}mm Standard Stock</p>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="text-right">
-                                                                    <p className="text-3xl font-black tracking-tighter text-primary">×{count}</p>
-                                                                    <p className="text-[8px] font-bold opacity-30 uppercase tracking-[0.2em] text-primary">Units Required</p>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-
-                                            {/* Section 03: Fittings */}
-                                            <div className="grid grid-cols-2 gap-10 mb-12">
-                                                <div className="p-6 rounded-2xl bg-primary/[0.02] border border-primary/10">
-                                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] mb-4 text-primary border-b border-secondary/20 pb-2">03 / Fittings List</h3>
-                                                    <div className="space-y-2">
-                                                        <div className="flex justify-between items-center py-2 border-b border-primary/5 last:border-0">
-                                                            <span className="text-[10px] font-black uppercase opacity-40 tracking-widest text-primary">Hinges</span>
-                                                            <span className="font-black italic text-lg text-primary">{aggregateBOM.hardware.hinges} <span className="text-[8px] not-italic opacity-40">PCS</span></span>
+                                            <div className="max-w-[800px] mx-auto p-16 text-primary font-sans bg-white">
+                                                {/* Report Header */}
+                                                <div className="flex justify-between items-start border-b-[3px] border-primary pb-8 mb-8">
+                                                    <div>
+                                                        <div className="flex items-center gap-4 mb-4">
+                                                            <img src="https://res.cloudinary.com/dbviya1rj/image/upload/v1757004631/nlir90vrzv0qywleruvv.png" alt="ModuLux" className="h-10 w-auto" />
+                                                            <h1 className="text-3xl font-black uppercase tracking-tighter italic text-primary">ModuLux <span className="not-italic opacity-50">Fabricator</span></h1>
                                                         </div>
-                                                        <div className="flex justify-between items-center py-2 border-b border-primary/5 last:border-0">
-                                                            <span className="text-[10px] font-black uppercase opacity-40 tracking-widest text-primary">Handles</span>
-                                                            <span className="font-black italic text-lg text-primary">{aggregateBOM.hardware.handles} <span className="text-[8px] not-italic opacity-40">PCS</span></span>
+                                                        <p className="text-[9px] font-black opacity-30 tracking-[0.3em] uppercase leading-tight">Automated Production Protocol <br /> Certified Precision Output</p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-base font-black uppercase tracking-tight">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                                                        <p className="text-[10px] font-bold opacity-30 uppercase tracking-[0.2em] mt-1">Ref ID: PRD-{projectId?.substring(0, 6).toUpperCase() || Math.random().toString(36).substring(2, 8).toUpperCase()}</p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Project & Client Details */}
+                                                <div className="grid grid-cols-2 gap-8 mb-10 p-6 bg-primary/[0.02] rounded-2xl border border-primary/10">
+                                                    <div>
+                                                        <p className="text-[8px] font-black uppercase tracking-widest opacity-30 mb-2">Project Details</p>
+                                                        <h2 className="text-xl font-black tracking-tight text-primary mb-1">{projectName || "Untitled Project"}</h2>
+                                                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-secondary/10 rounded-full">
+                                                            <span className="w-2 h-2 rounded-full bg-secondary"></span>
+                                                            <span className="text-[10px] font-black uppercase tracking-widest text-secondary">
+                                                                {bomSubject === "kitchen" && "Kitchen Cabinetry"}
+                                                                {bomSubject === "wardrobe" && "Wardrobe System"}
+                                                                {bomSubject === "vanity" && "Vanity Unit"}
+                                                                {bomSubject === "entertainment" && "Entertainment Center"}
+                                                                {bomSubject === "office" && "Office Furniture"}
+                                                                {bomSubject === "custom" && "Custom Build"}
+                                                            </span>
                                                         </div>
-                                                        <div className="flex justify-between items-center py-2 border-b border-primary/5 last:border-0">
-                                                            <span className="text-[10px] font-black uppercase opacity-40 tracking-widest text-primary">Slides</span>
-                                                            <span className="font-black italic text-lg text-primary">{aggregateBOM.hardware.slides} <span className="text-[8px] not-italic opacity-40">SETS</span></span>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="text-[8px] font-black uppercase tracking-widest opacity-30 mb-2">Client Information</p>
+                                                        {clientName ? (
+                                                            <>
+                                                                <p className="text-lg font-bold tracking-tight text-primary">{clientName}</p>
+                                                                {clientContact && <p className="text-[11px] font-medium opacity-60 text-primary">{clientContact}</p>}
+                                                                {clientAddress && <p className="text-[10px] font-medium opacity-40 text-primary mt-1">{clientAddress}</p>}
+                                                            </>
+                                                        ) : (
+                                                            <p className="text-sm font-medium opacity-40 text-primary italic">No client specified</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+
+                                                {/* Executive Overview */}
+                                                <div className="grid grid-cols-3 gap-1 mb-12">
+                                                    <div className="p-6 border border-primary/10 rounded-l-2xl border-r-0">
+                                                        <p className="text-[8px] font-black uppercase tracking-widest opacity-20 mb-2">Total Inventory</p>
+                                                        <div className="flex items-baseline gap-1">
+                                                            <span className="text-4xl font-black tracking-tighter">{usedSheets}</span>
+                                                            <span className="text-[10px] font-bold uppercase opacity-40">Sheets</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="p-6 border border-primary/10">
+                                                        <p className="text-[8px] font-black uppercase tracking-widest opacity-20 mb-2">Efficiency Rating</p>
+                                                        <div className="flex items-baseline gap-1">
+                                                            <span className="text-4xl font-black tracking-tighter">{100 - (stats.wastePercent || 0)}</span>
+                                                            <span className="text-[10px] font-bold uppercase opacity-40">%</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="p-6 border border-primary/10 rounded-r-2xl border-l-0">
+                                                        <p className="text-[8px] font-black uppercase tracking-widest opacity-20 mb-2">Edge Duration</p>
+                                                        <div className="flex items-baseline gap-1">
+                                                            <span className="text-4xl font-black tracking-tighter">{aggregateBOM.totalEdgeBand.toFixed(1)}</span>
+                                                            <span className="text-[10px] font-bold uppercase opacity-40">LM</span>
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div className="p-6 rounded-2xl bg-secondary/[0.02] border border-secondary/10">
-                                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] mb-4 text-secondary border-b border-primary/20 pb-2">04 / Assembly Units</h3>
+
+
+
+
+                                                {/* Section 01: Materials */}
+                                                <div className="mb-12">
+                                                    <div className="flex items-center gap-3 mb-6">
+                                                        <span className="w-10 h-[1.5px] bg-secondary/30"></span>
+                                                        <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-primary">01 / Boards Requirements</h3>
+                                                        <span className="flex-1 h-[1.5px] bg-secondary/30"></span>
+                                                    </div>
                                                     <div className="space-y-4">
-                                                        <div className="p-3 bg-white/50 rounded-xl border border-primary/5">
-                                                            <div className="flex justify-between items-center mb-1">
-                                                                <span className="text-[8px] font-black uppercase opacity-40 tracking-widest text-primary">Structural Screws</span>
-                                                                <span className="text-sm font-black italic text-primary">{aggregateBOM.fasteners.confirmat}</span>
+                                                        {Object.entries(
+                                                            sheetsMetadata.reduce((acc, meta) => {
+                                                                const key = `${meta.materialGroup}|${meta.label}|${meta.width}x${meta.height}`;
+                                                                acc[key] = (acc[key] || 0) + 1;
+                                                                return acc;
+                                                            }, {} as Record<string, number>)
+                                                        ).map(([key, count]) => {
+                                                            const [group, label, dims] = key.split('|');
+                                                            return (
+                                                                <div key={key} className="flex items-center justify-between group/item p-4 rounded-xl border border-primary/5 bg-primary/[0.01]">
+                                                                    <div className="flex items-center gap-6">
+                                                                        <div className="w-12 h-12 bg-primary flex items-center justify-center text-white text-xs font-black rounded-lg group-hover/item:scale-105 transition-transform uppercase shadow-lg shadow-primary/20">
+                                                                            {group.charAt(0)}
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="text-[9px] font-black uppercase opacity-40 tracking-widest mb-0.5 text-primary">{group}</p>
+                                                                            <p className="font-bold text-lg leading-tight tracking-tight text-primary">{label}</p>
+                                                                            <p className="text-[10px] font-mono opacity-50 text-primary">{dims}mm Standard Stock</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="text-right">
+                                                                        <p className="text-3xl font-black tracking-tighter text-primary">×{count}</p>
+                                                                        <p className="text-[8px] font-bold opacity-30 uppercase tracking-[0.2em] text-primary">Units Required</p>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+
+                                                {/* Section 03: Fittings */}
+                                                <div className="grid grid-cols-2 gap-10 mb-12">
+                                                    <div className="p-6 rounded-2xl bg-primary/[0.02] border border-primary/10">
+                                                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] mb-4 text-primary border-b border-secondary/20 pb-2">03 / Fittings List</h3>
+                                                        <div className="space-y-2">
+                                                            <div className="flex justify-between items-center py-2 border-b border-primary/5 last:border-0">
+                                                                <span className="text-[10px] font-black uppercase opacity-40 tracking-widest text-primary">Hinges</span>
+                                                                <span className="font-black italic text-lg text-primary">{aggregateBOM.hardware.hinges} <span className="text-[8px] not-italic opacity-40">PCS</span></span>
                                                             </div>
-                                                            <div className="w-full bg-primary/10 h-1 rounded-full overflow-hidden">
-                                                                <div className="bg-primary h-full" style={{ width: '100%' }}></div>
+                                                            <div className="flex justify-between items-center py-2 border-b border-primary/5 last:border-0">
+                                                                <span className="text-[10px] font-black uppercase opacity-40 tracking-widest text-primary">Handles</span>
+                                                                <span className="font-black italic text-lg text-primary">{aggregateBOM.hardware.handles} <span className="text-[8px] not-italic opacity-40">PCS</span></span>
+                                                            </div>
+                                                            <div className="flex justify-between items-center py-2 border-b border-primary/5 last:border-0">
+                                                                <span className="text-[10px] font-black uppercase opacity-40 tracking-widest text-primary">Slides</span>
+                                                                <span className="font-black italic text-lg text-primary">{aggregateBOM.hardware.slides} <span className="text-[8px] not-italic opacity-40">SETS</span></span>
                                                             </div>
                                                         </div>
-                                                        <div className="p-3 bg-white/50 rounded-xl border border-primary/5">
-                                                            <div className="flex justify-between items-center mb-1">
-                                                                <span className="text-[8px] font-black uppercase opacity-40 tracking-widest text-primary">Mechanical Fasteners</span>
-                                                                <span className="text-sm font-black italic text-primary">{aggregateBOM.fasteners.camLocks}</span>
+                                                    </div>
+                                                    <div className="p-6 rounded-2xl bg-secondary/[0.02] border border-secondary/10">
+                                                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] mb-4 text-secondary border-b border-primary/20 pb-2">04 / Assembly Units</h3>
+                                                        <div className="space-y-4">
+                                                            <div className="p-3 bg-white/50 rounded-xl border border-primary/5">
+                                                                <div className="flex justify-between items-center mb-1">
+                                                                    <span className="text-[8px] font-black uppercase opacity-40 tracking-widest text-primary">Structural Screws</span>
+                                                                    <span className="text-sm font-black italic text-primary">{aggregateBOM.fasteners.confirmat}</span>
+                                                                </div>
+                                                                <div className="w-full bg-primary/10 h-1 rounded-full overflow-hidden">
+                                                                    <div className="bg-primary h-full" style={{ width: '100%' }}></div>
+                                                                </div>
                                                             </div>
-                                                            <div className="w-full bg-primary/10 h-1 rounded-full overflow-hidden">
-                                                                <div className="bg-primary h-full" style={{ width: '100%' }}></div>
+                                                            <div className="p-3 bg-white/50 rounded-xl border border-primary/5">
+                                                                <div className="flex justify-between items-center mb-1">
+                                                                    <span className="text-[8px] font-black uppercase opacity-40 tracking-widest text-primary">Mechanical Fasteners</span>
+                                                                    <span className="text-sm font-black italic text-primary">{aggregateBOM.fasteners.camLocks}</span>
+                                                                </div>
+                                                                <div className="w-full bg-primary/10 h-1 rounded-full overflow-hidden">
+                                                                    <div className="bg-primary h-full" style={{ width: '100%' }}></div>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
 
-                                            {/* Section 02: Cuts List */}
-                                            <div className="mb-12">
-                                                <div className="flex items-center gap-3 mb-6">
-                                                    <span className="w-10 h-[1.5px] bg-secondary/30"></span>
-                                                    <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-primary">02 / Precision Cuts Data</h3>
-                                                    <span className="flex-1 h-[1.5px] bg-secondary/30"></span>
-                                                </div>
-                                                <div className="border-[2px] border-primary/20 rounded-2xl overflow-hidden shadow-xl shadow-primary/5">
-                                                    <table className="w-full text-[10px]">
-                                                        <thead>
-                                                            <tr className="bg-primary text-white text-left">
-                                                                <th className="p-4 font-black uppercase tracking-widest">Component</th>
-                                                                <th className="p-4 font-black uppercase tracking-widest">Dimension (L×W)</th>
-                                                                <th className="p-4 font-black uppercase tracking-widest text-right">Quantity</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody className="divide-y divide-primary/10 font-medium">
-                                                            {aggregateBOM.panels.slice(0, 12).map((p, i) => (
-                                                                <tr key={i} className="hover:bg-primary/[0.02] transition-colors">
-                                                                    <td className="p-4">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <span className={cn(
-                                                                                "w-1 h-3 rounded-full",
-                                                                                p.materialGroup === "carcass" ? "bg-emerald-500" :
-                                                                                    p.materialGroup === "doors" ? "bg-blue-500" : "bg-amber-500"
-                                                                            )}></span>
-                                                                            <span className="font-bold text-primary">{p.name}</span>
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="p-4 font-mono font-bold tracking-tighter text-primary">{p.l} × {p.w}mm</td>
-                                                                    <td className="p-4 text-right font-black text-sm text-primary">×{p.qty}</td>
+                                                {/* Section 02: Cuts List */}
+                                                <div className="mb-12">
+                                                    <div className="flex items-center gap-3 mb-6">
+                                                        <span className="w-10 h-[1.5px] bg-secondary/30"></span>
+                                                        <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-primary">02 / Precision Cuts Data</h3>
+                                                        <span className="flex-1 h-[1.5px] bg-secondary/30"></span>
+                                                    </div>
+                                                    <div className="border-[2px] border-primary/20 rounded-2xl overflow-hidden shadow-xl shadow-primary/5">
+                                                        <table className="w-full text-[10px]">
+                                                            <thead>
+                                                                <tr className="bg-primary text-white text-left">
+                                                                    <th className="p-4 font-black uppercase tracking-widest">Component</th>
+                                                                    <th className="p-4 font-black uppercase tracking-widest">Dimension (L×W)</th>
+                                                                    <th className="p-4 font-black uppercase tracking-widest text-right">Quantity</th>
                                                                 </tr>
-                                                            ))}
-                                                            {aggregateBOM.panels.length > 12 && (
-                                                                <tr className="bg-muted/5">
-                                                                    <td colSpan={3} className="p-4 text-center text-[9px] font-black uppercase opacity-30 italic text-primary">
-                                                                        ... Continued on Supplemental Sheets ({aggregateBOM.panels.length - 12} more items)
-                                                                    </td>
-                                                                </tr>
-                                                            )}
-                                                        </tbody>
-                                                    </table>
+                                                            </thead>
+                                                            <tbody className="divide-y divide-primary/10 font-medium">
+                                                                {aggregateBOM.panels.slice(0, 12).map((p, i) => (
+                                                                    <tr key={i} className="hover:bg-primary/[0.02] transition-colors">
+                                                                        <td className="p-4">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className={cn(
+                                                                                    "w-1 h-3 rounded-full",
+                                                                                    p.materialGroup === "carcass" ? "bg-emerald-500" :
+                                                                                        p.materialGroup === "doors" ? "bg-blue-500" : "bg-amber-500"
+                                                                                )}></span>
+                                                                                <span className="font-bold text-primary">{p.name}</span>
+                                                                            </div>
+                                                                        </td>
+                                                                        <td className="p-4 font-mono font-bold tracking-tighter text-primary">{p.l} × {p.w}mm</td>
+                                                                        <td className="p-4 text-right font-black text-sm text-primary">×{p.qty}</td>
+                                                                    </tr>
+                                                                ))}
+                                                                {aggregateBOM.panels.length > 12 && (
+                                                                    <tr className="bg-muted/5">
+                                                                        <td colSpan={3} className="p-4 text-center text-[9px] font-black uppercase opacity-30 italic text-primary">
+                                                                            ... Continued on Supplemental Sheets ({aggregateBOM.panels.length - 12} more items)
+                                                                        </td>
+                                                                    </tr>
+                                                                )}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
                                                 </div>
-                                            </div>
 
-                                            {/* Branded Watermark/Footer */}
-                                            <div className="mt-16 pt-8 border-t border-primary/10 flex justify-between items-end avoid-break">
-                                                <div className="opacity-30">
-                                                    <div className="w-16 h-1.5 bg-secondary mb-2 rounded-full"></div>
-                                                    <p className="text-[8px] font-black uppercase tracking-[0.5em] text-primary">APPROVED FOR FABRICATION</p>
-                                                </div>
-                                                <div className="flex flex-col items-end">
-                                                    <img src="https://res.cloudinary.com/dbviya1rj/image/upload/v1757004631/nlir90vrzv0qywleruvv.png" alt="ModuLux Logo" className="h-6 w-auto opacity-20 mb-1" />
-                                                    <p className="text-[9px] font-black italic opacity-10 text-primary uppercase">PRODUCTION PROTOCOL PAGE 01</p>
+                                                {/* Branded Watermark/Footer */}
+                                                <div className="mt-16 pt-8 border-t border-primary/10 flex justify-between items-end avoid-break">
+                                                    <div className="opacity-30">
+                                                        <div className="w-16 h-1.5 bg-secondary mb-2 rounded-full"></div>
+                                                        <p className="text-[8px] font-black uppercase tracking-[0.5em] text-primary">APPROVED FOR FABRICATION</p>
+                                                    </div>
+                                                    <div className="flex flex-col items-end">
+                                                        <img src="https://res.cloudinary.com/dbviya1rj/image/upload/v1757004631/nlir90vrzv0qywleruvv.png" alt="ModuLux Logo" className="h-6 w-auto opacity-20 mb-1" />
+                                                        <p className="text-[9px] font-black italic opacity-10 text-primary uppercase">PRODUCTION PROTOCOL PAGE 01</p>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
+                                    )}
+                                </div>
 
-                            {/* footer */}
-                            <div className="p-6 border-t border-border/20 bg-muted/30 print:hidden">
-                                <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                                    <div className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em] hidden md:block">
-                                        ModuLux Fabrication Management System
-                                    </div>
-                                    <div className="flex flex-wrap items-center justify-center md:justify-end gap-3">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="rounded-xl px-4"
-                                            onClick={() => {
-                                                if (showReportPreview) setShowReportPreview(false);
-                                                else setShowBOMModal(false);
-                                            }}
-                                        >
-                                            {showReportPreview ? "Back to Summary" : "Close"}
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="rounded-xl px-4 border-primary/20 hover:bg-primary/5"
-                                            onClick={() => setShowReportPreview(!showReportPreview)}
-                                        >
-                                            {showReportPreview ? (
-                                                <><Calculator className="w-4 h-4 mr-2" /> Summary</>
-                                            ) : (
-                                                <><FileText className="w-4 h-4 mr-2" /> Preview</>
-                                            )}
-                                        </Button>
-                                        <div className="relative group">
+                                {/* footer */}
+                                <div className="p-6 border-t border-border/20 bg-muted/30 print:hidden">
+                                    <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                                        <div className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em] hidden md:block">
+                                            ModuLux Fabrication Management System
+                                        </div>
+                                        <div className="flex flex-wrap items-center justify-center md:justify-end gap-3">
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                className="rounded-xl px-4 border-primary/20 hover:bg-primary/5 group-hover:bg-primary/5"
+                                                className="rounded-xl px-4"
+                                                onClick={() => {
+                                                    if (showReportPreview) setShowReportPreview(false);
+                                                    else setShowBOMModal(false);
+                                                }}
                                             >
-                                                <Printer className="w-4 h-4 mr-2" /> Print <ChevronDown className="w-3 h-3 ml-1 transition-transform group-hover:rotate-180" />
+                                                {showReportPreview ? "Back to Summary" : "Close"}
                                             </Button>
-                                            <div className="absolute bottom-full left-0 mb-2 w-56 bg-white border border-border/60 rounded-2xl shadow-2xl p-1.5 opacity-0 invisible group-hover:opacity-100 group-hover:visible translate-y-2 group-hover:translate-y-0 scale-95 group-hover:scale-100 transition-all duration-300 z-[100] origin-bottom-left">
-                                                <div className="absolute -bottom-1.5 left-6 w-3 h-3 bg-white border-r border-b border-border/60 rotate-45"></div>
-                                                <button
-                                                    className="w-full px-4 py-3 text-left rounded-xl text-sm font-semibold hover:bg-primary/5 transition-colors flex items-center gap-3 relative z-10"
-                                                    onClick={() => {
-                                                        if (!showReportPreview) {
-                                                            setShowReportPreview(true);
-                                                            setTimeout(() => handlePrintReport(), 300);
-                                                        } else {
-                                                            handlePrintReport();
-                                                        }
-                                                    }}
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="rounded-xl px-4 border-primary/20 hover:bg-primary/5"
+                                                onClick={() => setShowReportPreview(!showReportPreview)}
+                                            >
+                                                {showReportPreview ? (
+                                                    <><Calculator className="w-4 h-4 mr-2" /> Summary</>
+                                                ) : (
+                                                    <><FileText className="w-4 h-4 mr-2" /> Preview</>
+                                                )}
+                                            </Button>
+                                            <div className="relative group">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="rounded-xl px-4 border-primary/20 hover:bg-primary/5 group-hover:bg-primary/5"
                                                 >
-                                                    <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-                                                        <FileText className="w-4 h-4 text-emerald-600" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-extrabold text-[#1e3a2e]">BOM Report</p>
-                                                        <p className="text-[10px] text-muted-foreground">Production cutlist</p>
-                                                    </div>
-                                                </button>
-                                                <div className="h-px bg-border/40 my-1 mx-2"></div>
-                                                <button
-                                                    className="w-full px-4 py-3 text-left rounded-xl text-sm font-semibold hover:bg-secondary/5 transition-colors flex items-center gap-3 relative z-10"
-                                                    onClick={() => handlePrintBOQ()}
-                                                >
-                                                    <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
-                                                        <Calculator className="w-4 h-4 text-amber-600" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-extrabold text-[#1a1a1a]">BOQ Quotation</p>
-                                                        <p className="text-[10px] text-muted-foreground">Client pricing sheet</p>
-                                                    </div>
-                                                </button>
+                                                    <Printer className="w-4 h-4 mr-2" /> Print <ChevronDown className="w-3 h-3 ml-1 transition-transform group-hover:rotate-180" />
+                                                </Button>
+                                                <div className="absolute bottom-full left-0 mb-2 w-56 bg-white border border-border/60 rounded-2xl shadow-2xl p-1.5 opacity-0 invisible group-hover:opacity-100 group-hover:visible translate-y-2 group-hover:translate-y-0 scale-95 group-hover:scale-100 transition-all duration-300 z-[100] origin-bottom-left">
+                                                    <div className="absolute -bottom-1.5 left-6 w-3 h-3 bg-white border-r border-b border-border/60 rotate-45"></div>
+                                                    <button
+                                                        className="w-full px-4 py-3 text-left rounded-xl text-sm font-semibold hover:bg-primary/5 transition-colors flex items-center gap-3 relative z-10"
+                                                        onClick={() => {
+                                                            if (!showReportPreview) {
+                                                                setShowReportPreview(true);
+                                                                setTimeout(() => handlePrintReport(), 300);
+                                                            } else {
+                                                                handlePrintReport();
+                                                            }
+                                                        }}
+                                                    >
+                                                        <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+                                                            <FileText className="w-4 h-4 text-emerald-600" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-extrabold text-[#1e3a2e]">BOM Report</p>
+                                                            <p className="text-[10px] text-muted-foreground">Production cutlist</p>
+                                                        </div>
+                                                    </button>
+                                                    <div className="h-px bg-border/40 my-1 mx-2"></div>
+                                                    <button
+                                                        className="w-full px-4 py-3 text-left rounded-xl text-sm font-semibold hover:bg-secondary/5 transition-colors flex items-center gap-3 relative z-10"
+                                                        onClick={() => handlePrintBOQ()}
+                                                    >
+                                                        <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                                                            <Calculator className="w-4 h-4 text-amber-600" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-extrabold text-[#1a1a1a]">BOQ Quotation</p>
+                                                            <p className="text-[10px] text-muted-foreground">Client pricing sheet</p>
+                                                        </div>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="h-6 w-px bg-border/40 hidden md:block"></div>
+                                            <Button
+                                                size="sm"
+                                                className="rounded-xl px-5 font-bold shadow-lg shadow-primary/20"
+                                                onClick={saveProject}
+                                            >
+                                                <Save className="w-4 h-4 mr-2" /> {isSaving ? "Saving..." : "Save"}
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                className="rounded-xl px-5 font-bold bg-secondary hover:bg-secondary/90 shadow-lg shadow-secondary/20"
+                                                onClick={() => {
+                                                    toast.success("BOM Exported to Production Queue");
+                                                    setShowBOMModal(false);
+                                                }}
+                                            >
+                                                <Download className="w-4 h-4 mr-2" /> Export
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()}
+
+
+                {/* Project Settings Modal */}
+                {
+                    isProjectSettingsOpen && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
+                            <div className="bg-card w-full max-w-lg overflow-hidden rounded-3xl border-2 border-primary/20 shadow-2xl scale-in-95 animate-in zoom-in-95 duration-300">
+                                <div className="p-8 space-y-6 max-h-[85vh] overflow-y-auto custom-scrollbar">
+                                    <div className="flex items-center justify-between">
+                                        <h2 className="text-xl font-black uppercase tracking-tight">Project Settings</h2>
+                                        <button onClick={() => setIsProjectSettingsOpen(false)} className="p-2 hover:bg-muted rounded-full transition-colors">
+                                            <X className="w-5 h-5 text-muted-foreground" />
+                                        </button>
+                                    </div>
+
+                                    {/* Project Details Section */}
+                                    <div className="space-y-4">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-primary/50 border-b border-border/20 pb-2">Project Details</p>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Project Name</label>
+                                            <input
+                                                type="text"
+                                                value={projectName}
+                                                onChange={(e) => setProjectName(e.target.value)}
+                                                className="w-full bg-muted/50 border border-border/40 rounded-xl px-4 py-3 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                                                placeholder="Enter project name..."
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Project Type</label>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {[
+                                                    { value: "kitchen", label: "Kitchen" },
+                                                    { value: "wardrobe", label: "Wardrobe" },
+                                                    { value: "vanity", label: "Vanity" },
+                                                    { value: "entertainment", label: "Entertainment" },
+                                                    { value: "office", label: "Office" },
+                                                    { value: "custom", label: "Custom" },
+                                                ].map((type) => (
+                                                    <button
+                                                        key={type.value}
+                                                        onClick={() => setBomSubject(type.value as typeof bomSubject)}
+                                                        className={`px-3 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wide transition-all ${bomSubject === type.value
+                                                            ? "bg-primary text-white shadow-lg shadow-primary/20"
+                                                            : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                                                            }`}
+                                                    >
+                                                        {type.label}
+                                                    </button>
+                                                ))}
                                             </div>
                                         </div>
-                                        <div className="h-6 w-px bg-border/40 hidden md:block"></div>
-                                        <Button
-                                            size="sm"
-                                            className="rounded-xl px-5 font-bold shadow-lg shadow-primary/20"
-                                            onClick={saveProject}
-                                        >
-                                            <Save className="w-4 h-4 mr-2" /> {isSaving ? "Saving..." : "Save"}
-                                        </Button>
-                                        <Button
-                                            size="sm"
-                                            className="rounded-xl px-5 font-bold bg-secondary hover:bg-secondary/90 shadow-lg shadow-secondary/20"
-                                            onClick={() => {
-                                                toast.success("BOM Exported to Production Queue");
-                                                setShowBOMModal(false);
-                                            }}
-                                        >
-                                            <Download className="w-4 h-4 mr-2" /> Export
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                );
-            })()}
-
-
-            {/* Project Settings Modal */}
-            {
-                isProjectSettingsOpen && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
-                        <div className="bg-card w-full max-w-lg overflow-hidden rounded-3xl border-2 border-primary/20 shadow-2xl scale-in-95 animate-in zoom-in-95 duration-300">
-                            <div className="p-8 space-y-6 max-h-[85vh] overflow-y-auto custom-scrollbar">
-                                <div className="flex items-center justify-between">
-                                    <h2 className="text-xl font-black uppercase tracking-tight">Project Settings</h2>
-                                    <button onClick={() => setIsProjectSettingsOpen(false)} className="p-2 hover:bg-muted rounded-full transition-colors">
-                                        <X className="w-5 h-5 text-muted-foreground" />
-                                    </button>
-                                </div>
-
-                                {/* Project Details Section */}
-                                <div className="space-y-4">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-primary/50 border-b border-border/20 pb-2">Project Details</p>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Project Name</label>
-                                        <input
-                                            type="text"
-                                            value={projectName}
-                                            onChange={(e) => setProjectName(e.target.value)}
-                                            className="w-full bg-muted/50 border border-border/40 rounded-xl px-4 py-3 font-bold text-lg focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                                            placeholder="Enter project name..."
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Project Type</label>
-                                        <div className="grid grid-cols-3 gap-2">
-                                            {[
-                                                { value: "kitchen", label: "Kitchen" },
-                                                { value: "wardrobe", label: "Wardrobe" },
-                                                { value: "vanity", label: "Vanity" },
-                                                { value: "entertainment", label: "Entertainment" },
-                                                { value: "office", label: "Office" },
-                                                { value: "custom", label: "Custom" },
-                                            ].map((type) => (
-                                                <button
-                                                    key={type.value}
-                                                    onClick={() => setBomSubject(type.value as typeof bomSubject)}
-                                                    className={`px-3 py-2.5 rounded-xl text-[11px] font-bold uppercase tracking-wide transition-all ${bomSubject === type.value
-                                                        ? "bg-primary text-white shadow-lg shadow-primary/20"
-                                                        : "bg-muted/50 text-muted-foreground hover:bg-muted"
-                                                        }`}
-                                                >
-                                                    {type.label}
-                                                </button>
-                                            ))}
+                                        <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
+                                            <p className="text-[10px] font-bold text-primary uppercase mb-1">Project ID</p>
+                                            <p className="text-[10px] font-mono opacity-50 truncate">{projectId || "Pending Save..."}</p>
                                         </div>
                                     </div>
-                                    <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
-                                        <p className="text-[10px] font-bold text-primary uppercase mb-1">Project ID</p>
-                                        <p className="text-[10px] font-mono opacity-50 truncate">{projectId || "Pending Save..."}</p>
-                                    </div>
-                                </div>
 
-                                {/* Client Details Section */}
-                                <div className="space-y-4">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-secondary/70 border-b border-border/20 pb-2">Client Information</p>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Client Name</label>
-                                        <input
-                                            type="text"
-                                            value={clientName}
-                                            onChange={(e) => setClientName(e.target.value)}
-                                            className="w-full bg-muted/50 border border-border/40 rounded-xl px-4 py-3 font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                                            placeholder="e.g., John Smith"
-                                        />
+                                    {/* Client Details Section */}
+                                    <div className="space-y-4">
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-secondary/70 border-b border-border/20 pb-2">Client Information</p>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Client Name</label>
+                                            <input
+                                                type="text"
+                                                value={clientName}
+                                                onChange={(e) => setClientName(e.target.value)}
+                                                className="w-full bg-muted/50 border border-border/40 rounded-xl px-4 py-3 font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                                                placeholder="e.g., John Smith"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Contact (Phone/Email)</label>
+                                            <input
+                                                type="text"
+                                                value={clientContact}
+                                                onChange={(e) => setClientContact(e.target.value)}
+                                                className="w-full bg-muted/50 border border-border/40 rounded-xl px-4 py-3 font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                                                placeholder="e.g., +63 917 123 4567"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Delivery Address</label>
+                                            <textarea
+                                                value={clientAddress}
+                                                onChange={(e) => setClientAddress(e.target.value)}
+                                                className="w-full bg-muted/50 border border-border/40 rounded-xl px-4 py-3 font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none"
+                                                rows={2}
+                                                placeholder="e.g., 123 Main St, Makati City"
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Contact (Phone/Email)</label>
-                                        <input
-                                            type="text"
-                                            value={clientContact}
-                                            onChange={(e) => setClientContact(e.target.value)}
-                                            className="w-full bg-muted/50 border border-border/40 rounded-xl px-4 py-3 font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                                            placeholder="e.g., +63 917 123 4567"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Delivery Address</label>
-                                        <textarea
-                                            value={clientAddress}
-                                            onChange={(e) => setClientAddress(e.target.value)}
-                                            className="w-full bg-muted/50 border border-border/40 rounded-xl px-4 py-3 font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none"
-                                            rows={2}
-                                            placeholder="e.g., 123 Main St, Makati City"
-                                        />
-                                    </div>
-                                </div>
 
+                                    <Button
+                                        onClick={() => {
+                                            saveProject();
+                                            setIsProjectSettingsOpen(false);
+                                        }}
+                                        className="w-full rounded-2xl h-12 font-black uppercase tracking-tight shadow-lg shadow-primary/20"
+                                    >
+                                        Save & Close
+                                    </Button>
+
+                                </div>
+                            </div>
+                        </div>
+                    )
+                }
+
+
+                {/* AI Plan Parser Modal */}
+
+                {
+                    aiParserOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 lg:p-8">
+                            <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setAiParserOpen(false)} />
+                            <div className="relative w-full max-w-4xl max-h-[90vh] overflow-auto bg-card border border-border/40 rounded-xl shadow-2xl p-6">
+                                <div className="mb-6">
+                                    <h2 className="text-2xl font-bold mb-2">AI Plan Parser</h2>
+                                    <p className="text-sm text-muted-foreground">
+                                        Upload an architectural floor plan to automatically extract cabinet specifications
+                                    </p>
+                                </div>
+                                <AIPlanParser
+                                    onApply={handleApplyExtractedCabinets}
+                                    onClose={() => setAiParserOpen(false)}
+                                />
+                            </div>
+                        </div>
+                    )
+                }
+                {/* Delete Confirmation Modal */}
+                {projectToDelete && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setProjectToDelete(null)} />
+                        <div className="relative bg-card border border-border/40 rounded-xl shadow-2xl p-6 w-full max-w-md animate-in zoom-in-95 duration-200">
+                            <h3 className="text-lg font-bold mb-2">Delete Project</h3>
+                            <p className="text-sm text-muted-foreground mb-6">
+                                Are you sure you want to delete <span className="font-bold text-foreground">"{projectToDelete.name}"</span>? This action cannot be undone.
+                            </p>
+                            <div className="flex justify-end gap-3">
                                 <Button
-                                    onClick={() => {
-                                        saveProject();
-                                        setIsProjectSettingsOpen(false);
-                                    }}
-                                    className="w-full rounded-2xl h-12 font-black uppercase tracking-tight shadow-lg shadow-primary/20"
+                                    variant="ghost"
+                                    onClick={() => setProjectToDelete(null)}
                                 >
-                                    Save & Close
+                                    Cancel
                                 </Button>
-
+                                <Button
+                                    variant="destructive"
+                                    onClick={async () => {
+                                        try {
+                                            await supabase.from('cutlist_cabinet_configs').delete().eq('project_id', projectToDelete.id);
+                                            await supabase.from('cutlist_results').delete().eq('project_id', projectToDelete.id);
+                                            const { error } = await supabase.from('cutlist_projects').delete().eq('id', projectToDelete.id);
+                                            if (error) throw error;
+                                            loadSavedProjects();
+                                            if (projectToDelete.id === projectId) startNewProject();
+                                            toast.success("Project deleted successfully");
+                                        } catch (error: any) {
+                                            console.error("Delete Error:", error);
+                                            toast.error(`Delete failed: ${error.message}`);
+                                        } finally {
+                                            setProjectToDelete(null);
+                                        }
+                                    }}
+                                >
+                                    Delete
+                                </Button>
                             </div>
                         </div>
                     </div>
-                )
-            }
-
-
-            {/* AI Plan Parser Modal */}
-
-            {
-                aiParserOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 lg:p-8">
-                        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setAiParserOpen(false)} />
-                        <div className="relative w-full max-w-4xl max-h-[90vh] overflow-auto bg-card border border-border/40 rounded-xl shadow-2xl p-6">
-                            <div className="mb-6">
-                                <h2 className="text-2xl font-bold mb-2">AI Plan Parser</h2>
-                                <p className="text-sm text-muted-foreground">
-                                    Upload an architectural floor plan to automatically extract cabinet specifications
-                                </p>
-                            </div>
-                            <AIPlanParser
-                                onApply={handleApplyExtractedCabinets}
-                                onClose={() => setAiParserOpen(false)}
-                            />
-                        </div>
-                    </div>
-                )
-            }
-            {/* Delete Confirmation Modal */}
-            {projectToDelete && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setProjectToDelete(null)} />
-                    <div className="relative bg-card border border-border/40 rounded-xl shadow-2xl p-6 w-full max-w-md animate-in zoom-in-95 duration-200">
-                        <h3 className="text-lg font-bold mb-2">Delete Project</h3>
-                        <p className="text-sm text-muted-foreground mb-6">
-                            Are you sure you want to delete <span className="font-bold text-foreground">"{projectToDelete.name}"</span>? This action cannot be undone.
-                        </p>
-                        <div className="flex justify-end gap-3">
-                            <Button
-                                variant="ghost"
-                                onClick={() => setProjectToDelete(null)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                variant="destructive"
-                                onClick={async () => {
-                                    try {
-                                        await supabase.from('cutlist_cabinet_configs').delete().eq('project_id', projectToDelete.id);
-                                        await supabase.from('cutlist_results').delete().eq('project_id', projectToDelete.id);
-                                        const { error } = await supabase.from('cutlist_projects').delete().eq('id', projectToDelete.id);
-                                        if (error) throw error;
-                                        loadSavedProjects();
-                                        if (projectToDelete.id === projectId) startNewProject();
-                                        toast.success("Project deleted successfully");
-                                    } catch (error: any) {
-                                        console.error("Delete Error:", error);
-                                        toast.error(`Delete failed: ${error.message}`);
-                                    } finally {
-                                        setProjectToDelete(null);
-                                    }
-                                }}
-                            >
-                                Delete
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div >
+                )}
+            </div>
+        </div>
     )
 }
