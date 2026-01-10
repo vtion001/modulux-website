@@ -1,5 +1,243 @@
 [
   {
+    "id": "proposal_1767789767675",
+    "client": {
+      "name": "Andraw Lawrence",
+      "email": "andylawrence_vietnam@yahoo.co.uk",
+      "company": ""
+    },
+    "crmId": "",
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "description": "base cabinets (luxury)",
+        "quantity": 3,
+        "unitPrice": 76646,
+        "details": "Set 1 • Room: Kitchen • Tier: luxury • Meters: 3 • Factors: ×1 ×1"
+      },
+      {
+        "description": "hanging cabinets (luxury)",
+        "quantity": 3,
+        "unitPrice": 48543,
+        "details": "Set 1 • Room: Kitchen • Tier: luxury • Meters: 3 • Factors: ×1 ×1"
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "Generated from ModuLux Estimator",
+    "created_at": 1767789767948,
+    "pricingSnapshot": {
+      "baseRates": {
+        "base": 2,
+        "hanging": 1.6,
+        "tall": 2.2
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      },
+      "cabinetTypeMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "basic": 0.8
+      }
+    },
+    "pricingSnapshotTs": "2026-01-07T12:42:47.805Z",
+    "calculatorSnapshot": {
+      "formData": {
+        "projectType": "kitchen",
+        "roomSize": "",
+        "cabinetType": "luxury",
+        "material": "",
+        "finish": "",
+        "hardware": "",
+        "installation": false,
+        "linearMeter": "",
+        "kitchenScope": ""
+      },
+      "units": [
+        {
+          "enabled": true,
+          "category": "base",
+          "meters": 3,
+          "material": "melamine",
+          "finish": "standard",
+          "hardware": "premium",
+          "tier": "",
+          "roomType": "kitchen",
+          "customRoomName": "",
+          "setId": 0
+        },
+        {
+          "enabled": true,
+          "category": "hanging",
+          "meters": 3,
+          "material": "melamine",
+          "finish": "standard",
+          "hardware": "",
+          "tier": "",
+          "roomType": "kitchen",
+          "customRoomName": "",
+          "setId": 0
+        },
+        {
+          "enabled": false,
+          "category": "tall",
+          "meters": 0,
+          "material": "",
+          "finish": "",
+          "hardware": "",
+          "tier": "",
+          "roomType": "kitchen",
+          "customRoomName": "",
+          "setId": 0
+        }
+      ],
+      "applyTax": true,
+      "taxRate": 0.12,
+      "discount": 0,
+      "cabinetCategory": "base",
+      "tier": "luxury",
+      "includeFees": true,
+      "importSurcharge": false,
+      "downgradeMFC": false
+    }
+  },
+  {
+    "id": "proposal_1767765083608",
+    "client": {
+      "name": "Andraw Lawrence",
+      "email": "andylawrence_vietnam@yahoo.co.uk",
+      "company": ""
+    },
+    "crmId": "",
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "description": "base cabinets (luxury)",
+        "quantity": 4,
+        "unitPrice": 61317,
+        "details": "Set 1 • Room: Kitchen • Tier: luxury • Meters: 4 • Factors: ×1 ×1"
+      },
+      {
+        "description": "hanging cabinets (luxury)",
+        "quantity": 4,
+        "unitPrice": 58251,
+        "details": "Set 1 • Room: Kitchen • Tier: luxury • Meters: 4 • Factors: ×1 ×1"
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "Generated from ModuLux Estimator",
+    "created_at": 1767765083908,
+    "pricingSnapshot": {
+      "baseRates": {
+        "base": 2,
+        "hanging": 1.6,
+        "tall": 2.2
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      },
+      "cabinetTypeMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "basic": 0.8
+      }
+    },
+    "pricingSnapshotTs": "2026-01-07T05:51:23.764Z",
+    "calculatorSnapshot": {
+      "formData": {
+        "projectType": "kitchen",
+        "roomSize": "",
+        "cabinetType": "luxury",
+        "material": "",
+        "finish": "",
+        "hardware": "",
+        "installation": false,
+        "linearMeter": "",
+        "kitchenScope": ""
+      },
+      "units": [
+        {
+          "enabled": true,
+          "category": "base",
+          "meters": 4,
+          "material": "melamine",
+          "finish": "standard",
+          "hardware": "soft_close",
+          "tier": "",
+          "roomType": "kitchen",
+          "customRoomName": "",
+          "setId": 0
+        },
+        {
+          "enabled": true,
+          "category": "hanging",
+          "meters": 4,
+          "material": "melamine",
+          "finish": "standard",
+          "hardware": "soft_close",
+          "tier": "",
+          "roomType": "kitchen",
+          "customRoomName": "",
+          "setId": 0
+        },
+        {
+          "enabled": false,
+          "category": "tall",
+          "meters": 0,
+          "material": "",
+          "finish": "",
+          "hardware": "",
+          "tier": "",
+          "roomType": "kitchen",
+          "customRoomName": "",
+          "setId": 0
+        }
+      ],
+      "applyTax": true,
+      "taxRate": 0.12,
+      "discount": 0,
+      "cabinetCategory": "base",
+      "tier": "luxury",
+      "includeFees": true,
+      "importSurcharge": false,
+      "downgradeMFC": false
+    }
+  },
+  {
     "id": "proposal_1767027344067",
     "client": {
       "name": "vj ruado",

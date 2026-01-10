@@ -1945,6 +1945,7 @@ These Terms and Conditions shall be governed by the laws of the Republic of the 
                                                     <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Default Materials</span>
                                                 </div>
                                                 <div className="grid grid-cols-1 gap-2">
+                                                    {/* Carcass Material */}
                                                     <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-slate-100">
                                                         <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 shadow-[0_0_8px_rgba(16,185,129,0.4)]"></span>
                                                         <select
@@ -1963,7 +1964,46 @@ These Terms and Conditions shall be governed by the laws of the Republic of the 
                                                             {stockSheets.map(s => <option key={s.id} value={s.id}>{s.label || `${s.length}×${s.width}mm`}{s.thickness ? ` (${s.thickness}mm)` : ""}</option>)}
                                                         </select>
                                                     </div>
-                                                    {/* Repeat patterns for other selects if needed, or keep simple for brevity */}
+
+                                                    {/* Backing Material */}
+                                                    <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-slate-100">
+                                                        <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0 shadow-[0_0_8px_rgba(59,130,246,0.4)]"></span>
+                                                        <select
+                                                            className="flex-1 text-[11px] font-medium bg-transparent outline-none text-slate-600"
+                                                            value={cabinetTypeDefaults[settingsModalType].materials?.backing?.stockSheetId || ""}
+                                                            onChange={(e) => {
+                                                                const sheet = stockSheets.find(s => s.id === e.target.value)
+                                                                const currentMaterials = cabinetTypeDefaults[settingsModalType].materials || { carcass: null, doors: null, backing: null }
+                                                                updateTypeDefaults(settingsModalType, "materials", {
+                                                                    ...currentMaterials,
+                                                                    backing: sheet ? { stockSheetId: sheet.id, label: sheet.label || `${sheet.length}×${sheet.width}mm` } : null
+                                                                })
+                                                            }}
+                                                        >
+                                                            <option value="">Select Backing Material...</option>
+                                                            {stockSheets.map(s => <option key={s.id} value={s.id}>{s.label || `${s.length}×${s.width}mm`}{s.thickness ? ` (${s.thickness}mm)` : ""}</option>)}
+                                                        </select>
+                                                    </div>
+
+                                                    {/* Door Material */}
+                                                    <div className="flex items-center gap-3 bg-white p-2 rounded-lg border border-slate-100">
+                                                        <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0 shadow-[0_0_8px_rgba(245,158,11,0.4)]"></span>
+                                                        <select
+                                                            className="flex-1 text-[11px] font-medium bg-transparent outline-none text-slate-600"
+                                                            value={cabinetTypeDefaults[settingsModalType].materials?.doors?.stockSheetId || ""}
+                                                            onChange={(e) => {
+                                                                const sheet = stockSheets.find(s => s.id === e.target.value)
+                                                                const currentMaterials = cabinetTypeDefaults[settingsModalType].materials || { carcass: null, doors: null, backing: null }
+                                                                updateTypeDefaults(settingsModalType, "materials", {
+                                                                    ...currentMaterials,
+                                                                    doors: sheet ? { stockSheetId: sheet.id, label: sheet.label || `${sheet.length}×${sheet.width}mm` } : null
+                                                                })
+                                                            }}
+                                                        >
+                                                            <option value="">Select Door/Front Material...</option>
+                                                            {stockSheets.map(s => <option key={s.id} value={s.id}>{s.label || `${s.length}×${s.width}mm`}{s.thickness ? ` (${s.thickness}mm)` : ""}</option>)}
+                                                        </select>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="flex items-center justify-between pt-2 border-t border-slate-200/60">
