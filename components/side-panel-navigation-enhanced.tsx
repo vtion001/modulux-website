@@ -298,25 +298,9 @@ export function SidePanelNavigationEnhanced({ navigation, utility, brandName, br
               {uAvatar ? <img src={uAvatar} alt={uName} className="h-full w-full object-cover rounded-full" /> : <span>{uInitials}</span>}
             </div>
             <div className="side-panel-user-info">
-              <p cla
-              onClick={handleThemeToggle} 
-              className="side-panel-header-button" 
-              aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
-            >
-              {theme === "light" ? (
-                <Sun className="side-panel-header-button-icon" />
-              ) : (
-                <Moon className="side-panel-header-button-icon" />
-              )}
-            </button>
-            <NotificationDropdown />
-            <button 
-              onClick={handleSettingsClick} 
-              className="side-panel-header-button" 
-              aria-label="Open settings"
-            >
-              <Settings className="side-panel-header-button-icon" />
-            
+              <p className="side-panel-user-name">{uName}</p>
+              <p className="side-panel-user-role">{uRole}</p>
+            </div>
             <button className="side-panel-user-chevron"><ChevronDown className="h-4 w-4" /></button>
           </div>
         </div>
@@ -334,9 +318,25 @@ export function SidePanelNavigationEnhanced({ navigation, utility, brandName, br
             ))}
           </div>
           <div className="side-panel-header-actions">
-            <button className="side-panel-header-button" aria-label="Toggle theme"><Sun className="side-panel-header-button-icon" /></button>
+            <button 
+              onClick={handleThemeToggle} 
+              className="side-panel-header-button" 
+              aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+            >
+              {theme === "light" ? (
+                <Sun className="side-panel-header-button-icon" />
+              ) : (
+                <Moon className="side-panel-header-button-icon" />
+              )}
+            </button>
             <NotificationDropdown />
-            <button className="side-panel-header-button" aria-label="Open settings"><Settings className="side-panel-header-button-icon" /></button>
+            <button 
+              onClick={handleSettingsClick} 
+              className="side-panel-header-button" 
+              aria-label="Open settings"
+            >
+              <Settings className="side-panel-header-button-icon" />
+            </button>
             {rightActions}
           </div>
         </div>
