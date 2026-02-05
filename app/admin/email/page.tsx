@@ -49,6 +49,15 @@ export default async function AdminEmailPage() {
   }
 
   const inbox = await readInbox()
+  
+  // Email statistics
+  const emailStats = {
+    inbox: inbox.length,
+    drafts: 0,
+    sent: 0,
+    archived: 0,
+  }
+
   return (
     <div className="max-w-6xl mx-auto px-4 space-y-8">
       <div className="relative isolate overflow-hidden rounded-2xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground animate-in fade-in slide-in-from-top-1 duration-300">
@@ -109,6 +118,35 @@ export default async function AdminEmailPage() {
               </details>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Email Pipeline Card */}
+      <div className="bg-white rounded-[40px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-10">
+        <div className="mb-10">
+          <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+            <span className="w-2 h-2 rounded-full bg-primary mb-0.5"></span>
+            Email Status
+          </h2>
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">Message Organization</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {[
+            { label: "Inbox", count: emailStats.inbox, color: "bg-blue-50" },
+            { label: "Drafts", count: emailStats.drafts, color: "bg-amber-50" },
+            { label: "Sent", count: emailStats.sent, color: "bg-green-50" },
+            { label: "Archived", count: emailStats.archived, color: "bg-slate-50" },
+          ].map((status) => (
+            <div key={status.label} className="space-y-4">
+              <div className="flex items-center justify-between px-2">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{status.label}</span>
+                <span className={`w-5 h-5 rounded-full ${status.color} text-slate-600 text-[10px] font-black flex items-center justify-center border border-slate-200`}>
+                  {status.count}
+                </span>
+              </div>
+              <div className="space-y-3 min-h-[150px] bg-gradient-to-b from-slate-50/50 to-transparent rounded-lg p-3"></div>
+            </div>
+          ))}
         </div>
       </div>
 

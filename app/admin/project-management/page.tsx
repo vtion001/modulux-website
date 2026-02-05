@@ -473,6 +473,14 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
     }
   }
 
+  // Calculate status counts
+  const statusCounts = {
+    Backlog: list.filter(t => t.status === "Backlog").length,
+    "In Progress": list.filter(t => t.status === "In Progress").length,
+    Ready: list.filter(t => t.status === "Ready").length,
+    Completed: list.filter(t => t.status === "Completed").length,
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -534,7 +542,34 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
       </div>
       </div>
 
-      <section className="rounded-xl border bg-card/60 p-4">
+      {/* Task Pipeline Card */}
+      <div className="bg-white rounded-[40px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-10">
+        <div className="mb-10">
+          <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+            <span className="w-2 h-2 rounded-full bg-primary mb-0.5"></span>
+            Task Pipeline
+          </h2>
+          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">Project Workflow Status</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {[
+            { label: "Backlog", count: statusCounts.Backlog, color: "bg-slate-50" },
+            { label: "In Progress", count: statusCounts["In Progress"], color: "bg-blue-50" },
+            { label: "Ready", count: statusCounts.Ready, color: "bg-amber-50" },
+            { label: "Completed", count: statusCounts.Completed, color: "bg-green-50" },
+          ].map((stage) => (
+            <div key={stage.label} className="space-y-4">
+              <div className="flex items-center justify-between px-2">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{stage.label}</span>
+                <span className={`w-5 h-5 rounded-full ${stage.color} text-slate-600 text-[10px] font-black flex items-center justify-center border border-slate-200`}>
+                  {stage.count}
+                </span>
+              </div>
+              <div className="space-y-3 min-h-[200px] bg-gradient-to-b from-slate-50/50 to-transparent rounded-lg p-3"></div>
+            </div>
+          ))}
+        </div>
+      </div>
         <div className="mb-4">
           <div className="text-sm font-semibold">Send Progress Email</div>
           <div className="text-xs text-muted-foreground mb-2">Send an HTML summary for a specific project or all tasks</div>
