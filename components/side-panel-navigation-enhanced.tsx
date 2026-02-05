@@ -73,8 +73,8 @@ export interface SidePanelNavigationEnhancedProps {
   userAvatarUrl?: string
   onLogout?: () => Promise<void>
 }
-, onLogout
-export function SidePanelNavigationEnhanced({ navigation, utility, brandName, brandInitial, breadcrumbItems, rightActions, showScrollIndicators, userName, userRole, userInitials, userAvatarUrl }: SidePanelNavigationEnhancedProps): JSX.Element {
+
+export function SidePanelNavigationEnhanced({ navigation, utility, brandName, brandInitial, breadcrumbItems, rightActions, showScrollIndicators, userName, userRole, userInitials, userAvatarUrl, onLogout }: SidePanelNavigationEnhancedProps): JSX.Element {
   const pathname = usePathname()
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
