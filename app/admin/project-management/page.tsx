@@ -540,7 +540,6 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
           </div>
         </details>
       </div>
-      </div>
 
       {/* Task Pipeline Card */}
       <div className="bg-white rounded-[40px] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.02)] p-10">
