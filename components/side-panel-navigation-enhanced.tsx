@@ -6,7 +6,8 @@ import { useState, useEffect, useRef, Fragment } from "react"
 import type React from "react"
 import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
-import { LayoutDashboard, BarChart3, Users, FolderOpen, Package, ShoppingCart, User, CreditCard, FileText, Wallet, Settings, HelpCircle, Mail, Menu, X, ChevronRight, Search, Bell, Sun, ChevronDown, MessageSquare, CalendarDays, Calculator, Wrench, Scissors } from "lucide-react"
+import { LayoutDashboard, BarChart3, Users, FolderOpen, Package, ShoppingCart, User, CreditCard, FileText, Wallet, Settings, HelpCircle, Mail, Menu, X, ChevronRight, Search, Bell, Sun, Moon, ChevronDown, MessageSquare, CalendarDays, Calculator, Wrench, Scissors } from "lucide-react"
+import { useRouter } from "next/navigation"
 import "./side-panel-navigation.css"
 import { NotificationDropdown } from "./admin/notification-dropdown"
 
@@ -73,9 +74,11 @@ export interface SidePanelNavigationEnhancedProps {
 
 export function SidePanelNavigationEnhanced({ navigation, utility, brandName, brandInitial, breadcrumbItems, rightActions, showScrollIndicators, userName, userRole, userInitials, userAvatarUrl }: SidePanelNavigationEnhancedProps): JSX.Element {
   const pathname = usePathname()
+  const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
   const [isMobile, setIsMobile] = useState(false)
+  const [theme, setTheme] = useState<"light" | "dark">("light")
   const viewportRef = useRef<HTMLDivElement | null>(null)
   const [scrollPos, setScrollPos] = useState(0)
   const [canScroll, setCanScroll] = useState(false)
@@ -121,6 +124,15 @@ export function SidePanelNavigationEnhanced({ navigation, utility, brandName, br
     checkMobile()
     window.addEventListener("resize", checkMobile)
     return () => window.removeEventListener("resize", checkMobile)
+  }, [])
+
+  useEffect(() => {
+    // Initialize theme from localStorage or system preference
+    const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null
+    const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
+    const initialTheme = savedTheme || systemTheme
+    setTheme(initialTheme)
+    document.documentElement.classList.toggle("dark", initialTheme === "dark")
   }, [])
 
   useEffect(() => {
@@ -172,6 +184,17 @@ export function SidePanelNavigationEnhanced({ navigation, utility, brandName, br
   const isItemActive = (href: string) => pathname === href || pathname?.startsWith(href + "/")
 
   const handleToggleMenu = () => setIsOpen(prev => !prev)
+
+  const handleThemeToggle = () => {
+    const newTheme = theme === "light" ? "dark" : "light"
+    setTheme(newTheme)
+    localStorage.setItem("theme", newTheme)
+    document.documentElement.classList.toggle("dark", newTheme === "dark")
+  }
+
+  const handleSettingsClick = () => {
+    router.push("/admin/settings")
+  }
 
   const NavItemComponent = ({ item, depth = 0 }: { item: NavItem; depth?: number }) => {
     const hasChildren = !!(item.children && item.children.length > 0)
@@ -274,9 +297,25 @@ export function SidePanelNavigationEnhanced({ navigation, utility, brandName, br
               {uAvatar ? <img src={uAvatar} alt={uName} className="h-full w-full object-cover rounded-full" /> : <span>{uInitials}</span>}
             </div>
             <div className="side-panel-user-info">
-              <p className="side-panel-user-name">{uName}</p>
-              <p className="side-panel-user-role">{uRole}</p>
-            </div>
+              <p cla
+              onClick={handleThemeToggle} 
+              className="side-panel-header-button" 
+              aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+            >
+              {theme === "light" ? (
+                <Sun className="side-panel-header-button-icon" />
+              ) : (
+                <Moon className="side-panel-header-button-icon" />
+              )}
+            </button>
+            <NotificationDropdown />
+            <button 
+              onClick={handleSettingsClick} 
+              className="side-panel-header-button" 
+              aria-label="Open settings"
+            >
+              <Settings className="side-panel-header-button-icon" />
+            
             <button className="side-panel-user-chevron"><ChevronDown className="h-4 w-4" /></button>
           </div>
         </div>
