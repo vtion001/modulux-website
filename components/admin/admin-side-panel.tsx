@@ -1,8 +1,21 @@
 "use client"
 import * as React from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { SidePanelNavigationEnhanced, type NavSection } from "@/components/side-panel-navigation-enhanced"
 import { useEffect, useState } from "react"
+
+async function handleLogout() {
+  try {
+    const response = await fetch("/api/admin/logout", { method: "POST" })
+    if (response.ok) {
+      // Redirect to login page
+      window.location.href = "/admin/login"
+    }
+  } catch (error) {
+    console.error("Logout failed:", error)
+  }
+}
 
 export function AdminSidePanel(): JSX.Element {
   const [profile, setProfile] = useState<{ name?: string; role?: string; email?: string; avatar_url?: string; initials?: string } | null>(null)
@@ -84,6 +97,7 @@ export function AdminSidePanel(): JSX.Element {
       navigation={navigation}
       utility={utility}
       showScrollIndicators={true}
+      onLogout={handleLogout}
     />
   )
 }

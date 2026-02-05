@@ -7,7 +7,7 @@ import { useState, useEffect, useRef, Fragment } from "react"
 import type React from "react"
 import { cn } from "@/lib/utils"
 import { Separator } from "@/components/ui/separator"
-import { LayoutDashboard, BarChart3, Users, FolderOpen, Package, ShoppingCart, User, CreditCard, FileText, Wallet, Settings, HelpCircle, Mail, Menu, X, ChevronRight, Search, Bell, Sun, Moon, ChevronDown, MessageSquare, CalendarDays, Calculator, Wrench, Scissors } from "lucide-react"
+import { LayoutDashboard, BarChart3, Users, FolderOpen, Package, ShoppingCart, User, CreditCard, FileText, Wallet, Settings, HelpCircle, Mail, Menu, X, ChevronRight, Search, Bell, Sun, Moon, LogOut, ChevronDown, MessageSquare, CalendarDays, Calculator, Wrench, Scissors } from "lucide-react"
 import { useRouter } from "next/navigation"
 import "./side-panel-navigation.css"
 import { NotificationDropdown } from "./admin/notification-dropdown"
@@ -71,8 +71,9 @@ export interface SidePanelNavigationEnhancedProps {
   userRole?: string
   userInitials?: string
   userAvatarUrl?: string
+  onLogout?: () => Promise<void>
 }
-
+, onLogout
 export function SidePanelNavigationEnhanced({ navigation, utility, brandName, brandInitial, breadcrumbItems, rightActions, showScrollIndicators, userName, userRole, userInitials, userAvatarUrl }: SidePanelNavigationEnhancedProps): JSX.Element {
   const pathname = usePathname()
   const router = useRouter()
@@ -194,7 +195,13 @@ export function SidePanelNavigationEnhanced({ navigation, utility, brandName, br
   }
 
   const handleSettingsClick = () => {
-    router.push("/admin/settings")
+   
+
+  const handleLogout = async () => {
+    if (onLogout) {
+      await onLogout()
+    }
+  } router.push("/admin/settings")
   }
 
   const NavItemComponent = ({ item, depth = 0 }: { item: NavItem; depth?: number }) => {
@@ -330,6 +337,13 @@ export function SidePanelNavigationEnhanced({ navigation, utility, brandName, br
               )}
             </button>
             <NotificationDropdown />
+            <button 
+              onClick={handleLogout} 
+              className="side-panel-header-button" 
+              aria-label="Logout"
+            >
+              <LogOut className="side-panel-header-button-icon" />
+            </button>
             <button 
               onClick={handleSettingsClick} 
               className="side-panel-header-button" 
