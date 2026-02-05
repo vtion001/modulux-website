@@ -269,6 +269,8 @@ These Terms and Conditions shall be governed by the laws of the Republic of the 
         setFastenerPrices({ confirmat: 0, camLocks: 0, nails: 0 })
         setUpsellItems([])
         setShowBOQSection(false)
+        // Clear local storage draft
+        localStorage.removeItem("cutlist_panels_draft")
         // Clear URL param
         const url = new URL(window.location.href)
         url.searchParams.delete('projectId')
@@ -281,7 +283,7 @@ These Terms and Conditions shall be governed by the laws of the Republic of the 
         try {
             const { data: project, error: projError } = await supabase
                 .from('cutlist_projects')
-                .select('*, cutlist_cabinet_configs(*), cutlist_results(*)')
+                .select('*, cutlist_cabinet_configs(*), cutlist_results(*), cutlist_panels(*)')
                 .eq('id', id)
                 .single()
 
@@ -335,6 +337,18 @@ These Terms and Conditions shall be governed by the laws of the Republic of the 
                         drawers: c.drawers,
                         materials: c.materials,
                         order: c.order_index || c.order || 0
+                    })))
+                }
+
+                if (project.cutlist_panels?.length) {
+                    setPanels(project.cutlist_panels.map((p: any) => ({
+                        id: p.id,
+                        label: p.name,
+                        width: p.width,
+                        length: p.height,
+                        quantity: p.quantity,
+                        materialGroup: p.material_group,
+                        stockSheetId: p.stock_sheet_id
                     })))
                 }
 
@@ -392,6 +406,17 @@ These Terms and Conditions shall be governed by the laws of the Republic of the 
         const id = params.get('projectId')
         if (id) {
             loadProject(id)
+        } else {
+            // Load draft panels if not in a project
+            const savedPanels = localStorage.getItem("cutlist_panels_draft")
+            if (savedPanels) {
+                try {
+                    const parsed = JSON.parse(savedPanels)
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        setPanels(parsed)
+                    }
+                } catch { /* ignore */ }
+            }
         }
 
 
@@ -400,11 +425,32 @@ These Terms and Conditions shall be governed by the laws of the Republic of the 
         loadSavedProjects()
     }, [])
 
+    // Persist panels to localStorage as a draft
+    useEffect(() => {
+        // Only save to draft if we're not explicitly loading a project (this is tricky with async loadProject)
+        // But for now, saving panels whenever they change is fine for a draft.
+        // We only save if there's no projectId to avoid overwriting project data with project data
+        if (!projectId && panels.length > 0) {
+            localStorage.setItem("cutlist_panels_draft", JSON.stringify(panels))
+        }
+    }, [panels, projectId])
+
 
     // Save defaults to localStorage when changed
     const updateTypeDefaults = (type: "base" | "hanging" | "tall", field: keyof CabinetTypeDefaults, value: any) => {
+        let newValue = value
+        if (type === "hanging" && typeof value === "number") {
+            if (field === "depth" && value > 700) {
+                newValue = 700
+                toast.error("Hanging cabinet depth defaults limited to 700mm")
+            }
+            if (field === "width" && value > 1200) {
+                newValue = 1200
+                toast.error("Hanging cabinet width defaults limited to 1200mm")
+            }
+        }
         setCabinetTypeDefaults((prev) => {
-            const updated = { ...prev, [type]: { ...prev[type], [field]: value } }
+            const updated = { ...prev, [type]: { ...prev[type], [field]: newValue } }
             localStorage.setItem("cabinetTypeDefaults", JSON.stringify(updated))
             return updated
         })
@@ -848,7 +894,24 @@ These Terms and Conditions shall be governed by the laws of the Republic of the 
 
     const updateCabinetConfig = (id: string, field: keyof CabinetConfig, value: number | string | CabinetMaterials) => {
         setCabinetConfigs((prev) =>
-            prev.map((c) => (c.id === id ? { ...c, [field]: value } : c))
+            prev.map((c) => {
+                if (c.id === id) {
+                    let newValue = value;
+                    // Enforce limits for hanging cabinets
+                    if (c.type === "hanging" && typeof value === "number") {
+                        if (field === "depth" && value > 700) {
+                            newValue = 700;
+                            toast.error("Hanging cabinet depth limited to 700mm");
+                        }
+                        if (field === "unitWidth" && value > 1200) {
+                            newValue = 1200;
+                            toast.error("Hanging cabinet width limited to 1200mm");
+                        }
+                    }
+                    return { ...c, [field]: newValue };
+                }
+                return c;
+            })
         )
     }
 
@@ -883,7 +946,8 @@ These Terms and Conditions shall be governed by the laws of the Republic of the 
 
     // Calculate materials breakdown for a single cabinet unit
     const getMaterialsBreakdown = (config: CabinetConfig) => {
-        const unitCount = Math.floor((config.linearMeters * 1000) / config.unitWidth)
+        const calculatedCount = Math.floor((config.linearMeters * 1000) / config.unitWidth)
+        const unitCount = config.linearMeters > 0 ? Math.max(1, calculatedCount) : 0
         if (unitCount <= 0) return null
 
         const shelfWidth = config.unitWidth - 36
@@ -1272,7 +1336,8 @@ These Terms and Conditions shall be governed by the laws of the Republic of the 
         const drawerFrontHeight = 180 // Standard drawer front height
 
         for (const config of cabinetConfigs) {
-            const unitCount = Math.floor((config.linearMeters * 1000) / config.unitWidth)
+            const calculatedCount = Math.floor((config.linearMeters * 1000) / config.unitWidth)
+            const unitCount = config.linearMeters > 0 ? Math.max(1, calculatedCount) : 0
 
             if (unitCount <= 0) continue
 
@@ -1651,7 +1716,7 @@ These Terms and Conditions shall be governed by the laws of the Republic of the 
                     doors: c.doorsPerUnit,
                     shelves: c.shelves,
                     drawers: c.drawers,
-                    quantity: Math.floor((c.linearMeters * 1000) / c.unitWidth),
+                    quantity: c.linearMeters > 0 ? Math.max(1, Math.floor((c.linearMeters * 1000) / c.unitWidth)) : 0,
                     materials: c.materials,
                     order_index: c.order
                 })))
@@ -2027,7 +2092,8 @@ These Terms and Conditions shall be governed by the laws of the Republic of the 
                                         <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 overflow-x-auto custom-scrollbar">
                                             <div className="flex gap-2" style={{ minWidth: "max-content" }}>
                                                 {[...cabinetConfigs].sort((a, b) => a.order - b.order).map((config, idx) => {
-                                                    const unitCount = Math.floor((config.linearMeters * 1000) / config.unitWidth)
+                                                    const calculatedCount = Math.floor((config.linearMeters * 1000) / config.unitWidth)
+                                                    const unitCount = config.linearMeters > 0 ? Math.max(1, calculatedCount) : 0
                                                     const scale = 0.08
                                                     const svgH = config.height * scale
                                                     const svgW = config.unitWidth * scale
@@ -2082,7 +2148,8 @@ These Terms and Conditions shall be governed by the laws of the Republic of the 
                                                 hanging: "bg-blue-500 text-white shadow-blue-500/20",
                                                 tall: "bg-amber-500 text-white shadow-amber-500/20",
                                             }
-                                            const unitCount = Math.floor((config.linearMeters * 1000) / config.unitWidth)
+                                            const calculatedCount = Math.floor((config.linearMeters * 1000) / config.unitWidth)
+                                            const unitCount = config.linearMeters > 0 ? Math.max(1, calculatedCount) : 0
                                             return (
                                                 <div
                                                     key={config.id}

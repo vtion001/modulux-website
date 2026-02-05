@@ -1,5 +1,253 @@
 [
   {
+    "id": "proposal_1770183892559",
+    "client": {
+      "name": "vj ruado",
+      "email": "vjrodriguez1994@gmail.com",
+      "company": "",
+      "phone": "09566549968"
+    },
+    "crmId": "lead_1764311136355",
+    "title": "vj ruado - Kitchen Cabinet Proposal",
+    "items": [],
+    "taxRate": 0,
+    "discount": 0,
+    "notes": "WARRANTY:\n- 1 year limited warranty on carcass and door workmanship\n- Hardwares are subject to manufacturer's warranty policies",
+    "created_at": 1770183892602,
+    "pricingSnapshot": {
+      "baseRates": {
+        "base": 2,
+        "hanging": 1.6,
+        "tall": 2.2
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      },
+      "cabinetTypeMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "basic": 0.8
+      }
+    },
+    "pricingSnapshotTs": "2026-02-04T05:44:52.594Z",
+    "calculatorSnapshot": null
+  },
+  {
+    "id": "proposal_1770183836698",
+    "client": {
+      "name": "vj ruado",
+      "email": "vjrodriguez1994@gmail.com",
+      "company": "",
+      "phone": "09566549968"
+    },
+    "crmId": "lead_1764311136355",
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "id": "b8f5f90b-3766-4867-b0ac-01fad66168eb",
+        "description": "base cabinets (luxury)",
+        "quantity": 2.23,
+        "unitPrice": 61317,
+        "details": "Tier: luxury\nMeters: 2.23\nRate: ₱51,097.4/m\nFactors: ×1 ×1 ×1 ×1.2\nIncluded: Carcass: 18mm Celuka PVC Boards, Door: 18mm MDF PETG/Acrylic Boards, Hinges: Blum Hinges ( Soft Closing ), Drawers: Blum Tandem Box Drawers ( Soft Closing ), Countertop: Synthetic Quartz Countertop\nExclusive: Special Mechanism, Lighting, Appliances",
+        "category": "base",
+        "room": "Kitchen",
+        "baseRate": 51097.4,
+        "tierFactor": 1,
+        "materialFactor": 1,
+        "finishFactor": 1,
+        "hardwareFactor": 1.2,
+        "installationAdd": 0
+      },
+      {
+        "id": "9a5a5d6e-efbf-47d1-96bc-aacd1bfa63a7",
+        "description": "hanging cabinets (luxury)",
+        "quantity": 2.23,
+        "unitPrice": 58251,
+        "details": "Tier: luxury\nMeters: 2.23\nRate: ₱48,542.53/m\nFactors: ×1 ×1 ×1 ×1.2\nIncluded: Carcass: 18mm Celuka PVC Boards, Door: 18mm MDF PETG/Acrylic Boards, Hinges: Blum Hinges ( Soft Closing ), Drawers: Blum Tandem Box Drawers ( Soft Closing ), Countertop: Synthetic Quartz Countertop\nExclusive: Special Mechanism, Lighting, Appliances",
+        "category": "hanging",
+        "room": "Kitchen",
+        "baseRate": 48542.53,
+        "tierFactor": 1,
+        "materialFactor": 1,
+        "finishFactor": 1,
+        "hardwareFactor": 1.2,
+        "installationAdd": 0
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "Auto-filled from Pricing Version",
+    "created_at": 1770183836713,
+    "pricingSnapshot": {
+      "baseRates": {
+        "base": 2,
+        "hanging": 1.6,
+        "tall": 2.2
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      },
+      "cabinetTypeMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "basic": 0.8
+      }
+    },
+    "pricingSnapshotTs": "2026-02-04T05:43:56.706Z",
+    "calculatorSnapshot": null
+  },
+  {
+    "id": "proposal_1770183801181",
+    "client": {
+      "name": "vj ruado",
+      "email": "vjrodriguez1994@gmail.com",
+      "company": ""
+    },
+    "crmId": "",
+    "title": "kitchen Proposal",
+    "items": [
+      {
+        "description": "base cabinets (luxury)",
+        "quantity": 2.23,
+        "unitPrice": 61317,
+        "details": "Set 1 • Room: Kitchen • Tier: luxury • Meters: 2.23 • Factors: ×1 ×1"
+      },
+      {
+        "description": "hanging cabinets (luxury)",
+        "quantity": 2.23,
+        "unitPrice": 58251,
+        "details": "Set 1 • Room: Kitchen • Tier: luxury • Meters: 2.23 • Factors: ×1 ×1"
+      }
+    ],
+    "taxRate": 12,
+    "discount": 0,
+    "notes": "Generated from ModuLux Estimator",
+    "created_at": 1770183801199,
+    "pricingSnapshot": {
+      "baseRates": {
+        "base": 2,
+        "hanging": 1.6,
+        "tall": 2.2
+      },
+      "tierMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "standard": 0.8
+      },
+      "sheetRates": {
+        "base": {
+          "withoutFees": 40476.4,
+          "withFees": 51097.4
+        },
+        "hanging": {
+          "withoutFees": 38452.58,
+          "withFees": 48542.53
+        },
+        "tall": {
+          "withoutFees": 65182.2,
+          "withFees": 82286.1
+        }
+      },
+      "cabinetTypeMultipliers": {
+        "luxury": 1,
+        "premium": 0.9,
+        "basic": 0.8
+      }
+    },
+    "pricingSnapshotTs": "2026-02-04T05:43:21.193Z",
+    "calculatorSnapshot": {
+      "formData": {
+        "projectType": "kitchen",
+        "roomSize": "",
+        "cabinetType": "luxury",
+        "material": "",
+        "finish": "",
+        "hardware": "",
+        "installation": false,
+        "linearMeter": "",
+        "kitchenScope": ""
+      },
+      "units": [
+        {
+          "enabled": true,
+          "category": "base",
+          "meters": 2.23,
+          "material": "melamine",
+          "finish": "standard",
+          "hardware": "soft_close",
+          "tier": "",
+          "roomType": "kitchen",
+          "customRoomName": "",
+          "setId": 0
+        },
+        {
+          "enabled": true,
+          "category": "hanging",
+          "meters": 2.23,
+          "material": "melamine",
+          "finish": "standard",
+          "hardware": "soft_close",
+          "tier": "",
+          "roomType": "kitchen",
+          "customRoomName": "",
+          "setId": 0
+        },
+        {
+          "enabled": false,
+          "category": "tall",
+          "meters": 0,
+          "material": "",
+          "finish": "",
+          "hardware": "",
+          "tier": "",
+          "roomType": "kitchen",
+          "customRoomName": "",
+          "setId": 0
+        }
+      ],
+      "applyTax": true,
+      "taxRate": 0.12,
+      "discount": 0,
+      "cabinetCategory": "base",
+      "tier": "luxury",
+      "includeFees": true,
+      "importSurcharge": false,
+      "downgradeMFC": false
+    }
+  },
+  {
     "id": "proposal_1767789767675",
     "client": {
       "name": "Andraw Lawrence",
