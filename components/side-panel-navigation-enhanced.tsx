@@ -1,5 +1,6 @@
 "use client"
 
+// Side Panel Navigation Enhanced Component
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState, useEffect, useRef, Fragment } from "react"
