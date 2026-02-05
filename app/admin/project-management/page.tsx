@@ -475,10 +475,10 @@ export default async function AdminProjectManagementPage({ searchParams }: { sea
 
   // Calculate status counts
   const statusCounts = {
-    Backlog: list.filter(t => t.status === "Backlog").length,
-    "In Progress": list.filter(t => t.status === "In Progress").length,
-    Ready: list.filter(t => t.status === "Ready").length,
-    Completed: list.filter(t => t.status === "Completed").length,
+    Backlog: filtered.filter(t => t.status === "Backlog").length,
+    "In Progress": filtered.filter(t => t.status === "In Progress").length,
+    Ready: filtered.filter(t => t.status === "Ready").length,
+    Completed: filtered.filter(t => t.status === "Completed").length,
   }
 
   return (
