@@ -195,13 +195,13 @@ export function SidePanelNavigationEnhanced({ navigation, utility, brandName, br
   }
 
   const handleSettingsClick = () => {
-   
+    router.push("/admin/settings")
+  }
 
   const handleLogout = async () => {
     if (onLogout) {
       await onLogout()
     }
-  } router.push("/admin/settings")
   }
 
   const NavItemComponent = ({ item, depth = 0 }: { item: NavItem; depth?: number }) => {
